@@ -133,39 +133,6 @@
 <p>Automatically generated API reference for <code class="docutils literal notranslate"><span class="pre">ell</span></code>.</p>
 <p id="module-ell">ell is a Python library for language model programming (LMP). It provides a simple
 and intuitive interface for working with large language models.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="ell.CustomJSONEncoder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ell.</span></span><span class="sig-name descname"><span class="pre">CustomJSONEncoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ell.CustomJSONEncoder" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ell.CustomJSONEncoder'">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">JSONEncoder</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ell.CustomJSONEncoder.default">
-<span class="sig-name descname"><span class="pre">default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ell.CustomJSONEncoder.default" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ell.CustomJSONEncoder.default'">¶</a></dt>
-<dd><p>Implement this method in a subclass such that it returns
-a serializable object for <code class="docutils literal notranslate"><span class="pre">o</span></code>, or calls the base implementation
-(to raise a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>).</p>
-<p>For example, to support arbitrary iterators, you could
-implement default like this:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
-</span><span id="line-2">    <span class="k">try</span><span class="p">:</span>
-</span><span id="line-3">        <span class="n">iterable</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
-</span><span id="line-4">    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
-</span><span id="line-5">        <span class="k">pass</span>
-</span><span id="line-6">    <span class="k">else</span><span class="p">:</span>
-</span><span id="line-7">        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
-</span><span id="line-8">    <span class="c1"># Let the base class default method raise the TypeError</span>
-</span><span id="line-9">    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
-</span></code></pre></div>
-</div>
-</dd></dl>
-</dd></dl>
-<dl class="py function">
-<dt class="sig sig-object py" id="ell.parse_content">
-<span class="sig-prename descclassname"><span class="pre">ell.</span></span><span class="sig-name descname"><span class="pre">parse_content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ell.parse_content" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ell.parse_content'">¶</a></dt>
-<dd></dd></dl>
-<dl class="py function">
-<dt class="sig sig-object py" id="ell.serialize_image">
-<span class="sig-prename descclassname"><span class="pre">ell.</span></span><span class="sig-name descname"><span class="pre">serialize_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ell.serialize_image" title="Link to this definition" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#ell.serialize_image'">¶</a></dt>
-<dd></dd></dl>
 </section>
 </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
 <div class="mr-auto">
@@ -176,18 +143,7 @@ implement default like this:</p>
         Multimodal Inputs in ell
       </a>
 </div>
-</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
-<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
-<ul>
-<li><a :data-current="activeSection === '#ell.CustomJSONEncoder'" class="reference internal" href="#ell.CustomJSONEncoder"><code class="docutils literal notranslate"><span class="pre">CustomJSONEncoder</span></code></a><ul>
-<li><a :data-current="activeSection === '#ell.CustomJSONEncoder.default'" class="reference internal" href="#ell.CustomJSONEncoder.default"><code class="docutils literal notranslate"><span class="pre">CustomJSONEncoder.default()</span></code></a></li>
-</ul>
-</li>
-<li><a :data-current="activeSection === '#ell.parse_content'" class="reference internal" href="#ell.parse_content"><code class="docutils literal notranslate"><span class="pre">parse_content()</span></code></a></li>
-<li><a :data-current="activeSection === '#ell.serialize_image'" class="reference internal" href="#ell.serialize_image"><code class="docutils literal notranslate"><span class="pre">serialize_image()</span></code></a></li>
-</ul>
-</div>
-</aside>
+</div></div>
 </main>
 </div>
 </div><footer class="py-6 border-t border-border md:py-0">
