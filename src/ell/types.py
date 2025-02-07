@@ -1,4 +1,4 @@
-from typing import Optional, List, Union, Callable, Any, TypeVar
+from typing import Optional, List, Union, Callable, Any, Dict, TypeVar
 from dataclasses import dataclass
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from datetime import datetime
