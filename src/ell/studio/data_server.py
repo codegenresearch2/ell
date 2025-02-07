@@ -1,11 +1,13 @@
 import asyncio
 import websockets
-from fastapi import FastAPI, WebSocket
-from typing import List, Dict, Any
+from fastapi import FastAPI, WebSocket, Query
+from typing import List, Dict, Any, Optional
 from ell.stores.sql import SQLiteStore
 from ell import __version__
 import os
 import logging
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -42,19 +44,20 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # WebSocket endpoint
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: str):
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             await manager.send_personal_message(f"Message received: {data}", websocket)
-            await manager.broadcast(f"Client {client_id} says: {data}")
-    except websockets.exceptions.ConnectionClosed:
+            await manager.broadcast(f"Client says: {data}")
+    except websockets.exceptions.ConnectionClosed as e:
         manager.disconnect(websocket)
+        logger.info(f"WebSocket connection closed: {e}")
 
 # Function to retrieve invocations with a structured filter approach
-def get_invocation_by_id(invocation_id: str, serializer: SQLiteStore):
+def get_invocation_by_id(invocation_id: str, serializer: SQLiteStore) -> Optional[Dict[str, Any]]:
     invocations = serializer.get_invocations(filters={"id": invocation_id})
     return invocations[0] if invocations else None
 
@@ -64,7 +67,7 @@ async def notify_clients(message: str, serializer: SQLiteStore):
 
 # Example route to get an invocation
 @app.get("/api/invocation/{invocation_id}")
-async def get_invocation(invocation_id: str):
+def get_invocation(invocation_id: str):
     serializer = SQLiteStore(os.getcwd())
     invocation = get_invocation_by_id(invocation_id, serializer)
     if invocation:
@@ -74,7 +77,7 @@ async def get_invocation(invocation_id: str):
 
 # Example route to notify clients
 @app.post("/api/notify")
-async def notify(message: str):
+def notify(message: str):
     serializer = SQLiteStore(os.getcwd())
     await notify_clients(message, serializer)
     return {"status": "Notification sent"}
