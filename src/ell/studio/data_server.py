@@ -79,5 +79,5 @@ def get_invocation(invocation_id: str):
 @app.post("/api/notify")
 def notify(message: str):
     serializer = SQLiteStore(os.getcwd())
-    await notify_clients(message, serializer)
+    asyncio.create_task(notify_clients(message, serializer))
     return {"status": "Notification sent"}
