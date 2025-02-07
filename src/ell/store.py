@@ -50,8 +50,8 @@ class Store(ABC):
         kwargs: str,
         result: Union[lstr, List[lstr]],
         invocation_kwargs: Dict[str, Any],
-        created_at: Optional[datetime],
-        consumes: Set[str],
+        created_at: Optional[datetime] = None,
+        consumes: Set[str] = set(),
         prompt_tokens: Optional[int] = None,
         completion_tokens: Optional[int] = None,
         latency_ms: Optional[float] = None,
@@ -128,3 +128,4 @@ class Store(ABC):
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
                 else:
                     delattr(lmp, '__ell_use_cache__')
+    
