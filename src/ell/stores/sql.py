@@ -17,7 +17,7 @@ class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        self.open_files: Dict[str, Any] = {}
+        self.open_files = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool,
                   lm_kwargs: str, version_number: int,
@@ -25,9 +25,9 @@ class SQLStore(ell.store.Store):
                   free_vars: Dict[str, Any], commit_message: Optional[str] = None,
                   created_at: Optional[float] = None) -> Optional[SerializedLMP]:
         with Session(self.engine) as session:
-            lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id)).first()
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
-                return lmp
+                return None
             lmp = SerializedLMP(
                 lmp_id=lmp_id,
                 name=name,
@@ -43,7 +43,7 @@ class SQLStore(ell.store.Store):
             )
             session.add(lmp)
             for use_id in uses:
-                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                used_lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == use_id).first()
                 if used_lmp and used_lmp not in lmp.uses:
                     lmp.uses.append(used_lmp)
             session.commit()
@@ -66,7 +66,7 @@ class SQLStore(ell.store.Store):
             else:
                 raise TypeError("Result must be either lstr or List[lstr]")
 
-            lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id)).first()
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
 
             invocation = Invocation(
