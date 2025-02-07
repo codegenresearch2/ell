@@ -1,4 +1,5 @@
 from typing import Optional, List, Union, Callable, Any, TypeVar
+from dataclasses import dataclass
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from datetime import datetime
 from ell.lstr import lstr
