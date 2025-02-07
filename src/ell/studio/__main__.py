@@ -7,11 +7,9 @@ from fastapi.responses import FileResponse
 import asyncio
 from watchfiles import awatch
 
-# Database path
-# Ensure the database path matches the gold code's format
 
 def main():
-    parser = ArgumentParser(description='ELL Studio Data Server')
+    parser = ArgumentParser(description='ELL Studio Data Server', formatter_class=lambda prog: argparse.HelpFormatter(prog, width=100, max_help_position=50))
     parser.add_argument('--storage-dir', default=os.getcwd(), help='Directory for filesystem serializer storage (default: current directory)')
     parser.add_argument('--host', default='127.0.0.1', help='Host to run the server on')
     parser.add_argument('--port', type=int, default=8080, help='Port to run the server on')
@@ -40,6 +38,8 @@ def main():
     async def db_watcher():
         async for changes in awatch(db_path):
             print(f'Database changed: {changes}')
+            # Notify clients about the database change
+            # (This is a placeholder for the actual notification mechanism)
 
     # Run the server and the database watcher concurrently
     server_task = loop.create_task(uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port)).serve())
