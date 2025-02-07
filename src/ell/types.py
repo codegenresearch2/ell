@@ -1,4 +1,4 @@
-from typing import Optional, List, Any, Callable, Dict
+from typing import Optional, List, Union, Callable, Any, TypeVar
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from datetime import datetime
 from ell.lstr import lstr
@@ -8,6 +8,8 @@ _lstr_generic = Union[lstr, str]
 
 OneTurn = Callable[..., _lstr_generic]
 
+T = TypeVar('T')
+
 @dataclass
 class Message(dict, metaclass=DictSyncMeta):
     role: str
@@ -16,7 +18,7 @@ class Message(dict, metaclass=DictSyncMeta):
 MessageOrDict = Union[Message, Dict[str, str]]
 Chat = List[Message]
 MultiTurnLMP = Callable[..., Chat]
-ChatLMP = Callable[[Chat, Any], Chat]
+ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
