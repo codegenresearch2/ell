@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import json
 import os
@@ -20,46 +19,45 @@ class SQLStore(ell.store.Store):
         SQLModel.metadata.create_all(self.engine)
         self.open_files = {}
 
-    async def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
-                        version_number: int,
-                        uses: Dict[str, Any], global_vars: Dict[str, Any],
-                        free_vars: Dict[str, Any], commit_message: Optional[str] = None,
-                        created_at: Optional[float] = None) -> Optional[Any]:
-        async with Session(self.engine) as session:
-            lmp = await session.get(SerializedLMP, lmp_id)
-            if not lmp:
-                lmp = SerializedLMP(
-                    lmp_id=lmp_id,
-                    name=name,
-                    version_number=version_number,
-                    source=source,
-                    dependencies=dependencies,
-                    initial_global_vars=global_vars,
-                    initial_free_vars=free_vars,
-                    created_at=created_at or datetime.datetime.utcnow(),
-                    is_lm=is_lmp,
-                    lm_kwargs=lm_kwargs,
-                    commit_message=commit_message
-                )
-                session.add(lmp)
-
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool,
+                  lm_kwargs: str, version_number: int,
+                  uses: Dict[str, Any], global_vars: Dict[str, Any],
+                  free_vars: Dict[str, Any], commit_message: Optional[str] = None,
+                  created_at: Optional[float] = None) -> Optional[Any]:
+        with Session(self.engine) as session:
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+            if lmp:
+                return None
+            lmp = SerializedLMP(
+                lmp_id=lmp_id,
+                name=name,
+                version_number=version_number,
+                source=source,
+                dependencies=dependencies,
+                initial_global_vars=global_vars,
+                initial_free_vars=free_vars,
+                created_at=created_at or datetime.datetime.utcnow(),
+                is_lm=is_lmp,
+                lm_kwargs=lm_kwargs,
+                commit_message=commit_message
+            )
+            session.add(lmp)
             for use_id in uses:
-                used_lmp = await session.get(SerializedLMP, use_id)
+                used_lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == use_id).first()
                 if used_lmp and used_lmp not in lmp.uses:
                     lmp.uses.append(used_lmp)
-
-            await session.commit()
+            session.commit()
         return None
 
-    async def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]],
-                                invocation_kwargs: Dict[str, Any], global_vars: Dict[str, Any],
-                                free_vars: Dict[str, Any], created_at: Optional[float],
-                                consumes: Set[str], prompt_tokens: Optional[int] = None,
-                                completion_tokens: Optional[int] = None,
-                                latency_ms: Optional[float] = None,
-                                state_cache_key: Optional[str] = None,
-                                cost_estimate: Optional[float] = None) -> Optional[Any]:
-        async with Session(self.engine) as session:
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]],
+                          invocation_kwargs: Dict[str, Any], global_vars: Dict[str, Any],
+                          free_vars: Dict[str, Any], created_at: Optional[float],
+                          consumes: Set[str], prompt_tokens: Optional[int] = None,
+                          completion_tokens: Optional[int] = None,
+                          latency_ms: Optional[float] = None,
+                          state_cache_key: Optional[str] = None,
+                          cost_estimate: Optional[float] = None) -> Optional[Any]:
+        with Session(self.engine) as session:
             if isinstance(result, lstr):
                 results = [result]
             elif isinstance(result, list):
@@ -67,7 +65,7 @@ class SQLStore(ell.store.Store):
             else:
                 raise TypeError("Result must be either lstr or List[lstr]")
 
-            lmp = await session.get(SerializedLMP, lmp_id)
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
 
             invocation = Invocation(
@@ -101,140 +99,4 @@ class SQLStore(ell.store.Store):
                     invocation_consuming_id=consumed_id
                 ))
 
-            await session.commit()
-
-    async def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
-        subquery = (select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
-                     .group_by(SerializedLMP.name).subquery())
-
-        filters = {
-            "name": subquery.c.name,
-            "created_at": subquery.c.max_created_at
-        }
-
-        return await self.get_lmps(skip=skip, limit=limit, subquery=subquery, **filters)
-
-    async def get_lmps(self, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        async with Session(self.engine) as session:
-            query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
-                SerializedLMPUses,
-                SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id
-            )
-
-            if subquery is not None:
-                query = query.join(subquery, and_(
-                    SerializedLMP.name == subquery.c.name,
-                    SerializedLMP.created_at == subquery.c.max_created_at
-                ))
-
-            if filters:
-                for key, value in filters.items():
-                    query = query.where(getattr(SerializedLMP, key) == value)
-
-            query = query.order_by(SerializedLMP.created_at.desc()).offset(skip).limit(limit)
-            results = (await session.exec(query)).all()
-
-            lmp_dict = {lmp.lmp_id: {**lmp.model_dump(), 'uses': []} for lmp, _ in results}
-            for lmp, using_id in results:
-                if using_id:
-                    lmp_dict[lmp.lmp_id]['uses'].append(using_id)
-            return list(lmp_dict.values())
-
-    async def get_invocations(self, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10,
-                               filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        async with Session(self.engine) as session:
-            query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
-
-            for key, value in lmp_filters.items():
-                query = query.where(getattr(SerializedLMP, key) == value)
-
-            if filters:
-                for key, value in filters.items():
-                    query = query.where(getattr(Invocation, key) == value)
-
-            query = query.order_by(Invocation.created_at.desc()).offset(skip).limit(limit)
-
-            results = (await session.exec(query)).all()
-
-            invocations = {}
-            for inv, lstr, lmp in results:
-                if inv.id not in invocations:
-                    inv_dict = inv.model_dump()
-                    inv_dict['lmp'] = lmp.model_dump()
-                    invocations[inv.id] = inv_dict
-                    invocations[inv.id]['results'] = []
-                if lstr:
-                    invocations[inv.id]['results'].append(dict(**lstr.model_dump(), __lstr=True))
-
-            return list(invocations.values())
-
-    async def get_traces(self):
-        async with Session(self.engine) as session:
-            query = text("""
-            SELECT 
-                consumer.lmp_id, 
-                trace.*, 
-                consumed.lmp_id
-            FROM 
-                invocation AS consumer
-            JOIN 
-                invocationtrace AS trace ON consumer.id = trace.invocation_consumer_id
-            JOIN 
-                invocation AS consumed ON trace.invocation_consuming_id = consumed.id
-            """)
-            results = (await session.exec(query)).all()
-
-            traces = []
-            for (consumer_lmp_id, consumer_invocation_id, consumed_invocation_id, consumed_lmp_id) in results:
-                traces.append({
-                    'consumer': consumer_lmp_id,
-                    'consumed': consumed_lmp_id
-                })
-
-            return traces
-
-    async def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
-        async with Session(self.engine) as session:
-            traces = []
-            visited = set()
-            queue = [(invocation_id, 0)]
-
-            while queue:
-                current_invocation_id, depth = queue.pop(0)
-                if depth > 4:
-                    continue
-
-                if current_invocation_id in visited:
-                    continue
-
-                visited.add(current_invocation_id)
-
-                results = (await session.exec(
-                    select(InvocationTrace, Invocation, SerializedLMP)
-                    .join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id)
-                    .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
-                    .where(InvocationTrace.invocation_consumer_id == current_invocation_id)
-                )).all()
-                for row in results:
-                    trace = {
-                        'consumer_id': row.InvocationTrace.invocation_consumer_id,
-                        'consumed': {key: value for key, value in row.Invocation.__dict__.items() if key not in ['invocation_consumer_id', 'invocation_consuming_id']},
-                        'consumed_lmp': row.SerializedLMP.model_dump()
-                    }
-                    traces.append(trace)
-                    queue.append((row.Invocation.id, depth + 1))
-
-            unique_traces = {}
-            for trace in traces:
-                consumed_id = trace['consumed']['id']
-                if consumed_id not in unique_traces:
-                    unique_traces[consumed_id] = trace
-
-            return list(unique_traces.values())
-
-
-class SQLiteStore(SQLStore):
-    def __init__(self, storage_dir: str):
-        os.makedirs(storage_dir, exist_ok=True)
-        db_path = os.path.join(storage_dir, 'ell.db')
-        super().__init__(f'sqlite:///{db_path}')
+            session.commit()
