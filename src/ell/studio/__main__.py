@@ -4,9 +4,9 @@ from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import run_process
 import asyncio
 import websockets
+from watchfiles import awatch
 
 # Enhance error handling for API responses.
 def handle_api_error(error):
@@ -24,9 +24,10 @@ async def manage_connections():
     await server.wait_closed()
 
 # Database watching
-async def watch_database():
-    database_path = os.path.join(os.getcwd(), "database.db")
-    await run_process(database_path, target_module=__import__, callback=lambda changes: print(f"Database changed: {changes}"))
+async def watch_database(storage_dir):
+    database_path = os.path.join(storage_dir, "database.db")
+    async for changes in awatch(database_path):
+        print(f"Database changed: {changes}")
 
 
 def main():
@@ -53,14 +54,12 @@ def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    # Create a Uvicorn config and server instance
-    config = uvicorn.Config(app, host=args.host, port=args.port)
-    server = uvicorn.Server(config)
-
     # Run the server and the database watcher concurrently
-    loop.run_until_complete(server.serve())
-    loop.run_until_complete(watch_database())
-    loop.run_until_complete(manage_connections())
+    server_task = loop.create_task(uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port)).serve())
+    watch_task = loop.create_task(watch_database(args.storage_dir))
+    manage_task = loop.create_task(manage_connections())
+
+    loop.run_until_complete(asyncio.gather(server_task, watch_task, manage_task))
     loop.close()
 
 if __name__ == "__main__":
