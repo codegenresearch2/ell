@@ -12,7 +12,19 @@ class Store(ABC):
     """
 
     @abstractmethod
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None, created_at: Optional[datetime] = None) -> Optional[Any]:  # noqa: E501
+    def write_lmp(
+        self,
+        lmp_id: str,
+        name: str,
+        source: str,
+        dependencies: List[str],
+        is_lmp: bool,
+        lm_kwargs: str,
+        version_number: int,
+        uses: Dict[str, Any],
+        commit_message: Optional[str] = None,
+        created_at: Optional[datetime] = None,
+    ) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
 
@@ -23,13 +35,29 @@ class Store(ABC):
         :param is_lmp: Boolean indicating if it is an LMP.
         :param lm_kwargs: Additional keyword arguments for the LMP.
         :param uses: Dictionary of LMPs used by this LMP.
+        :param commit_message: Optional commit message.
         :param created_at: Optional timestamp of when the LMP was created.
         :return: Optional return value.
         """
         pass
 
     @abstractmethod
-    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any], created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None, state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:  # noqa: E501
+    def write_invocation(
+        self,
+        id: str,
+        lmp_id: str,
+        args: str,
+        kwargs: str,
+        result: Union[lstr, List[lstr]],
+        invocation_kwargs: Dict[str, Any],
+        created_at: Optional[datetime],
+        consumes: Set[str],
+        prompt_tokens: Optional[int] = None,
+        completion_tokens: Optional[int] = None,
+        latency_ms: Optional[float] = None,
+        state_cache_key: Optional[str] = None,
+        cost_estimate: Optional[float] = None,
+    ) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
 
@@ -44,6 +72,7 @@ class Store(ABC):
         :param prompt_tokens: Optional number of prompt tokens used.
         :param completion_tokens: Optional number of completion tokens used.
         :param latency_ms: Optional latency in milliseconds.
+        :param state_cache_key: Optional state cache key.
         :param cost_estimate: Optional estimated cost of the invocation.
         :return: Optional return value.
         """
@@ -60,7 +89,7 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:  # noqa: E501
+    def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Retrieve invocations of an LMP from the storage.
 
@@ -85,12 +114,7 @@ class Store(ABC):
         """
         A context manager for caching operations using a particular store.
 
-        Args:
-            key (Optional[str]): The cache key. If None, a default key will be generated.
-            condition (Optional[Callable[..., bool]]): A function that determines whether to cache or not.
-
-        Yields:
-            None
+        :param lmps: The Language Model Programs to freeze.
         """
         old_cache_values = {}
         try:
@@ -99,7 +123,6 @@ class Store(ABC):
                 setattr(lmp, '__ell_use_cache__', self)
             yield
         finally:
-            # TODO: Implement cache storage logic here
             for lmp in lmps:
                 if lmp in old_cache_values:
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
