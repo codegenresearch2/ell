@@ -50,10 +50,15 @@ class SQLStore(ell.store.Store):
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")
+                raise TypeError("Result must be either lstr or List[lstr]")            
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
+
+            if lmp.num_invocations is None:
+                lmp.num_invocations = 1
+            else:
+                lmp.num_invocations += 1
 
             invocation = Invocation(
                 id=id,
