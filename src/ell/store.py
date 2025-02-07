@@ -34,9 +34,9 @@ class Store(ABC):
 
     @abstractmethod
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any], 
-                         created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
-                         completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
-                         state_cache_key: Optional[str] = None,
+                         created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None, 
+                         completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None, 
+                         state_cache_key: Optional[str] = None, 
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
@@ -77,27 +77,6 @@ class Store(ABC):
         :return: List of invocations.
         """
         pass
-
-    # @abstractmethod
-    # def search_lmps(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for LMPs in the storage.
-
-    #     :param query: Search query string.
-    #     :return: List of LMPs matching the query.
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def search_invocations(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for invocations in the storage.
-
-    #     :param query: Search query string.
-    #     :return: List of invocations matching the query.
-    #     """
-    #     pass
-
 
     @abstractmethod
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
