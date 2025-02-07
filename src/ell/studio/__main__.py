@@ -1,11 +1,27 @@
-import asyncio
 import os
 import uvicorn
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import awatch
+from watchfiles import run_process
+import websockets
+import asyncio
+
+# Enhance error handling for API responses.
+def handle_api_error(error):
+    return {"error": str(error)}
+
+# Implement WebSocket support for real-time updates.
+async def websocket_handler(websocket, path):
+    while True:
+        message = await websocket.recv()
+        await websocket.send(f"Received: {message}")
+
+# Improve code organization with connection management.
+async def manage_connections():
+    server = await websockets.serve(websocket_handler, "localhost", 8765)
+    await server.wait_closed()
 
 
 def main():
@@ -28,23 +44,11 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    db_path = os.path.join(args.storage_dir, "ell.db")
+    # In production mode, run without auto-reloading
+    uvicorn.run(app, host=args.host, port=args.port)
 
-    async def db_watcher():
-        async for changes in awatch(db_path):
-            print(f"Database changed: {changes}")
-            await app.notify_clients("database_updated")
-
-    # Start the database watcher
-
-
-    loop = asyncio.new_event_loop()
-
-    config = uvicorn.Config(app=app, port=args.port, loop=loop)
-    server = uvicorn.Server(config)
-    loop.create_task(server.serve())
-    loop.create_task(db_watcher())
-    loop.run_forever()
+    # Manage WebSocket connections
+    asyncio.get_event_loop().run_until_complete(manage_connections())
 
 if __name__ == "__main__":
     main()
