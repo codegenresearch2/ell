@@ -4,7 +4,9 @@ from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 import sqlalchemy.types as types
 from sqlalchemy import func
 
-# Ensure necessary imports
+# Define type aliases
+_lstr_generic = Union[str, 'lstr']
+OneTurn = Callable[..., _lstr_generic]
 
 # Define the SerializedLMPUses class
 class SerializedLMPUses(SQLModel, table=True):
