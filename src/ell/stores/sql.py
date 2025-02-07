@@ -18,10 +18,7 @@ class SQLStore(ell.store.Store):
 
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str,
-                  version_number: int,
-                  uses: Dict[str, Any], commit_message: Optional[str] = None,
-                  created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str, version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
@@ -46,14 +43,7 @@ class SQLStore(ell.store.Store):
             session.commit()
         return None
 
-    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]],
-                         invocation_kwargs: Dict[str, Any],
-                         global_vars: Dict[str, Any],
-                         free_vars: Dict[str, Any], created_at: Optional[datetime.datetime],
-                         consumes: Set[str], prompt_tokens: Optional[int] = None,
-                         completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
-                         state_cache_key: Optional[str] = None,
-                         cost_estimate: Optional[float] = None) -> Optional[Any]:
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[datetime.datetime], consumes: Set[str], prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None, state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             if isinstance(result, lstr):
                 results = [result]
@@ -64,11 +54,6 @@ class SQLStore(ell.store.Store):
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
-
-            if lmp.num_invocations is None:
-                lmp.num_invocations = 1
-            else:
-                lmp.num_invocations += 1
 
             invocation = Invocation(
                 id=id,
