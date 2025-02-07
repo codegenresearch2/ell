@@ -11,7 +11,6 @@ from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPU
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
-
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
@@ -22,7 +21,7 @@ class SQLStore(ell.store.Store):
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str,
                   version_number: int,
                   uses: Dict[str, Any], commit_message: Optional[str] = None,
-                  created_at: Optional[datetime] = None) -> Optional[Any]:
+                  created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
@@ -48,7 +47,9 @@ class SQLStore(ell.store.Store):
         return None
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]],
-                         invocation_kwargs: Dict[str, Any], created_at: Optional[datetime],
+                         invocation_kwargs: Dict[str, Any],
+                         global_vars: Dict[str, Any],
+                         free_vars: Dict[str, Any], created_at: Optional[datetime.datetime],
                          consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None,
@@ -63,6 +64,11 @@ class SQLStore(ell.store.Store):
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
+
+            if lmp.num_invocations is None:
+                lmp.num_invocations = 1
+            else:
+                lmp.num_invocations += 1
 
             invocation = Invocation(
                 id=id,
@@ -89,6 +95,7 @@ class SQLStore(ell.store.Store):
                     invocation_consuming_id=consumed_id
                 ))
             session.commit()
+        return None
 
     def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         subquery = (
@@ -204,7 +211,6 @@ class SQLStore(ell.store.Store):
                 if consumed_id not in unique_traces:
                     unique_traces[consumed_id] = trace
             return list(unique_traces.values())
-
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
