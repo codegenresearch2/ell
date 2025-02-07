@@ -1,9 +1,8 @@
-from dataclasses import dataclass
-from typing import Callable, Dict, List, Union, Any
-from ell.lstr import lstr
-from ell.util.dict_sync_meta import DictSyncMeta
+from typing import Optional, List, Any, Callable, Dict
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from datetime import datetime
+from ell.lstr import lstr
+from ell.util.dict_sync_meta import DictSyncMeta
 
 _lstr_generic = Union[lstr, str]
 
