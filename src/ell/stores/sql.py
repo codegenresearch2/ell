@@ -19,6 +19,24 @@ class SQLStore(ell.store.Store):
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str, version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
+        """
+        Write an LMP (Language Model Package) to the storage.
+
+        Args:
+            lmp_id (str): Unique identifier for the LMP.
+            name (str): Name of the LMP.
+            source (str): Source code or reference for the LMP.
+            dependencies (List[str]): List of dependencies for the LMP.
+            is_lm (bool): Boolean indicating if it is an LM (Language Model).
+            lm_kwargs (str): Additional keyword arguments for the LMP.
+            version_number (int): Version number of the LMP.
+            uses (Dict[str, Any]): Dictionary of LMPs used by this LMP.
+            commit_message (Optional[str]): Optional commit message for the LMP.
+            created_at (Optional[datetime]): Optional timestamp of when the LMP was created.
+
+        Returns:
+            Optional[Any]: Returns the LMP object if it already exists, otherwise returns None.
+        """
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
@@ -44,21 +62,39 @@ class SQLStore(ell.store.Store):
         return None
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[datetime.datetime], consumes: Set[str], prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None, state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
+        """
+        Write an invocation of an LMP to the storage.
+
+        Args:
+            id (str): Unique identifier for the invocation.
+            lmp_id (str): Unique identifier for the LMP.
+            args (str): Arguments used in the invocation.
+            kwargs (str): Keyword arguments used in the invocation.
+            result (Union[lstr, List[lstr]]): Result of the invocation.
+            invocation_kwargs (Dict[str, Any]): Additional keyword arguments for the invocation.
+            global_vars (Dict[str, Any]): Global variables used in the invocation.
+            free_vars (Dict[str, Any]): Free variables used in the invocation.
+            created_at (Optional[datetime]): Optional timestamp of when the invocation was created.
+            consumes (Set[str]): Set of invocation IDs consumed by this invocation.
+            prompt_tokens (Optional[int]): Optional number of prompt tokens used.
+            completion_tokens (Optional[int]): Optional number of completion tokens used.
+            latency_ms (Optional[float]): Optional latency in milliseconds.
+            state_cache_key (Optional[str]): Optional state cache key.
+            cost_estimate (Optional[float]): Optional estimated cost of the invocation.
+
+        Returns:
+            Optional[Any]: Returns None.
+        """
         with Session(self.engine) as session:
             if isinstance(result, lstr):
                 results = [result]
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")            
+                raise TypeError("Result must be either lstr or List[lstr]")
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
-
-            if lmp.num_invocations is None:
-                lmp.num_invocations = 1
-            else:
-                lmp.num_invocations += 1
 
             invocation = Invocation(
                 id=id,
@@ -88,6 +124,16 @@ class SQLStore(ell.store.Store):
         return None
 
     def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Gets all the lmps grouped by unique name with the highest created at
+
+        Args:
+            skip (int): Number of items to skip.
+            limit (int): Number of items to return.
+
+        Returns:
+            List[Dict[str, Any]]: List of the latest LMPs.
+        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
@@ -100,6 +146,18 @@ class SQLStore(ell.store.Store):
         return self.get_lmps(skip=skip, limit=limit, subquery=subquery, **filters)
 
     def get_lmps(self, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Retrieve LMPs from the storage.
+
+        Args:
+            skip (int): Number of items to skip.
+            limit (int): Number of items to return.
+            subquery (Optional[Any]): Subquery to join with.
+            **filters (Optional[Dict[str, Any]]): Filters to apply.
+
+        Returns:
+            List[Dict[str, Any]]: List of LMPs.
+        """
         with Session(self.engine) as session:
             query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
                 SerializedLMPUses,
@@ -122,6 +180,18 @@ class SQLStore(ell.store.Store):
             return list(lmp_dict.values())
 
     def get_invocations(self, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve invocations of an LMP from the storage.
+
+        Args:
+            lmp_filters (Dict[str, Any]): Filters to apply to LMPs.
+            skip (int): Number of items to skip.
+            limit (int): Number of items to return.
+            filters (Optional[Dict[str, Any]]): Additional filters to apply.
+
+        Returns:
+            List[Dict[str, Any]]: List of invocations.
+        """
         with Session(self.engine) as session:
             query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
             for key, value in lmp_filters.items():
@@ -143,6 +213,12 @@ class SQLStore(ell.store.Store):
             return list(invocations.values())
 
     def get_traces(self):
+        """
+        Retrieve invocation traces.
+
+        Returns:
+            List[Dict[str, Any]]: List of invocation traces.
+        """
         with Session(self.engine) as session:
             query = text("""
             SELECT 
@@ -166,6 +242,15 @@ class SQLStore(ell.store.Store):
             return traces
 
     def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve all traces leading to a specific invocation.
+
+        Args:
+            invocation_id (str): The ID of the invocation.
+
+        Returns:
+            List[Dict[str, Any]]: List of traces leading to the invocation.
+        """
         with Session(self.engine) as session:
             traces = []
             visited = set()
