@@ -18,7 +18,7 @@ class SQLStore(ell.store.Store):
 
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], lm_kwargs: str, version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None, is_lm: bool = False) -> Optional[Any]:
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], lm_kwargs: str, version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None, is_lm: bool = False, initial_global_vars: Dict[str, Any] = {}, initial_free_vars: Dict[str, Any] = {}) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
 
@@ -33,6 +33,8 @@ class SQLStore(ell.store.Store):
             commit_message (Optional[str]): Optional commit message for the LMP.
             created_at (Optional[datetime]): Optional timestamp of when the LMP was created.
             is_lm (bool): Boolean indicating if it is an LM (Language Model).
+            initial_global_vars (Dict[str, Any]): Initial global variables for the LMP.
+            initial_free_vars (Dict[str, Any]): Initial free variables for the LMP.
 
         Returns:
             Optional[Any]: Returns the LMP object if it already exists, otherwise returns None.
@@ -51,7 +53,9 @@ class SQLStore(ell.store.Store):
                     created_at=created_at or utc_now(),
                     is_lm=is_lm,
                     lm_kwargs=lm_kwargs,
-                    commit_message=commit_message
+                    commit_message=commit_message,
+                    initial_global_vars=initial_global_vars,
+                    initial_free_vars=initial_free_vars
                 )
                 session.add(lmp)
             for use_id in uses:
