@@ -11,34 +11,36 @@ from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPU
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
+
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        self.open_files = {}
+        self.open_files: Dict[str, Dict[str, Any]] = {}
 
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str,
-                  version_number: int,
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool,
+                  lm_kwargs: str, version_number: int,
                   uses: Dict[str, Any], global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any], commit_message: Optional[str] = None,
                   created_at: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
-            if not lmp:
-                lmp = SerializedLMP(
-                    lmp_id=lmp_id,
-                    name=name,
-                    version_number=version_number,
-                    source=source,
-                    dependencies=dependencies,
-                    initial_global_vars=global_vars,
-                    initial_free_vars=free_vars,
-                    created_at=datetime.datetime.utcnow() if created_at is None else created_at,
-                    is_lm=is_lm,
-                    lm_kwargs=lm_kwargs,
-                    commit_message=commit_message
-                )
-                session.add(lmp)
+            if lmp:
+                return lmp
+            lmp = SerializedLMP(
+                lmp_id=lmp_id,
+                name=name,
+                version_number=version_number,
+                source=source,
+                dependencies=dependencies,
+                initial_global_vars=global_vars,
+                initial_free_vars=free_vars,
+                created_at=datetime.datetime.utcnow() if created_at is None else created_at,
+                is_lm=is_lm,
+                lm_kwargs=lm_kwargs,
+                commit_message=commit_message
+            )
+            session.add(lmp)
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
@@ -107,10 +109,10 @@ class SQLStore(ell.store.Store):
                     lmp_dict[lmp.lmp_id]['uses'].append(using_id)
             return list(lmp_dict.values())
 
-    def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def get_invocations(self, lmp_filters: Dict[str, Any], filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
             query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
-            query = query.where(SerializedLMP.lmp_id == lmp_id)
+            query = query.where(SerializedLMP.lmp_id == lmp_filters['lmp_id'])
             if filters:
                 for key, value in filters.items():
                     query = query.where(getattr(Invocation, key) == value)
@@ -188,6 +190,7 @@ class SQLStore(ell.store.Store):
 
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
         raise NotImplementedError()
+
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
