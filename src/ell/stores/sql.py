@@ -7,7 +7,7 @@ import ell.store
 import cattrs
 import numpy as np
 from sqlalchemy.sql import text
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
@@ -33,7 +33,7 @@ class SQLStore(ell.store.Store):
                 dependencies=dependencies,
                 initial_global_vars=global_vars,
                 initial_free_vars=free_vars,
-                created_at=ell.types.utc_now() if created_at is None else created_at,
+                created_at=utc_now() if created_at is None else created_at,
                 is_lm=is_lm,
                 lm_kwargs=lm_kwargs,
                 commit_message=commit_message
