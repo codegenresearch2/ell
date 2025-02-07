@@ -7,6 +7,15 @@ from sqlalchemy import func
 # Define type aliases
 _lstr_generic = Union[str, 'lstr']
 OneTurn = Callable[..., _lstr_generic]
+LMPParams = Dict[str, Any]
+
+# Define the Message class using dataclass
+from dataclasses import dataclass
+
+@dataclass
+class Message:
+    role: str
+    content: _lstr_generic
 
 # Define the SerializedLMPUses class
 class SerializedLMPUses(SQLModel, table=True):
