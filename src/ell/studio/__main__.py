@@ -5,8 +5,8 @@ from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from watchfiles import run_process
-import websockets
 import asyncio
+import websockets
 
 # Enhance error handling for API responses.
 def handle_api_error(error):
@@ -18,10 +18,15 @@ async def websocket_handler(websocket, path):
         message = await websocket.recv()
         await websocket.send(f"Received: {message}")
 
-# Improve code organization with connection management.
+# Manage WebSocket connections
 async def manage_connections():
     server = await websockets.serve(websocket_handler, "localhost", 8765)
     await server.wait_closed()
+
+# Database watching
+async def watch_database():
+    database_path = os.path.join(os.getcwd(), "database.db")
+    await run_process(database_path, target_module=__import__, callback=lambda changes: print(f"Database changed: {changes}"))
 
 
 def main():
@@ -44,11 +49,19 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    # In production mode, run without auto-reloading
-    uvicorn.run(app, host=args.host, port=args.port)
+    # Create a new event loop for managing the server and database watcher
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    # Manage WebSocket connections
-    asyncio.get_event_loop().run_until_complete(manage_connections())
+    # Create a Uvicorn config and server instance
+    config = uvicorn.Config(app, host=args.host, port=args.port)
+    server = uvicorn.Server(config)
+
+    # Run the server and the database watcher concurrently
+    loop.run_until_complete(server.serve())
+    loop.run_until_complete(watch_database())
+    loop.run_until_complete(manage_connections())
+    loop.close()
 
 if __name__ == "__main__":
     main()
