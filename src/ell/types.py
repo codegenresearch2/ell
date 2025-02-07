@@ -1,6 +1,6 @@
 from typing import Optional, List, Union, Callable, Any, Dict, TypeVar
 from dataclasses import dataclass
-from sqlmodel import Field, SQLModel, Relationship, JSON
+from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from datetime import datetime
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
