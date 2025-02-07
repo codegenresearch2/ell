@@ -1,13 +1,12 @@
 import asyncio
 import websockets
-from fastapi import FastAPI, WebSocket, Query
+from fastapi import FastAPI, WebSocket, Query, HTTPException
 from typing import List, Dict, Any, Optional
 from ell.stores.sql import SQLiteStore
 from ell import __version__
 import os
 import logging
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import HTTPException
 
 logger = logging.getLogger(__name__)
 
