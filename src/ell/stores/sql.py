@@ -6,17 +6,16 @@ from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
 import cattrs
 import numpy as np
-from sqlalchemy.sql import text
+from sqlalchemy.sql import text, or_, and_
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
-from sqlalchemy import or_, func, and_
 
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        self.open_files = {}
+        self.open_files: Dict[str, Any] = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str, version_number: int,
                   uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], commit_message: Optional[str] = None,
@@ -57,7 +56,7 @@ class SQLStore(ell.store.Store):
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")            
+                raise TypeError("Result must be either lstr or List[lstr]")
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
