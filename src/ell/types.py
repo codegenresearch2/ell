@@ -1,10 +1,10 @@
-from typing import Optional, List, Callable, Any, Union
+from typing import Optional, List, Callable, Union, Any
+from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 import sqlalchemy.types as types
-from datetime import datetime, timezone
 from sqlalchemy import func
 
-# Ensure the necessary imports
+# Ensure necessary imports
 
 # Define the SerializedLMPUses class
 class SerializedLMPUses(SQLModel, table=True):
@@ -51,3 +51,40 @@ class SerializedLMP(SQLModel, table=True):
     class Config:
         table_name = 'serializedlmp'
         unique_together = [('version_number', 'name')]
+
+# Define the Invocation class
+class Invocation(SQLModel, table=True):
+    id: Optional[str] = Field(default=None, primary_key=True)
+    lmp_id: str = Field(foreign_key='serializedlmp.lmp_id', index=True)
+    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
+    kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    latency_ms: float
+    prompt_tokens: Optional[int] = Field(default=None)
+    completion_tokens: Optional[int] = Field(default=None)
+    state_cache_key: Optional[str] = Field(default=None)
+    created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
+    invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+
+    lmp: SerializedLMP = Relationship(back_populates='invocations')
+    results: List['SerializedLStr'] = Relationship(back_populates='producer_invocation')
+    consumed_by: List['Invocation'] = Relationship(back_populates='consumes', link_model=SerializedLMPUses, sa_relationship_kwargs=dict(
+        primaryjoin='Invocation.id==InvocationTrace.invocation_consumer_id',
+        secondaryjoin='Invocation.id==InvocationTrace.invocation_consuming_id',
+    ))
+    consumes: List['Invocation'] = Relationship(back_populates='consumed_by', link_model=SerializedLMPUses, sa_relationship_kwargs=dict(
+        primaryjoin='Invocation.id==InvocationTrace.invocation_consuming_id',
+        secondaryjoin='Invocation.id==InvocationTrace.invocation_consumer_id',
+    ))
+
+# Define the SerializedLStr class
+class SerializedLStr(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    content: str
+    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
+    producer_invocation_id: Optional[int] = Field(default=None, foreign_key='invocation.id', index=True)
+    producer_invocation: Optional['Invocation'] = Relationship(back_populates='results')
+
+    def deserialize(self) -> 'lstr':
+        return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
