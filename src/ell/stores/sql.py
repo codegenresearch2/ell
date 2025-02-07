@@ -16,11 +16,11 @@ class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        self.open_files: Dict[str, Dict[str, Any]] = {}
+        self.open_files = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str, version_number: int,
                   uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], commit_message: Optional[str] = None,
-                  created_at: Optional[float] = None) -> Optional[Any]:
+                  created_at: Optional[float]=None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
@@ -57,7 +57,7 @@ class SQLStore(ell.store.Store):
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")
+                raise TypeError("Result must be either lstr or List[lstr]")            
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
