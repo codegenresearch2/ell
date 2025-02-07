@@ -39,6 +39,7 @@ class ConnectionManager:
     async def broadcast(self, message: str):
         for connection in self.active_connections:
             await connection.send_text(message)
+            logger.info(f"Broadcasting message: {message}")
 
 manager = ConnectionManager()
 
@@ -63,6 +64,7 @@ def get_invocation_by_id(invocation_id: str, serializer: SQLiteStore) -> Optiona
 # Function to notify clients
 async def notify_clients(message: str, serializer: SQLiteStore):
     await manager.broadcast(message)
+    logger.info(f"Notifying clients with message: {message}")
 
 # Example route to get an invocation
 @app.get("/api/invocation/{invocation_id}")
