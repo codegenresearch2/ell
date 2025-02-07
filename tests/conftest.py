@@ -1,17 +1,1 @@
-import pytest
-import os
-from unittest.mock import patch
-
-@pytest.fixture(autouse=True)
-def setup_test_env():
-    # Set a fake OpenAI API key for all tests
-    
-    # Patch the OpenAI client
-    with patch('openai.OpenAI') as mock_openai:
-        # Configure the mock client to do nothing
-        mock_client = mock_openai.return_value
-        mock_client.chat.completions.create.return_value = None
-        # exit()
-        yield mock_client
-    
-    # Clean up after tests if necessary
+import pytest\\\nimport os\\\\\n\\\\n@pytest.fixture(autouse=True)\\\\\ndef setup_test_env():\\\\\n    # Set a fake OpenAI API key for all tests\\\\\n    os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'\\\\n    \\\\n    # You can add more environment setup here if needed\\\\n    \\\\nyield\\\\n    \\\\n    # Clean up after tests if necessary\\\\n
