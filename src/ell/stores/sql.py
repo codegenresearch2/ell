@@ -17,7 +17,7 @@ class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        self.open_files = {}
+        self.open_files: Dict[str, Any] = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool,
                   lm_kwargs: str, version_number: int,
