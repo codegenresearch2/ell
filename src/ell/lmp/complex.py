@@ -1,1 +1,1 @@
-from ell.configurator import config"
+from ell.configurator import config"}
