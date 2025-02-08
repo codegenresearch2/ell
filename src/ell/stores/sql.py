@@ -21,9 +21,12 @@ class SQLStore(ell.store.Store):
                   uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], commit_message: Optional[str] = None,
                   created_at: Optional[float]=None) -> Optional[Any]:
         with Session(self.engine) as session:
+            # Check if the LMP already exists
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
                 return lmp
+
+            # If not, create a new LMP
             lmp = SerializedLMP(
                 lmp_id=lmp_id,
                 name=name,
@@ -56,7 +59,7 @@ class SQLStore(ell.store.Store):
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")
+                raise TypeError("Result must be either lstr or List[lstr]")            
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
