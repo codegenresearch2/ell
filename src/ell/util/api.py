@@ -1,1 +1,1 @@
-def simple_function():\"\"\"This is a simple function that does nothing.\"\"\"\"}
+import logging\
