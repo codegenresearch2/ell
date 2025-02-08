@@ -45,5 +45,8 @@ def main():
     server_task = loop.create_task(uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port)).serve())
     db_watcher_task = loop.create_task(db_watcher())
 
-    loop.run_until_complete(asyncio.gather(server_task, db_watcher_task))
-    loop.close()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
