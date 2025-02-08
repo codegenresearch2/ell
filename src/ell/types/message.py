@@ -137,15 +137,15 @@ class ContentBlock(BaseModel):
             return None
 
 # HELPERS
-def system(content: Union[str, List[ContentBlock]]) -> Message:
+def system(content: Union[str, List[ContentBlock]]) -> "Message":
     return Message(role="system", content=content)
 
 
-def user(content: Union[str, List[ContentBlock]]) -> Message:
+def user(content: Union[str, List[ContentBlock]]) -> "Message":
     return Message(role="user", content=content)
 
 
-def assistant(content: Union[str, List[ContentBlock]]) -> Message:
+def assistant(content: Union[str, List[ContentBlock]]) -> "Message":
     return Message(role="assistant", content=content)
 
 LMPParams = Dict[str, Any]
@@ -157,3 +157,9 @@ MultiTurnLMP = Callable[..., Chat]
 OneTurn = Callable[..., _lstr_generic]
 ChatLMP = Callable[[Chat, Any], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
+
+# Define the Message class here or import it as needed
+class Message:
+    def __init__(self, role: str, content: List[ContentBlock]):
+        self.role = role
+        self.content = content
