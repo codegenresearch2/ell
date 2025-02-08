@@ -1,1 +1,1 @@
-// New code snippet
+def new_function():""""
