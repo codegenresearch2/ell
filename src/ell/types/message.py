@@ -1,11 +1,10 @@
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
-from PIL.Image import Image as PILImage
+from PIL import Image as PILImage
 import numpy as np
 import base64
 from io import BytesIO
-from PIL import Image as PILImage
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
 from sqlmodel import Field
@@ -40,7 +39,7 @@ class ToolCall(BaseModel):
 class ContentBlock(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     text: Optional[_lstr_generic] = Field(default=None)
-    image: Optional[Union[PILImage, str, np.ndarray]] = Field(default=None)
+    image: Optional[PILImage.Image] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
     parsed: Optional[Union[Type[BaseModel], BaseModel]] = Field(default=None)
@@ -70,7 +69,7 @@ class ContentBlock(BaseModel):
         return None
 
     @classmethod
-    def coerce(cls, content: Union[str, ToolCall, ToolResult, BaseModel, "ContentBlock", PILImage, np.ndarray]) -> "ContentBlock":
+    def coerce(cls, content: Union[str, ToolCall, ToolResult, BaseModel, "ContentBlock", PILImage.Image, np.ndarray]) -> "ContentBlock":
         if isinstance(content, ContentBlock):
             return content
         if isinstance(content, str):
@@ -81,7 +80,7 @@ class ContentBlock(BaseModel):
             return cls(tool_result=content)
         if isinstance(content, BaseModel):
             return cls(parsed=content)
-        if isinstance(content, (PILImage, np.ndarray)):
+        if isinstance(content, (PILImage.Image, np.ndarray)):
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
@@ -90,7 +89,7 @@ class ContentBlock(BaseModel):
     def validate_image(cls, v):
         if v is None:
             return v
-        if isinstance(v, PILImage):
+        if isinstance(v, PILImage.Image):
             return v
         if isinstance(v, str):
             try:
@@ -110,7 +109,7 @@ class ContentBlock(BaseModel):
         raise ValueError(f"Invalid image type: {type(v)}")
 
     @field_serializer('image')
-    def serialize_image(self, image: Optional[PILImage], _info):
+    def serialize_image(self, image: Optional[PILImage.Image], _info):
         if image is None:
             return None
         return serialize_image(image)
