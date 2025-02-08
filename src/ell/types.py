@@ -1,8 +1,9 @@
-from typing import Optional, List, Callable, Union, Dict
+from typing import Optional, List, Callable, Union, Dict, Any
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 import sqlalchemy.types as types
 from sqlalchemy import func
+from dataclasses import dataclass
 
 # Define type aliases
 _lstr_generic = Union[str, 'lstr']
@@ -12,8 +13,9 @@ LMPParams = Dict[str, Any]
 # Import necessary modules
 from ell.types import lstr, DictSyncMeta
 
-# Define the Message class using dict base class with DictSyncMeta metaclass
-class Message(dict, metaclass=DictSyncMeta):
+# Define the Message class using dataclass
+@dataclass
+class Message:
     role: str
     content: _lstr_generic
 
