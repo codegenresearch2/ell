@@ -136,30 +136,55 @@ class ContentBlock(BaseModel):
         else:
             return None
 
-# HELPERS
-def system(content: Union[str, List[ContentBlock]]) -> "Message":
-    return Message(role="system", content=content)
-
-
-def user(content: Union[str, List[ContentBlock]]) -> "Message":
-    return Message(role="user", content=content)
-
-
-def assistant(content: Union[str, List[ContentBlock]]) -> "Message":
-    return Message(role="assistant", content=content)
-
-LMPParams = Dict[str, Any]
-MessageOrDict = Union[Message, Dict[str, str]]
-Chat = List[
-    Message
-]
-MultiTurnLMP = Callable[..., Chat]
-OneTurn = Callable[..., _lstr_generic]
-ChatLMP = Callable[[Chat, Any], Chat]
-LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
-
 # Define the Message class here or import it as needed
 class Message:
     def __init__(self, role: str, content: List[ContentBlock]):
         self.role = role
         self.content = content
+
+# Helper functions
+def system(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a system message with the given content.
+
+    Args:
+        content (Union[str, List[ContentBlock]]): The content of the system message.
+
+    Returns:
+        Message: A Message object with role set to 'system' and the provided content.
+    """
+    return Message(role="system", content=content)
+
+
+def user(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a user message with the given content.
+
+    Args:
+        content (Union[str, List[ContentBlock]]): The content of the user message.
+
+    Returns:
+        Message: A Message object with role set to 'user' and the provided content.
+    """
+    return Message(role="user", content=content)
+
+
+def assistant(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create an assistant message with the given content.
+
+    Args:
+        content (Union[str, List[ContentBlock]]): The content of the assistant message.
+
+    Returns:
+        Message: A Message object with role set to 'assistant' and the provided content.
+    """
+    return Message(role="assistant", content=content)
+
+LMPParams = Dict[str, Any]
+MessageOrDict = Union[Message, Dict[str, str]]
+Chat = List[Message]
+MultiTurnLMP = Callable[..., Chat]
+OneTurn = Callable[..., _lstr_generic]
+ChatLMP = Callable[[Chat, Any], Chat]
+LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
