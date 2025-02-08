@@ -1,1 +1,1 @@
-import random\\\nfrom typing import List, Tuple\\\nimport ell\\\nell.config.verbose = True\\\\\n\\nnames_list = [\\\
+import random\\\nfrom typing import List, Tuple\\\nimport ell\\\nell.config.verbose = True\\\\n\nnames_list = [\\
