@@ -101,3 +101,4 @@ class Store(ABC):
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
                 else:
                     delattr(lmp, '__ell_use_cache__')
+}
