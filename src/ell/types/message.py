@@ -1,13 +1,13 @@
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
-from PIL import Image as PILImage
+from PIL import Image
 import numpy as np
 import base64
 from io import BytesIO
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
-from sqlmodel import Field
+from pydantic import BaseModel, Field, model_validator, field_validator, field_serializer
+from sqlmodel import Field, SQLModel
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -37,9 +37,9 @@ class ToolCall(BaseModel):
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
 class ContentBlock(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = {"arbitrary_types_allowed": True}
     text: Optional[_lstr_generic] = Field(default=None)
-    image: Optional[PILImage.Image] = Field(default=None)
+    image: Optional[Image.Image] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
     parsed: Optional[Union[Type[BaseModel], BaseModel]] = Field(default=None)
@@ -69,7 +69,7 @@ class ContentBlock(BaseModel):
         return None
 
     @classmethod
-    def coerce(cls, content: Union[str, ToolCall, ToolResult, BaseModel, "ContentBlock", PILImage.Image, np.ndarray]) -> "ContentBlock":
+    def coerce(cls, content: Union[str, ToolCall, ToolResult, BaseModel, "ContentBlock", Image.Image, np.ndarray]) -> "ContentBlock":
         if isinstance(content, ContentBlock):
             return content
         if isinstance(content, str):
@@ -80,7 +80,7 @@ class ContentBlock(BaseModel):
             return cls(tool_result=content)
         if isinstance(content, BaseModel):
             return cls(parsed=content)
-        if isinstance(content, (PILImage.Image, np.ndarray)):
+        if isinstance(content, (Image.Image, np.ndarray)):
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
@@ -89,12 +89,12 @@ class ContentBlock(BaseModel):
     def validate_image(cls, v):
         if v is None:
             return v
-        if isinstance(v, PILImage.Image):
+        if isinstance(v, Image.Image):
             return v
         if isinstance(v, str):
             try:
                 img_data = base64.b64decode(v)
-                img = PILImage.open(BytesIO(img_data))
+                img = Image.open(BytesIO(img_data))
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
@@ -103,13 +103,13 @@ class ContentBlock(BaseModel):
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
-                return PILImage.fromarray(v, mode=mode)
+                return Image.fromarray(v, mode=mode)
             else:
                 raise ValueError(f"Invalid numpy array shape for image: {v.shape}. Expected 3D array with 3 or 4 channels.")
         raise ValueError(f"Invalid image type: {type(v)}")
 
     @field_serializer('image')
-    def serialize_image(self, image: Optional[PILImage.Image], _info):
+    def serialize_image(self, image: Optional[Image.Image], _info):
         if image is None:
             return None
         return serialize_image(image)
@@ -137,10 +137,9 @@ class ContentBlock(BaseModel):
             return None
 
 # Define the Message class here or import it as needed
-class Message:
-    def __init__(self, role: str, content: List[ContentBlock]):
-        self.role = role
-        self.content = content
+class Message(BaseModel):
+    role: str
+    content: List[ContentBlock]
 
 # Helper functions
 def system(content: Union[str, List[ContentBlock]]) -> Message:
