@@ -1,6 +1,6 @@
 import asyncio
 import websockets
-from fastapi import FastAPI, WebSocket, Query, HTTPException
+from fastapi import FastAPI, WebSocket, Query, HTTPException, WebSocketDisconnect
 from typing import List, Dict, Any, Optional
 from ell.stores.sql import SQLiteStore
 from ell import __version__
@@ -52,7 +52,7 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             await manager.send_personal_message(f"Message received: {data}", websocket)
             await manager.broadcast(f"Client says: {data}")
-    except websockets.exceptions.ConnectionClosed as e:
+    except WebSocketDisconnect as e:
         manager.disconnect(websocket)
         logger.info(f"WebSocket connection closed: {e}")
 
