@@ -1,1 +1,1 @@
-import os\\nimport sys\\n\\n# Ensure the ell package is in the Python path\\nell_path = os.path.abspath(os.path.join('..', 'ell'))\\nsys.path.append(ell_path)\\\\n\\nfrom ell.util.closure import lexical_closure\\n\\n# Example function to test\\ndef test_function():\\\\n    # Your test logic here\\n    pass\\n\\nif __name__ == "__main__":\\n    test_function()
+import math\n\ndef test():\n    return math.sin(10)\n\ndef xD():\n    print(X)\n    return test()\n\n# Assuming X is defined somewhere in the code\nX = 7
