@@ -1,1 +1,1 @@
-import math\n\ndef test():\n    return math.sin(10)\n\ndef xD():\n    print(X)\n    return test()\n\n# Assuming X is defined somewhere in the code\nX = 7
+import math\\\\\ndef test():\\\n    return math.sin(10)\\\n\\\ndef xD():\\\n    print(X)\\\n    return test()
