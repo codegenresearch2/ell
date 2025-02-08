@@ -1,2 +1,1 @@
-python\\n    import ell\\n    import openai\\n    \\\n    ell.lm(model, client=openai.Client(api_key=my_key))\\n    def {name}(...):\\n        ...\\n
-python\\n    ell.lm(model, client=openai.Client(api_key=my_key))(...)\\n
+import ell\nimport openai\n\nell.lm(model, client=openai.Client(api_key=my_key))\ndef {name}(...):\n    ...\n
