@@ -1,1 +1,1 @@
-To address the `SyntaxError` caused by an unterminated string literal in the `ell/types.py` file, I will correct the content of the file by properly terminating the string literal. Here is the updated code snippet:"} 
+from dataclasses import dataclass"
