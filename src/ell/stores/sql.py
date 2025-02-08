@@ -43,7 +43,7 @@ class SQLStore(ell.store.Store):
             )
             session.add(lmp)
             for use_id in uses:
-                used_lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == use_id).first()
+                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp and used_lmp not in lmp.uses:
                     lmp.uses.append(used_lmp)
             session.commit()
@@ -106,6 +106,9 @@ class SQLStore(ell.store.Store):
             session.commit()
 
     def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Gets all the lmps grouped by unique name with the highest created at
+        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
