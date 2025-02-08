@@ -11,6 +11,7 @@ from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPU
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
+
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
@@ -108,8 +109,8 @@ class SQLStore(ell.store.Store):
             invocation = Invocation(
                 id=id,
                 lmp_id=lmp.lmp_id,
-                args=args,
-                kwargs=kwargs,
+                args=json.loads(args),
+                kwargs=json.loads(kwargs),
                 created_at=created_at,
                 invocation_kwargs=invocation_kwargs,
                 prompt_tokens=prompt_tokens,
