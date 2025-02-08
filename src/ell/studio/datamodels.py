@@ -1,1 +1,1 @@
-class SerializedLMPPublic(SerializedLMPBase):\""\"
+from typing import List, Optional, Dict, Any"
