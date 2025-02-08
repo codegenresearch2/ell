@@ -1,1 +1,1 @@
-from ell.util.closure import lexical_closure"}
+from ell.util.closure import lexical_closure\\n\\n# Define the test function\\ndef test() -> None:\\n    result = lexical_closure(xD)\\n    assert result is not None, 'The lexical closure of xD should be captured.'\\n\\ndef xD() -> int:\\n    X = 7\\n    print(X)\\n    return lexical_closure(test)\\n
