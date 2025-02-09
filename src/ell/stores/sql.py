@@ -1,9 +1,7 @@
 # Updated code snippet addressing the feedback from the oracle
 
-from datetime import datetime
-import json
-import os
-from typing import Any, Optional, Dict, List, Set, Union
+from datetime import datetime, timedelta
+from sqlalchemy import case
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
 import cattrs
@@ -12,6 +10,7 @@ from sqlalchemy.sql import text
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
+import os
 
 class SQLStore(ell.store.Store):
     """
@@ -71,7 +70,6 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns None.
         """
         with Session(self.engine) as session:
-            # Ensure the LMP exists
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
@@ -81,22 +79,18 @@ class SQLStore(ell.store.Store):
             else:
                 lmp.num_invocations += 1
 
-            # Add the invocation to the session
             session.add(invocation)
 
-            # Add the results to the session
             for result in results:
                 result.producer_invocation = invocation
                 session.add(result)
 
-            # Add the invocation traces
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
                     invocation_consuming_id=consumed_id
                 ))
 
-            # Commit the transaction
             session.commit()
             return None
         
@@ -330,6 +324,30 @@ class SQLStore(ell.store.Store):
                 unique_traces[consumed_id] = trace
         
         return list(unique_traces.values())
+
+    def get_invocations_aggregate(self, session: Session, lmp_id: str, start_date: datetime, end_date: datetime) -> Dict[str, int]:
+        """
+        Retrieves aggregate metrics for invocations within a specified date range.
+        
+        Args:
+            session (Session): The database session.
+            lmp_id (str): The ID of the LMP.
+            start_date (datetime): The start date of the range.
+            end_date (datetime): The end date of the range.
+        
+        Returns:
+            Dict[str, int]: A dictionary containing the aggregate metrics.
+        """
+        query = (
+            select(func.count(Invocation.id).label("invocation_count"))
+            .join(SerializedLMP)
+            .where(SerializedLMP.lmp_id == lmp_id)
+            .where(Invocation.created_at >= start_date)
+            .where(Invocation.created_at <= end_date)
+        )
+        
+        result = session.exec(query).first()
+        return {"invocation_count": result.invocation_count}
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
