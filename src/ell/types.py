@@ -8,7 +8,7 @@ from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 
 # Define a function to get the current UTC timestamp in ISO-8601 format
-def utc_now() -> datetime:
+def utc_now() -> str:
     """
     Returns the current UTC time in ISO-8601 format.
     """
