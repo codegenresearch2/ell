@@ -28,12 +28,13 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
+    def write_invocation(self, invocation: Invocation, consumes: Set[str], results: List[SerializedLMP]) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
 
         :param invocation: Invocation object containing all invocation details.
         :param consumes: Set of invocation IDs consumed by this invocation.
+        :param results: List of SerializedLMP objects representing the results.
         :return: Optional return value.
         """
         pass
@@ -75,3 +76,4 @@ class Store(ABC):
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
                 else:
                     delattr(lmp, '__ell_use_cache__')
+            # TODO: Implement cache storage logic here
