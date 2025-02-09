@@ -1,7 +1,4 @@
-# Updated code snippet addressing the feedback from the oracle
-
 from typing import Dict, Optional, Any, List, Set
-import json
 import os
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
