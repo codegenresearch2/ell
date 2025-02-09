@@ -27,6 +27,7 @@ class Store(ABC):
         :param is_lmp: Boolean indicating if it is an LMP.
         :param lm_kwargs: Additional keyword arguments for the LMP.
         :param uses: Dictionary of LMPs used by this LMP.
+        :param commit_message: Optional commit message for the LMP.
         :param created_at: Optional timestamp of when the LMP was created.
         :return: Optional return value.
         """
