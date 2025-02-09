@@ -3,10 +3,11 @@ from ell.stores.sql import SQLiteStore
 
 BASE_PROMPT = """You are an adept python programmer. Only answer in python code. Avoid markdown formatting at all costs."""
 
-@ell.lm(model="gpt-4o", temperature=0.7)
+@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
 def create_a_python_class(user_spec : str):
     """
     Creates a Python class based on the user specification.
+    Returns a list containing the system message and the user specification.
     """
     return [
         ell.system(
@@ -21,6 +22,7 @@ def create_a_python_class(user_spec : str):
 def write_unit_for_a_class(class_def : str):
     """
     Writes a unit test for a given class definition.
+    Returns a list containing the system message and the class definition.
     """
     return [
         ell.system(
@@ -32,9 +34,10 @@ def write_unit_for_a_class(class_def : str):
     ]
 
 if __name__ == "__main__":
+    ell.config.verbose = True
     store = SQLiteStore("sqlite_example")
     ell.set_store(store, autocommit=True)
 
     with store.freeze(create_a_python_class):
-        class_definition = create_a_python_class("A class that represents a bank")
-        unit_tests = write_unit_for_a_class(class_definition)
+        _class_def = create_a_python_class("A class that represents a bank")
+        _unit_tests = write_unit_for_a_class(_class_def)
