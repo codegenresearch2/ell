@@ -1,16 +1,16 @@
 import pytest
 import os
+from unittest.mock import patch
+from ell.util.lm import OpenAIClient
+
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
-    # Attempt to set a fake OpenAI API key for all tests
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        print('Warning: OPENAI_API_KEY is not set. Some tests may fail.')
+    # Set a fake OpenAI API key for all tests
     os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'
     
-    # You can add more environment setup here if needed
+    # Mock the OpenAI client
+    with patch('ell.util.lm.OpenAIClient') as mock_client:
+        yield mock_client
     
-yield
-    
-    # Clean up after tests if necessary
+    # Clean up after tests if necessary (no specific cleanup action mentioned in gold code)
