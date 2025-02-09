@@ -5,14 +5,15 @@ from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import asyncio
+from watchfiles import awatch
 
-async def db_watcher():
-    # Placeholder for the actual database watcher logic
-    while True:
-        await asyncio.sleep(1)  # Simulate database changes
-        print("Database changed, notifying clients...")
+def db_watcher(storage_dir):
+    db_path = os.path.join(storage_dir, "database.db")
+    async for changes in awatch(db_path):
+        print(f"Database changed: {changes}")
+        # Notify clients about the database change
 
-async def main():
+def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
     parser.add_argument("--storage-dir", default=os.getcwd(),
                         help="Directory for filesystem serializer storage (default: current directory)")
@@ -35,19 +36,16 @@ async def main():
             except FileNotFoundError:
                 return {"error": "File not found"}, 404
 
-    # Create a new event loop for running the server and the database watcher
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    # Start the database watcher
-    db_watcher_task = asyncio.create_task(db_watcher())
+    # Create and run the database watcher
+    loop = asyncio.get_event_loop()
+    watcher_task = loop.create_task(db_watcher(args.storage_dir))
 
     # Create a Uvicorn config and server instance
     config = uvicorn.Config(app, host=args.host, port=args.port)
     server = uvicorn.Server(config)
 
-    # Run the server and the database watcher concurrently
-    await asyncio.gather(server.serve(), db_watcher_task)
+    # Run the server and the watcher concurrently
+    loop.run_until_complete(asyncio.gather(server.serve(), watcher_task))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
