@@ -39,11 +39,14 @@ def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # Define the database path variable
+    db_path = os.path.join(args.storage_dir, "ell.db")
+
     # Create and run the database watcher task
     watcher_task = loop.create_task(db_watcher())
 
     # Create a Uvicorn config and server instance
-    config = uvicorn.Config(app, host=args.host, port=args.port)
+    config = uvicorn.Config(app, host=args.host, port=args.port, loop=loop)
     server = uvicorn.Server(config)
 
     # Create and run the server task
