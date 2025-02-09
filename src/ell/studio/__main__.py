@@ -25,10 +25,7 @@ def main():
 
         @app.get("/{full_path:path}")
         async def serve_react_app(full_path: str):
-            try:
-                return FileResponse(os.path.join(static_dir, "index.html"))
-            except FileNotFoundError:
-                return {"error": "File not found"}, 404
+            return FileResponse(os.path.join(static_dir, "index.html"))
 
     # Define the database watcher function
     async def db_watcher():
