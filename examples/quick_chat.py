@@ -49,7 +49,7 @@ if __name__ == "__main__":
     print(names)
 
     whos_turn = 0
-    for __ in range(100):
+    for _ in range(10):
         personality_talking = personalities[whos_turn]
         messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
         whos_turn = (whos_turn + 1) % len(personalities)
