@@ -1,43 +1,46 @@
-from dataclasses import dataclass
-from typing import Callable, Dict, List, Union
-from typing import Any
-from ell.lstr import lstr
-from ell.util.dict_sync_meta import DictSyncMeta
+from typing import Optional, List, Dict, Any, Callable, TypeVar, Union
 from datetime import datetime
-from sqlmodel import Field, SQLModel, Relationship, JSON, ARRAY, Column, Float
+from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 
-_lstr_generic = Union[lstr, str]
+# Importing Optional from typing module
+from typing import Optional
+
+# Define a function to get the current UTC timestamp
+def utc_now() -> datetime:
+    return datetime.utcnow()
+
+# Define the core types
+_lstr_generic = Union[str, 'lstr']
 
 OneTurn = Callable[..., _lstr_generic]
-
 LMPParams = Dict[str, Any]
 
 @dataclass
-class Message(dict, metaclass=DictSyncMeta):
+class Message(dict):
     role: str
     content: _lstr_generic
 
 MessageOrDict = Union[Message, Dict[str, str]]
 
-Chat = List[
-    Message
-]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
+Chat = List[Message]
 
-MultiTurnLMP = Callable[..., Chat]
-ChatLMP = Callable[[Chat, Any], Chat]
+T = TypeVar("T", bound=Any)
+ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
+# Define the many-to-many relationship class
 class SerializedLMPUses(SQLModel, table=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
 
+# Define the serialized LMP class
 class SerializedLMP(SQLModel, table=True):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str
     source: str
     dependencies: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
     is_lm: bool
     lm_kwargs: dict = Field(sa_column=Column(JSON))
 
@@ -69,10 +72,12 @@ class SerializedLMP(SQLModel, table=True):
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
 
+# Define the invocation trace class
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
 
+# Define the invocation class
 class Invocation(SQLModel, table=True):
     id: Optional[str] = Field(default=None, primary_key=True)
     lmp_id: str = Field(foreign_key="serializedlmp.lmp_id")
@@ -87,7 +92,7 @@ class Invocation(SQLModel, table=True):
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
     invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
 
     lmp: SerializedLMP = Relationship(back_populates="invocations")
@@ -109,6 +114,7 @@ class Invocation(SQLModel, table=True):
         ),
     )
 
+# Define the serialized LStr class
 class SerializedLStr(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
@@ -116,5 +122,5 @@ class SerializedLStr(SQLModel, table=True):
     producer_invocation_id: Optional[int] = Field(default=None, foreign_key="invocation.id")
     producer_invocation: Optional[Invocation] = Relationship(back_populates="results")
 
-    def deserialize(self) -> lstr:
+    def deserialize(self) -> 'lstr':
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
