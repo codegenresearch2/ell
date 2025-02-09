@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+from sqlmodel import SQLModel
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
 class SerializedLMPPublic(SerializedLMPBase):
@@ -13,7 +13,7 @@ class SerializedLMPWithUses(SerializedLMPPublic):
 class SerializedLMPCreate(SerializedLMPBase):
     pass
 
-class SerializedLMPUpdate(BaseModel):
+class SerializedLMPUpdate(SQLModel):
     name: Optional[str] = None
     source: Optional[str] = None
     dependencies: Optional[str] = None
@@ -34,7 +34,7 @@ class InvocationPublic(InvocationBase):
 class InvocationCreate(InvocationBase):
     pass
 
-class InvocationUpdate(BaseModel):
+class InvocationUpdate(SQLModel):
     args: Optional[List[Any]] = None
     kwargs: Optional[Dict[str, Any]] = None
     global_vars: Optional[Dict[str, Any]] = None
@@ -51,17 +51,19 @@ class SerializedLStrPublic(SerializedLStrBase):
 class SerializedLStrCreate(SerializedLStrBase):
     pass
 
-class SerializedLStrUpdate(BaseModel):
+class SerializedLStrUpdate(SQLModel):
     content: Optional[str] = None
     logits: Optional[List[float]] = None
 
 # Additional classes as per Oracle Feedback
-class GraphDataPoint(BaseModel):
+class GraphDataPoint(SQLModel):
     id: int
     timestamp: datetime
     value: float
+    additional_field: Optional[str] = None  # Commented out field
 
-class InvocationsAggregate(BaseModel):
+class InvocationsAggregate(SQLModel):
     id: int
     invocation_id: str
     aggregate_value: float
+    another_field: Optional[str] = None  # Commented out field
