@@ -40,15 +40,15 @@ def call(*, model: str,
     """
     Helper function to run the language model with the provided messages and parameters.
     """
-    # Todo: Decide if the client specified via the context amanger default registry is the shit or if the cliennt specified via lmp invocation args are the hing.
+    # Attempt to get the client from the configuration, fallback to provided client
     client = client or config.get_client_for(model)
-    metadata = dict()
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
     if not client.api_key:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
-    # todo: add suupport for streaming apis that dont give a final usage in the api
+    metadata = {}
+    # todo: add support for streaming apis that don't give a final usage in the api
     # print(api_params)
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
@@ -90,7 +90,6 @@ def call(*, model: str,
     with model_usage_logger_post_intermediate(_logging_color, n) as _logger:
         for chunk in model_result:
             if hasattr(chunk, "usage") and chunk.usage:
-                # Todo: is this a good decision.
                 metadata = chunk.to_dict()
                 if streaming:
                     continue
@@ -98,48 +97,37 @@ def call(*, model: str,
             for choice in chunk.choices:
                 choices_progress[choice.index].append(choice)
                 if config.verbose and choice.index == 0 and not _exempt_from_tracking:
-                    # print(choice, streaming)
                     _logger(choice.delta.content if streaming else choice.message.content or getattr(choice.message, "refusal", ""), is_refusal=getattr(choice.message, "refusal", False) if not streaming else False)
 
     if config.verbose and not _exempt_from_tracking:
         model_usage_logger_post_end()
     n_choices = len(choices_progress)
 
-    # coerce the streaming into a final message type
     tracked_results = []
     for _, choice_deltas in sorted(choices_progress.items(), key=lambda x: x[0]):
         content = []
-        
-        # Handle text content
-        if streaming:
-            text_content = "".join((choice.delta.content or "" for choice in choice_deltas))
-            if text_content:
-                content.append(ContentBlock(text=_lstr(content=text_content, _origin_trace=_invocation_origin)))
-        else:
-            choice = choice_deltas[0].message
-            if choice.refusal:
-                raise ValueError(choice.refusal)
-                # XXX: is this the best practice? try catch a parser?
-            if api_params.get("response_format", False):
-                content.append(ContentBlock(parsed=choice.parsed))
-            elif choice.content:
-                content.append(ContentBlock(text=_lstr(content=choice.content, _origin_trace=_invocation_origin)))
-            
-        # Handle tool calls
-        if not streaming and hasattr(choice, 'tool_calls'):
-            for tool_call in choice.tool_calls or []:
-                matching_tool = None
-                for tool in tools:
-                    if tool.__name__ == tool_call.function.name:
-                        matching_tool = tool
-                        break
-                
-                if matching_tool:
-                    params = matching_tool.__ell_params_model__(**json.loads(tool_call.function.arguments))
-                    content.append(ContentBlock(tool_call=ToolCall(tool=matching_tool, tool_call_id=_lstr(tool_call.id, _origin_trace=_invocation_origin), params=params)))
-            
-        tracked_results.append(Message(role=choice.role if not streaming else choice_deltas[0].delta.role, content=content))
+        for choice in choice_deltas:
+            if streaming:
+                if choice.delta.content:
+                    content.append(ContentBlock(text=_lstr(content=choice.delta.content, _origin_trace=_invocation_origin)))
+            else:
+                if choice.message.refusal:
+                    raise ValueError(choice.message.refusal)
+                if api_params.get("response_format", False):
+                    content.append(ContentBlock(parsed=choice.message.parsed))
+                elif choice.message.content:
+                    content.append(ContentBlock(text=_lstr(content=choice.message.content, _origin_trace=_invocation_origin)))
+                if choice.message.tool_calls:
+                    for tool_call in choice.message.tool_calls:
+                        matching_tool = None
+                        for tool in tools:
+                            if tool.__name__ == tool_call.function.name:
+                                matching_tool = tool
+                                break
+                        if matching_tool:
+                            params = matching_tool.__ell_params_model__(**json.loads(tool_call.function.arguments))
+                            content.append(ContentBlock(tool_call=ToolCall(tool=matching_tool, tool_call_id=_lstr(tool_call.id, _origin_trace=_invocation_origin), params=params)))
+        tracked_results.append(Message(role=choice_deltas[0].delta.role if streaming else choice_deltas[0].message.role, content=content))
     
     api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
-    
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
