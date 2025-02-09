@@ -90,7 +90,6 @@ def create_app(config: Config):
         if not lmps:
             raise HTTPException(status_code=404, detail="LMP not found")
         
-        print(lmps[0])  # Debugging statement
         return lmps
 
     @app.get("/api/invocation/{invocation_id}")
