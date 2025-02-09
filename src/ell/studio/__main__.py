@@ -7,12 +7,6 @@ from fastapi.responses import FileResponse
 import asyncio
 from watchfiles import awatch
 
-def db_watcher(storage_dir):
-    db_path = os.path.join(storage_dir, "database.db")
-    async for changes in awatch(db_path):
-        print(f"Database changed: {changes}")
-        # Notify clients about the database change
-
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
     parser.add_argument("--storage-dir", default=os.getcwd(),
@@ -36,16 +30,27 @@ def main():
             except FileNotFoundError:
                 return {"error": "File not found"}, 404
 
-    # Create and run the database watcher
-    loop = asyncio.get_event_loop()
-    watcher_task = loop.create_task(db_watcher(args.storage_dir))
+    # Define the database watcher function
+    async def db_watcher():
+        db_path = os.path.join(args.storage_dir, "ell.db")
+        async for changes in awatch(db_path):
+            print(f"Database changed: {changes}")
+            # Notify clients about the database change
+            await app.notify_clients("database_updated")
+
+    # Create a new event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Create and run the database watcher task
+    watcher_task = loop.create_task(db_watcher())
 
     # Create a Uvicorn config and server instance
     config = uvicorn.Config(app, host=args.host, port=args.port)
     server = uvicorn.Server(config)
 
     # Run the server and the watcher concurrently
-    loop.run_until_complete(asyncio.gather(server.serve(), watcher_task))
+    loop.run_forever()
 
 if __name__ == "__main__":
     main()
