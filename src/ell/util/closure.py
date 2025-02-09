@@ -1,1 +1,1 @@
-import math\""\ndef test():\""\n    return math.sin(10)\""\n\n# prompt_consts.py\nimport prompt_consts\n\nX = 7\ndef xD():\n    print(X)\n    return prompt_consts.test()\n\n# main.py\nimport xD\n\nif __name__ == "__main__":\n    result = xD.xD()\n    print(result)\n
+import math"
