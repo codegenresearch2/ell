@@ -26,8 +26,8 @@ class SQLStore(ell.store.Store):
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, 
                   version_number: int,
                   uses: Dict[str, Any], 
-                  global_vars: Dict[str, Any],
-                  free_vars: Dict[str, Any],
+                  global_vars: Dict[str, Any] = None,
+                  free_vars: Dict[str, Any] = None,
                   commit_message: Optional[str] = None,
                   created_at: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
@@ -43,8 +43,8 @@ class SQLStore(ell.store.Store):
                     version_number=version_number,
                     source=source,
                     dependencies=dependencies,
-                    initial_global_vars=global_vars,
-                    initial_free_vars=free_vars,
+                    initial_global_vars=global_vars or {},
+                    initial_free_vars=free_vars or {},
                     created_at=created_at if created_at is not None else utc_now(),
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
