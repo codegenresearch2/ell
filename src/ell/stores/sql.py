@@ -119,6 +119,7 @@ class SQLStore(ell.store.Store):
             if filters:
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
+            
             results = session.exec(query).all()
             lmps = [lmp.model_dump() for lmp in results]
             
