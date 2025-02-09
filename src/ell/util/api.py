@@ -45,16 +45,11 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     # Todo: Decide if the client specified via the context amanger default registry is the shit or if the cliennt specified via lmp invocation args are the hing.
-    if not client:
-        client, was_fallback = config.get_client_for(model)
-        if not client and not was_fallback:
-            # Someone registered you as None and you're trying to use this shit
-            raise RuntimeError(_no_api_key_warning(model, _name, '', long=True, error=True))
-            
+    client =   client or config.get_client_for(model)
     metadata = dict()
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
-    
+     
     if not client.api_key:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
@@ -83,11 +78,13 @@ def call(
         model_call = client.chat.completions.create
         api_params["stream"] = True
         api_params["stream_options"] = {"include_usage": True}
-    
+     
     client_safe_messages_messages = process_messages_for_client(messages, client)
     # print(api_params)
     model_result = model_call(
-        model=model, messages=client_safe_messages_messages, **api_params
+        model=model,
+        messages=client_safe_messages_messages,
+        **api_params
     )
     streaming = api_params.get("stream", False)
     if not streaming:
@@ -104,10 +101,10 @@ def call(
             if hasattr(chunk, "usage") and chunk.usage:
                 # Todo: is this a good decision.
                 metadata = chunk.to_dict()
-                
+                 
                 if streaming:
                     continue
-            
+             
             for choice in chunk.choices:
                 choices_progress[choice.index].append(choice)
                 if config.verbose and choice.index == 0 and not _exempt_from_tracking:
@@ -123,7 +120,7 @@ def call(
     tracked_results = []
     for _, choice_deltas in sorted(choices_progress.items(), key=lambda x: x[0]):
         content = []
-        
+         
         # Handle text content
         if streaming:
             text_content = "".join((choice.delta.content or "" for choice in choice_deltas))
@@ -144,7 +141,7 @@ def call(
                 content.append(ContentBlock(
                     text=_lstr(content=choice.content, _origin_trace=_invocation_origin)
                 ))
-        
+         
         # Handle tool calls
         if not streaming and hasattr(choice, 'tool_calls'):
             for tool_call in choice.tool_calls or []:
@@ -153,18 +150,18 @@ def call(
                     if tool.__name__ == tool_call.function.name:
                         matching_tool = tool
                         break
-                
+                 
                 if matching_tool:
                     params = matching_tool.__ell_params_model__(**json.loads(tool_call.function.arguments))
                     content.append(ContentBlock(
                         tool_call=ToolCall(tool=matching_tool, tool_call_id=_lstr(tool_call.id, _origin_trace=_invocation_origin), params=params)
                     ))
-        
+         
         tracked_results.append(Message(
             role=choice.role if not streaming else choice_deltas[0].delta.role,
             content=content
         ))
-    
+     
     api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
-    
+     
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
