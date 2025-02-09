@@ -10,14 +10,18 @@ from sqlalchemy import or_, func, and_
 import cattrs
 import numpy as np
 
+def utc_now() -> datetime.datetime:
+    """
+    Returns the current UTC timestamp.
+    """
+    return datetime.datetime.now(tz=datetime.timezone.utc)
+
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
-
         self.open_files: Dict[str, Dict[str, Any]] = {}
-
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, 
                   version_number: int,
@@ -25,7 +29,9 @@ class SQLStore(ell.store.Store):
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
-                  created_at: Optional[float]=None) -> Optional[Any]:
+                  created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
+        if created_at is None:
+            created_at = utc_now()
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
@@ -249,3 +255,10 @@ class SQLStore(ell.store.Store):
             
             # Convert the dictionary values back to a list
             return list(unique_traces.values())
+
+
+class SQLiteStore(SQLStore):
+    def __init__(self, storage_dir: str):
+        os.makedirs(storage_dir, exist_ok=True)
+        db_path = os.path.join(storage_dir, 'ell.db')
+        super().__init__(f'sqlite:///{db_path}')
