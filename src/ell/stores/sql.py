@@ -45,7 +45,7 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= created_at if created_at is not None else utc_now(),
+                    created_at=created_at if created_at is not None else utc_now(),
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
