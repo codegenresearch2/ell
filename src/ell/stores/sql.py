@@ -4,9 +4,11 @@ import os
 from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
+import cattrs
+import numpy as np
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
@@ -23,7 +25,7 @@ class SQLStore(ell.store.Store):
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
-                  created_at: Optional[datetime]=None) -> Optional[Any]:
+                  created_at: Optional[float]=None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
@@ -39,7 +41,7 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at=created_at or utc_now(),
+                    created_at=created_at,
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
@@ -56,7 +58,7 @@ class SQLStore(ell.store.Store):
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
                          global_vars: Dict[str, Any],
-                         free_vars: Dict[str, Any], created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
+                         free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
@@ -247,10 +249,3 @@ class SQLStore(ell.store.Store):
             
             # Convert the dictionary values back to a list
             return list(unique_traces.values())
-
-
-class SQLiteStore(SQLStore):
-    def __init__(self, storage_dir: str):
-        os.makedirs(storage_dir, exist_ok=True)
-        db_path = os.path.join(storage_dir, 'ell.db')
-        super().__init__(f'sqlite:///{db_path}')
