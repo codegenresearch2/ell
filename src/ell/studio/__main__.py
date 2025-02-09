@@ -35,7 +35,7 @@ def main():
             # Notify clients about the database change
             await app.notify_clients("database_updated")
 
-    # Create a new event loop
+    # Create the event loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -46,7 +46,10 @@ def main():
     config = uvicorn.Config(app, host=args.host, port=args.port)
     server = uvicorn.Server(config)
 
-    # Run the server and the watcher concurrently
+    # Create and run the server task
+    server_task = loop.create_task(server.serve())
+
+    # Run the event loop
     loop.run_forever()
 
 if __name__ == "__main__":
