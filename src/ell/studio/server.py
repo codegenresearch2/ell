@@ -163,11 +163,13 @@ def create_app(config: Config):
     @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
     def get_invocations_aggregate(
         days: int = Query(30, ge=1, le=365),  # Default to 30 days
+        lmp_name: Optional[str] = Query(None),
+        lmp_id: Optional[str] = Query(None),
         session: Session = Depends(get_session)
     ):
         # TODO: Implement the aggregation logic for invocations
         # This is a placeholder for the actual implementation
-        return InvocationsAggregate(
+        aggregate = InvocationsAggregate(
             total_invocations=100,
             total_tokens=100000,
             avg_latency=10.5,
@@ -177,6 +179,7 @@ def create_app(config: Config):
                 for i in range(days)
             ]
         )
+        return aggregate
 
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = json.dumps({"entity": entity, "id": id})
