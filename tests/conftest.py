@@ -14,6 +14,6 @@ os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'
         mock_client = mock_openai.return_value
         # Configure the mock client to return a specific value when a method is called
         mock_client.chat.completions.create.return_value = None
-        yield mock_openai
+        yield mock_client
 
     # Clean up after tests if necessary (no specific cleanup action mentioned in gold code)
