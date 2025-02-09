@@ -22,7 +22,7 @@ class SQLStore(ell.store.Store):
                   uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], commit_message: Optional[str] = None,
                   created_at: Optional[float]=None) -> Optional[Any]:
         with Session(self.engine) as session:
-            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+            lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id)).first()
             if lmp:
                 return lmp
             lmp = SerializedLMP(
@@ -40,7 +40,7 @@ class SQLStore(ell.store.Store):
             )
             session.add(lmp)
             for use_id in uses:
-                used_lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == use_id).first()
+                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
                     lmp.uses.append(used_lmp)
             session.commit()
@@ -57,8 +57,8 @@ class SQLStore(ell.store.Store):
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")
-            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+                raise TypeError("Result must be either lstr or List[lstr]")            
+            lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id)).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
             if lmp.num_invocations is None:
                 lmp.num_invocations = 1
