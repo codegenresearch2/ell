@@ -20,3 +20,4 @@ def _warnings(model, fn, default_client_from_decorator):
             )
         elif not client_to_use.api_key:
             logger.warning(_no_api_key_warning(model, fn.__name__, client_to_use, long=False))
+}
