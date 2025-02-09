@@ -56,7 +56,7 @@ class SQLStore(ell.store.Store):
                     invocation_consuming_id=consumed_id
                 ))
             session.commit()
-            return None
+        return None
 
     def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
         with Session(self.engine) as session:
@@ -163,10 +163,8 @@ class SQLStore(ell.store.Store):
             .filter(Invocation.created_at >= start_date)
         )
         if lmp_filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))
-        if filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))
-        data = session.exec(base_subquery).all()
+            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))        if filters:
+            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))        data = session.exec(base_subquery).all()
         total_invocations = len(data)
         total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
         avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
