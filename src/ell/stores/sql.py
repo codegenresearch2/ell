@@ -19,7 +19,7 @@ class SQLStore(ell.store.Store):
 
     @staticmethod
     def utc_now() -> datetime.datetime:
-        return datetime.datetime.now(tz=datetime.timezone.utc)
+        return ell.store.utc_now()
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str,
                   version_number: int,
@@ -29,6 +29,7 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
+                # LMP already added to the database.
                 return lmp
             else:
                 lmp = SerializedLMP(
