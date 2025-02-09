@@ -1,1 +1,1 @@
-import typing\"""Returns the sum of two numbers."""\\\ndef add(a: int, b: int) -> int:\"""\""Returns the sum of two numbers."""\""\\\n    return a + b
+import typing\"""Returns the sum of two numbers."""\\\ndef add(a: int, b: int) -> int:\\"""Returns the sum of two numbers."""\\\n    return a + b
