@@ -1,8 +1,4 @@
-# Enhanced message handling capabilities and improved documentation with additional links.
-# Maintaining code clarity and organization.
-
 import json
-from ell.types._lstr import _lstr
 from functools import cached_property
 from PIL.Image import Image as PILImage
 import numpy as np
@@ -56,7 +52,7 @@ class ContentBlock(BaseModel):
     @model_validator(mode='after')
     def check_single_non_null(self):
         non_null_fields = [field for field, value in self.__dict__.items() if value is not None]
-        if len(non_null_fields) > 1:  
+        if len(non_null_fields) > 1:
             raise ValueError(f'Only one field can be non-null. Found: {', '.join(non_null_fields)}')
         return self
 
@@ -89,7 +85,6 @@ class ContentBlock(BaseModel):
         if isinstance(content, BaseModel):
             return cls(parsed=content)
         if isinstance(content, (PILImage.Image, np.ndarray)):
-
             return cls(image=content)
         raise ValueError(f'Invalid content type: {type(content)}')
 
