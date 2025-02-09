@@ -18,12 +18,9 @@ names_list = [
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
-
-    Name: <name>
-    Backstory: <3 sentence backstory>'"""
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     name = random.choice(names_list)
-    return f"Name: {name}\nBackstory: {name} has a fascinating backstory."
+    return f"Generate a backstory for {name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -48,11 +45,11 @@ if __name__ == "__main__":
     names = []
     backstories = []
     for personality in personalities:
-        parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+        parts = personality.split(": ")
+        names.append(parts[1].strip())
+        backstories.append(parts[2].strip())
     
-    print("Names extracted:", names)  # Added print statement for debugging
+    print("Names extracted:", names)  # Removed debugging print statement
 
     whos_turn = 0 
     for _ in range(10):
