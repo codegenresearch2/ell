@@ -6,9 +6,9 @@ from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from sqlalchemy import Index, func
+from sqlalchemy import func
 import sqlalchemy.types as types
 
 _lstr_generic = Union[lstr, str]
@@ -26,10 +26,10 @@ class Message(dict, metaclass=DictSyncMeta):
     content: _lstr_generic
 
 
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta.
+# Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta.
 MessageOrDict = Union[Message, Dict[str, str]]
 
-# Can support iamge prompts later.
+# Can support image prompts later.
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
@@ -50,6 +50,8 @@ def utc_now() -> datetime:
     Serializes to ISO-8601.
     """
     return datetime.now(tz=timezone.utc)
+
+
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
@@ -64,13 +66,13 @@ class SerializedLMPUses(SQLModel, table=True):
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
     impl = types.TIMESTAMP
-    def process_result_value(self, value: datetime, dialect:Any):
+    def process_result_value(self, value: datetime, dialect: Any):
         return value.replace(tzinfo=timezone.utc)
 
-def UTCTimestampField(index:bool=False, **kwargs:Any):
+
+def UTCTimestampField(index: bool = False, **kwargs: Any):
     return Field(
         sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
-
 
 
 class SerializedLMPBase(SQLModel):
@@ -111,9 +113,11 @@ class SerializedLMP(SerializedLMPBase, table=True):
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
 
+
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
+
 
 class SerializedLStrBase(SQLModel):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -121,8 +125,10 @@ class SerializedLStrBase(SQLModel):
     logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
     producer_invocation_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
 
+
 class SerializedLStr(SerializedLStrBase, table=True):
     producer_invocation: Optional["Invocation"] = Relationship(back_populates="results")
+
 
 class InvocationBase(SQLModel):
     id: Optional[str] = Field(default=None, primary_key=True)
@@ -138,6 +144,7 @@ class InvocationBase(SQLModel):
     created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
     invocation_kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
+
 
 class Invocation(InvocationBase, table=True):
     lmp: SerializedLMP = Relationship(back_populates="invocations")
@@ -160,9 +167,3 @@ class Invocation(InvocationBase, table=True):
     )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
     uses: List["Invocation"] = Relationship(back_populates="used_by")
-
-    __table_args__ = (
-        Index('ix_invocation_lmp_id_created_at', 'lmp_id', 'created_at'),
-        Index('ix_invocation_created_at_latency_ms', 'created_at', 'latency_ms'),
-        Index('ix_invocation_created_at_tokens', 'created_at', 'prompt_tokens', 'completion_tokens'),
-    )
