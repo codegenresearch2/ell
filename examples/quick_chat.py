@@ -18,22 +18,17 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
-
-Name: <name>
-Backstory: <3 sentence backstory>"""
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     random_name = random.choice(names_list)
-    return f"Name: {random_name}\nBackstory: A brief backstory about {random_name}."""
+    return f"Name: {random_name}"
+
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
 def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
-    return [
-        ell.system(f"Here is your description.\n{personality}.\n\nYour goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."),
-        ell.user(format_message_history(message_history)),
-    ]
+    return (f"Here is your description.\n{personality}.\n\nYour goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."\n{format_message_history(message_history)}")
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -51,7 +46,7 @@ if __name__ == "__main__":
     print(names)
 
     whos_turn = 0
-    for _ in range(10):
+    for __ in range(100):
         personality_talking = personalities[whos_turn]
         messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
         whos_turn = (whos_turn + 1) % len(personalities)
