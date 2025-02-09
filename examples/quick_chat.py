@@ -23,7 +23,7 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3 sentence backstory>'"""
     name = random.choice(names_list)
-    return f"Name: {name}\nBackstory: {name} has a fascinating backstory."
+    return f"Generate a backstory for {name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -45,8 +45,11 @@ if __name__ == "__main__":
     messages: List[Tuple[str, str]] = []
     personalities = [create_personality() for _ in range(2)]
 
-    names = [personality.split(": ")[1] for personality in personalities]
-    backstories = [personality.split(": ")[2] for personality in personalities]
+    names = []
+    backstories = []
+    for personality in personalities:
+        names.append(personality.split(" ")[2])
+        backstories.append(personality.split(" ")[3])
     
     whos_turn = 0 
     for _ in range(10):
