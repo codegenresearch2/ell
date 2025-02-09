@@ -18,29 +18,21 @@ import gzip
 import json
 
 
-
-
-
-
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str, has_blob_storage: bool = False):
         self.engine = create_engine(db_uri,
                                     json_serializer=lambda obj: json.dumps(pydantic_ltype_aware_cattr.unstructure(obj), 
                                      sort_keys=True, default=repr))
         
-
         SQLModel.metadata.create_all(self.engine)
         self.open_files: Dict[str, Dict[str, Any]] = {}
         super().__init__(has_blob_storage)
 
-
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
         with Session(self.engine) as session:
-            # Bind the serialized_lmp to the session
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id)).first()
             
             if lmp:
-                # Already added to the DB.
                 return lmp
             else:
                 session.add(serialized_lmp)
@@ -58,19 +50,11 @@ class SQLStore(ell.store.Store):
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id)).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
-            # Increment num_invocations
-            if lmp.num_invocations is None:
-                lmp.num_invocations = 1
-            else:
-                lmp.num_invocations += 1
+            lmp.num_invocations = lmp.num_invocations + 1 if lmp.num_invocations is not None else 1
 
-            # Add the invocation contents
             session.add(invocation.contents)
-            
-            # Add the invocation
             session.add(invocation)
 
-            # Now create traces.
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
@@ -80,19 +64,15 @@ class SQLStore(ell.store.Store):
             session.commit()
             return None
         
-    def get_cached_invocations(self, lmp_id :str, state_cache_key :str) -> List[Invocation]:
+    def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
         with Session(self.engine) as session:
             return self.get_invocations(session, lmp_filters={"lmp_id": lmp_id}, filters={"state_cache_key": state_cache_key})
         
-    def get_versions_by_fqn(self, fqn :str) -> List[SerializedLMP]:
+    def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
         with Session(self.engine) as session:
             return self.get_lmps(session, name=fqn)
         
-    ## HELPER METHODS FOR ELL STUDIO! :) 
     def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
-        """
-        Gets all the lmps grouped by unique name with the highest created at
-        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
@@ -106,9 +86,7 @@ class SQLStore(ell.store.Store):
         
         return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
-        
     def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-
         query = select(SerializedLMP)
         
         if subquery is not None:
@@ -121,31 +99,26 @@ class SQLStore(ell.store.Store):
             for key, value in filters.items():
                 query = query.where(getattr(SerializedLMP, key) == value)
         
-        query = query.order_by(SerializedLMP.created_at.desc())  # Sort by created_at in descending order
+        query = query.order_by(SerializedLMP.created_at.desc())
         query = query.offset(skip).limit(limit)
         results = session.exec(query).all()
         
         return results
 
     def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
-        
         query = select(Invocation).join(SerializedLMP)
 
-        # Apply LMP filters
         for key, value in lmp_filters.items():
             query = query.where(getattr(SerializedLMP, key) == value)
 
-        # Apply invocation filters
         if filters:
             for key, value in filters.items():
                 query = query.where(getattr(Invocation, key) == value)
 
-        # Sort from newest to oldest
         query = query.order_by(Invocation.created_at.desc()).offset(skip).limit(limit)
 
         invocations = session.exec(query).all()
         return invocations
-
 
     def get_traces(self, session: Session):
         query = text("""
@@ -170,34 +143,66 @@ class SQLStore(ell.store.Store):
             })
         
         return traces
+        
+    def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
+        traces = []
+        visited = set()
+        queue = [(invocation_id, 0)]
+
+        while queue:
+            current_invocation_id, depth = queue.pop(0)
+            if depth > 4:
+                continue
+
+            if current_invocation_id in visited:
+                continue
+
+            visited.add(current_invocation_id)
+
+            results = session.exec(
+                select(InvocationTrace, Invocation, SerializedLMP)
+                .join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id)
+                .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
+                .where(InvocationTrace.invocation_consumer_id == current_invocation_id)
+            ).all()
+            for row in results:
+                trace = {
+                    'consumer_id': row.InvocationTrace.invocation_consumer_id,
+                    'consumed': {key: value for key, value in row.Invocation.__dict__.items() if key not in ['invocation_consumer_id', 'invocation_consuming_id']},
+                    'consumed_lmp': row.SerializedLMP.model_dump()
+                }
+                traces.append(trace)
+                queue.append((row.Invocation.id, depth + 1))
+                
+        unique_traces = {}
+        for trace in traces:
+            consumed_id = trace['consumed']['id']
+            if consumed_id not in unique_traces:
+                unique_traces[consumed_id] = trace
+        
+        return list(unique_traces.values())
     
     def get_invocations_aggregate(self, session: Session, lmp_filters: Dict[str, Any] = None, filters: Dict[str, Any] = None, days: int = 30) -> Dict[str, Any]:
-        # Calculate the start date for the graph data
         start_date = datetime.utcnow() - timedelta(days=days)
 
-        # Base subquery
         base_subquery = (
             select(Invocation.created_at, Invocation.latency_ms, Invocation.prompt_tokens, Invocation.completion_tokens, Invocation.lmp_id)
             .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
             .filter(Invocation.created_at >= start_date)
         )
 
-        # Apply filters
         if lmp_filters:
             base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))
         if filters:
             base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))
 
-        
         data = session.exec(base_subquery).all()
 
-        # Calculate aggregate metrics
         total_invocations = len(data)
         total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
         avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
         unique_lmps = len(set(row.lmp_id for row in data))
 
-        # Prepare graph data
         graph_data = []
         for row in data:
             graph_data.append({
@@ -217,7 +222,7 @@ class SQLStore(ell.store.Store):
 
 class SQLiteStore(SQLStore):
     def __init__(self, db_dir: str):
-        assert not db_dir.endswith('.db'), "Create store wit h a directory not a db."
+        assert not db_dir.endswith('.db'), "Create store with a directory not a db."
     
         os.makedirs(db_dir, exist_ok=True)
         self.db_dir = db_dir
@@ -250,4 +255,3 @@ class SQLiteStore(SQLStore):
 class PostgresStore(SQLStore):
     def __init__(self, db_uri: str):
         super().__init__(db_uri, has_blob_storage=False)
-    
