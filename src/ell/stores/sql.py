@@ -59,7 +59,7 @@ class SQLStore(ell.store.Store):
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
-                    serialized_lmp.uses.append(used_mp)
+                    serialized_lmp.uses.append(used_lmp)
             
             session.commit()
         return None
