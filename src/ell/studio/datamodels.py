@@ -9,7 +9,7 @@ class SerializedLMPPublic(SerializedLMPBase):
 class SerializedLMPWithUses(SerializedLMPPublic):
     lmp_id: str
 
-class SerializedLMPCreate(SerializedLMPBase):
+class SerializedLMPCreate(SQLModel):
     pass
 
 class SerializedLMPUpdate(SQLModel):
@@ -30,7 +30,7 @@ class InvocationPublic(InvocationBase):
     consumed_by: List[str]
     uses: List[str]
 
-class InvocationCreate(InvocationBase):
+class InvocationCreate(SQLModel):
     pass
 
 class InvocationUpdate(SQLModel):
@@ -47,7 +47,7 @@ class InvocationUpdate(SQLModel):
 class SerializedLStrPublic(SerializedLStrBase):
     pass
 
-class SerializedLStrCreate(SerializedLStrBase):
+class SerializedLStrCreate(SQLModel):
     pass
 
 class SerializedLStrUpdate(SQLModel):
