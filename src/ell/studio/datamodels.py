@@ -9,7 +9,7 @@ class SerializedLMPPublic(SerializedLMPBase):
 class SerializedLMPWithUses(SerializedLMPPublic):
     lmp_id: str
 
-class SerializedLMPCreate(SQLModel):
+class SerializedLMPCreate(SerializedLMPBase):
     pass
 
 class SerializedLMPUpdate(SQLModel):
