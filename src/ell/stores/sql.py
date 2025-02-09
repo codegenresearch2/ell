@@ -17,6 +17,7 @@ class SQLStore(ell.store.Store):
         SQLModel.metadata.create_all(self.engine)
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
+    @staticmethod
     def utc_now() -> datetime.datetime:
         return datetime.datetime.now(tz=datetime.timezone.utc)
 
