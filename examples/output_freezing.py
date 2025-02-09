@@ -11,10 +11,10 @@ def create_a_python_class(user_spec : str):
     """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nCreate a Python class according to the user specification."
+            f"{BASE_PROMPT}\n\nCreate a Python class according to the provided user specification."
         ),
         ell.user(
-            f"User spec: {user_spec}"
+            f"User specification: {user_spec}"
         )
     ]
 
@@ -39,5 +39,5 @@ if __name__ == "__main__":
     ell.set_store(store, autocommit=True)
 
     with store.freeze(create_a_python_class):
-        class_def = create_a_python_class("A class that represents a bank")
-        unit_tests = write_unit_for_a_class(class_def)
+        _class_def = create_a_python_class("A class that represents a bank")
+        _unit_tests = write_unit_for_a_class(_class_def)
