@@ -193,7 +193,8 @@ class SQLiteStore(SQLStore):
         _type, _id = id.split("-")
         increment = 2
         dirs = [_type] + [_id[i:i+increment] for i in range(0, depth*increment, increment)]
-        file_name = _id[depth*increment:]        return os.path.join(self.db_dir, "blob", *dirs, file_name)
+        file_name = _id[depth*increment:]
+        return os.path.join(self.db_dir, "blob", *dirs, file_name)  # Added newline here
 
     def write_external_blob(self, id: str, json_dump: str, depth: int = 2):
         file_path = self._get_blob_path(id, depth)
