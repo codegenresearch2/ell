@@ -29,17 +29,16 @@ def process_messages_for_client(messages: list[Message], client: Any):
     # XXX: or some such.
 
 
-def call(
-    *, 
-    model: str,
-    messages: list[Message],
-    api_params: Dict[str, Any],
-    tools: Optional[list[LMP]] = None,
-    client: Optional[openai.Client] = None,
-    _invocation_origin : str,
-    _exempt_from_tracking: bool,
-    _logging_color=None,
-    _name: str = None,
+def call(*,
+           model: str,
+           messages: list[Message],
+           api_params: Dict[str, Any],
+           tools: Optional[list[LMP]] = None,
+           client: Optional[openai.Client] = None,
+           _invocation_origin : str,
+           _exempt_from_tracking: bool,
+           _logging_color=None,
+           _name: str = None,
 ) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
     """
     Helper function to run the language model with the provided messages and parameters.
@@ -101,10 +100,10 @@ def call(
             if hasattr(chunk, "usage") and chunk.usage:
                 # Todo: is this a good decision.
                 metadata = chunk.to_dict()
-                 
+                  
                 if streaming:
                     continue
-             
+              
             for choice in chunk.choices:
                 choices_progress[choice.index].append(choice)
                 if config.verbose and choice.index == 0 and not _exempt_from_tracking:
@@ -120,7 +119,7 @@ def call(
     tracked_results = []
     for _, choice_deltas in sorted(choices_progress.items(), key=lambda x: x[0]):
         content = []
-         
+          
         # Handle text content
         if streaming:
             text_content = "".join((choice.delta.content or "" for choice in choice_deltas))
@@ -141,7 +140,7 @@ def call(
                 content.append(ContentBlock(
                     text=_lstr(content=choice.content, _origin_trace=_invocation_origin)
                 ))
-         
+          
         # Handle tool calls
         if not streaming and hasattr(choice, 'tool_calls'):
             for tool_call in choice.tool_calls or []:
@@ -150,18 +149,18 @@ def call(
                     if tool.__name__ == tool_call.function.name:
                         matching_tool = tool
                         break
-                 
+                  
                 if matching_tool:
                     params = matching_tool.__ell_params_model__(**json.loads(tool_call.function.arguments))
                     content.append(ContentBlock(
                         tool_call=ToolCall(tool=matching_tool, tool_call_id=_lstr(tool_call.id, _origin_trace=_invocation_origin), params=params)
                     ))
-         
+          
         tracked_results.append(Message(
             role=choice.role if not streaming else choice_deltas[0].delta.role,
             content=content
         ))
-     
+      
     api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
-     
+      
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
