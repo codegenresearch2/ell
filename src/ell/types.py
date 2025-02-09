@@ -1,6 +1,6 @@
 # Let's define the core types.
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime, timezone
 from typing import Any
 from ell.lstr import lstr
