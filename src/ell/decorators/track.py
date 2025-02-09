@@ -3,14 +3,13 @@ from ell.types import SerializedLStr
 import ell.util.closure
 from ell.configurator import config
 from ell.lstr import lstr
-
 import inspect
 import cattrs
 import numpy as np
 import hashlib
 import json
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, OrderedDict, Tuple
 
@@ -18,6 +17,14 @@ logger = logging.getLogger(__name__)
 def exclude_var(v):
     # is module or is immutable
     return inspect.ismodule(v)
+
+def utc_now() -> datetime:
+    """
+    Returns the current UTC timestamp.
+    Serializes to ISO-8601.
+    """
+    return datetime.now(tz=timezone.utc)
+
 
 def track(fn: Callable) -> Callable:
     if hasattr(fn, "__ell_lm_kwargs__"):
@@ -70,13 +77,14 @@ def track(fn: Callable) -> Callable:
             else:
                 logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
 
-        _start_time = datetime.now()
+        _start_time = utc_now()
+
         (result, invocation_kwargs, metadata) = (
             (fn(*fn_args, **fn_kwargs), None)
             if not lmp
             else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs, )
         )
-        latency_ms = (datetime.now() - _start_time).total_seconds() * 1000
+        latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
         prompt_tokens=usage.get("prompt_tokens", 0)
         completion_tokens=usage.get("completion_tokens", 0)
@@ -103,6 +111,7 @@ def track(fn: Callable) -> Callable:
 
     return wrapper
 
+
 def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
     lmps = config._store.get_lmps(name=name)
     version = 0
@@ -123,7 +132,7 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
         config._store.write_lmp(
             lmp_id=func.__ell_hash__,
             name=name,
-            created_at=datetime.now(),
+            created_at=utc_now(),
             source=fn_closure[0],
             dependencies=fn_closure[1],
             commit_message=commit,
@@ -135,12 +144,13 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
             uses=func.__ell_uses__,
         )
 
+
 def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion_tokens, 
                      state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result):
     config._store.write_invocation(
         id=invocation_id,
         lmp_id=func.__ell_hash__,
-        created_at=datetime.now(),
+        created_at=utc_now(),
         global_vars=get_immutable_vars(func.__ell_closure__[2]),
         free_vars=get_immutable_vars(func.__ell_closure__[3]),
         latency_ms=latency_ms,
@@ -154,11 +164,13 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
     )
 
 
+
 def compute_state_cache_key(ipstr, fn_closure):
     _global_free_vars_str = f"{json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)}"
     _free_vars_str = f"{json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)}"
     state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
     return state_cache_key
+
 
 # TODO: If you are contributor this is a massive place to optimize jesus christ.
 # Consider using VS-code's prefered method or gdb's prefered method of strifying symbols recursively.
@@ -183,6 +195,8 @@ def get_immutable_vars(vars_dict):
     converter.register_unstructure_hook(object, handle_complex_types)
     x = converter.unstructure(vars_dict)
     return x
+
+
 
 
 def prepare_invocation_params(fn_args, fn_kwargs):
