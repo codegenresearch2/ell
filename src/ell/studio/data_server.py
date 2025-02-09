@@ -2,31 +2,12 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from ell.stores.sql import SQLiteStore
 from ell import __version__
-from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Query, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
-import asyncio
-import json
 
 logger = logging.getLogger(__name__)
-
-
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            print(f"Broadcasting message to {connection} {message}")
-            await connection.send_text(message)
 
 
 def create_app(storage_dir: Optional[str] = None):
@@ -45,18 +26,13 @@ def create_app(storage_dir: Optional[str] = None):
         allow_headers=["*"],
     )
 
-    manager = ConnectionManager()
-
-    @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket):
-        await manager.connect(websocket)
-        try:
-            while True:
-                data = await websocket.receive_text()
-                # Handle incoming WebSocket messages if needed
-        except WebSocketDisconnect:
-            manager.disconnect(websocket)
-
+    @app.get("/api/lmps")
+    def get_lmps(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100)
+    ):
+        lmps = serializer.get_lmps(skip=skip, limit=limit)
+        return lmps
     
     @app.get("/api/latest/lmps")
     def get_latest_lmps(
@@ -68,12 +44,11 @@ def create_app(storage_dir: Optional[str] = None):
             )
         return lmps
 
-    # TOOD: Create a get endpoint to efficient get on the index with /api/lmp/<lmp_id>
+    # TODO: Create a get endpoint to efficiently get on the index with /api/lmp/<lmp_id>
     @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str):
         lmp = serializer.get_lmps(lmp_id=lmp_id)[0]
         return lmp
-
 
     @app.get("/api/lmps")
     def get_lmp(
@@ -96,13 +71,11 @@ def create_app(storage_dir: Optional[str] = None):
         
         return lmps
 
-
-
     @app.get("/api/invocation/{invocation_id}")
     def get_invocation(
         invocation_id: str,
     ):
-        invocation = serializer.get_invocations(lmp_filters=dict(), filters={"id": invocation_id})[0]
+        invocation = serializer.get_invocations(id=invocation_id)[0]
         return invocation
 
     @app.get("/api/invocations")
@@ -131,6 +104,14 @@ def create_app(storage_dir: Optional[str] = None):
         )
         return invocations
 
+    @app.post("/api/invocations/search")
+    def search_invocations(
+        q: str = Query(...),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100)
+    ):
+        invocations = serializer.search_invocations(q, skip=skip, limit=limit)
+        return invocations
 
     @app.get("/api/traces")
     def get_consumption_graph(
@@ -144,12 +125,5 @@ def create_app(storage_dir: Optional[str] = None):
     ):
         traces = serializer.get_all_traces_leading_to(invocation_id)
         return traces
-
-    async def notify_clients(entity: str, id: Optional[str] = None):
-        message = json.dumps({"entity": entity, "id": id})
-        await manager.broadcast(message)
-
-    # Add this method to the app object
-    app.notify_clients = notify_clients
 
     return app
