@@ -33,6 +33,7 @@ def create_app(config: Config):
 
     app = FastAPI(title="ell Studio", version=__version__)
 
+    # Enable CORS for all origins
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -49,6 +50,7 @@ def create_app(config: Config):
         try:
             while True:
                 data = await websocket.receive_text()
+                # Handle incoming WebSocket messages if needed
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -74,7 +76,7 @@ def create_app(config: Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        filters = {}
+        filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
