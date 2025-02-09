@@ -40,18 +40,21 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns the written LMP object or None if it already exists.
         """
         with Session(self.engine) as session:
-            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
+            # Check if the LMP already exists in the database
+            existing_lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
+            if existing_lmp:
+                return existing_lmp
             
-            if lmp:
-                return lmp
-            else:
-                session.add(serialized_lmp)
+            # Add the new LMP to the session
+            session.add(serialized_lmp)
             
+            # Add the used LMPs to the session
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
                     serialized_lmp.uses.append(used_lmp)
             
+            # Commit the transaction
             session.commit()
         return None
 
@@ -68,26 +71,32 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns None.
         """
         with Session(self.engine) as session:
+            # Ensure the LMP exists
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
+            # Increment the number of invocations for the LMP
             if lmp.num_invocations is None:
                 lmp.num_invocations = 1
             else:
                 lmp.num_invocations += 1
 
+            # Add the invocation to the session
             session.add(invocation)
 
+            # Add the results to the session
             for result in results:
                 result.producer_invocation = invocation
                 session.add(result)
 
+            # Add the invocation traces
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
                     invocation_consuming_id=consumed_id
                 ))
 
+            # Commit the transaction
             session.commit()
             return None
         
