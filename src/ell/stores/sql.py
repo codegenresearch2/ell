@@ -161,26 +161,19 @@ class SQLStore(ell.store.Store):
             .filter(Invocation.created_at >= start_date)
         )
         if lmp_filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))
-        if filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))
-        data = session.exec(base_subquery).all()
+            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))        if filters:
+            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))        data = session.exec(base_subquery).all()
         total_invocations = len(data)
         total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
         avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
         unique_lmps = len(set(row.lmp_id for row in data))
-        graph_data = [{
-            "date": row.created_at,
-            "avg_latency": row.latency_ms,
-            "tokens": row.prompt_tokens + row.completion_tokens,
-            "count": 1
-        } for row in data]
+        graph_data = [{'date': row.created_at, 'avg_latency': row.latency_ms, 'tokens': row.prompt_tokens + row.completion_tokens, 'count': 1} for row in data]
         return {
-            "total_invocations": total_invocations,
-            "total_tokens": total_tokens,
-            "avg_latency": avg_latency,
-            "unique_lmps": unique_lmps,
-            "graph_data": graph_data
+            'total_invocations': total_invocations,
+            'total_tokens': total_tokens,
+            'avg_latency': avg_latency,
+            'unique_lmps': unique_lmps,
+            'graph_data': graph_data
         }
 
 class SQLiteStore(SQLStore):
