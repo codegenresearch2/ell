@@ -99,7 +99,7 @@ def create_app(config: Config):
     def get_invocation(
         invocation_id: str, session: Session = Depends(get_session)
     ):
-        invocation = serializer.get_invocations(session, lmp_filters={}, filters={"id": invocation_id})[0]
+        invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})[0]
         return invocation
 
     @app.get("/api/invocations", response_model=list[InvocationPublicWithConsumes])
