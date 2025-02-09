@@ -42,6 +42,7 @@ def call(*, model: str,
     """
     # Todo: Decide if the client specified via the context amanger default registry is the shit or if the cliennt specified via lmp invocation args are the hing.
     client = client or config.get_client_for(model)
+    metadata = {}
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
     if not client.api_key:
