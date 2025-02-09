@@ -84,7 +84,7 @@ def create_app(config: Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        filters = {}
+        filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
@@ -97,8 +97,7 @@ def create_app(config: Config):
 
     @app.get("/api/invocation/{invocation_id}", response_model=InvocationPublicWithConsumes)
     def get_invocation(
-        invocation_id: str,
-        session: Session = Depends(get_session)
+        invocation_id: str, session: Session = Depends(get_session)
     ):
         invocation = serializer.get_invocations(session, lmp_filters={}, filters={"id": invocation_id})[0]
         return invocation
@@ -134,25 +133,17 @@ def create_app(config: Config):
         return invocations
 
     @app.get("/api/traces")
-    def get_consumption_graph(
-        session: Session = Depends(get_session)
-    ):
+    def get_consumption_graph(session: Session = Depends(get_session)):
         traces = serializer.get_traces(session)
         return traces
 
     @app.get("/api/traces/{invocation_id}")
-    def get_all_traces_leading_to(
-        invocation_id: str,
-        session: Session = Depends(get_session)
-    ):
+    def get_all_traces_leading_to(invocation_id: str, session: Session = Depends(get_session)):
         traces = serializer.get_all_traces_leading_to(session, invocation_id)
         return traces
 
     @app.get("/api/blob/{blob_id}", response_class=Response)
-    def get_blob(
-        blob_id: str,
-        session: Session = Depends(get_session)
-    ):
+    def get_blob(blob_id: str, session: Session = Depends(get_session)):
         blob = serializer.read_external_blob(blob_id)
         return Response(content=blob, media_type="application/json")
 
