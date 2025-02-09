@@ -23,6 +23,15 @@ def exclude_var(v):
     return inspect.ismodule(v)
 
 def track(fn: Callable) -> Callable:
+    """
+    Decorator to track function calls and their results.
+
+    Args:
+        fn (Callable): The function to be tracked.
+
+    Returns:
+        Callable: The tracked function.
+    """
     if hasattr(fn, "__ell_lm_kwargs__"):
         func_to_track = fn
         lm_kwargs = fn.__ell_lm_kwargs__
