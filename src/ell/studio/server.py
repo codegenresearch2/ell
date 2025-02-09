@@ -12,6 +12,7 @@ from ell.studio.datamodels import SerializedLMPWithUses
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
+from ell.studio.aggregations import InvocationsAggregate, GraphDataPoint
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +159,24 @@ def create_app(config: Config):
         results = session.exec(query).all()
         history = [{"date": str(row), "count": 1} for row in results]
         return history
+
+    @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
+    def get_invocations_aggregate(
+        days: int = Query(30, ge=1, le=365),  # Default to 30 days
+        session: Session = Depends(get_session)
+    ):
+        # TODO: Implement the aggregation logic for invocations
+        # This is a placeholder for the actual implementation
+        return InvocationsAggregate(
+            total_invocations=100,
+            total_tokens=100000,
+            avg_latency=10.5,
+            unique_lmps=50,
+            graph_data=[
+                GraphDataPoint(date=datetime.utcnow() - timedelta(days=i), count=i*10, avg_latency=i*0.5, tokens=i*1000)
+                for i in range(days)
+            ]
+        )
 
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = json.dumps({"entity": entity, "id": id})
