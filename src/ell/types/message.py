@@ -222,7 +222,6 @@ def user(content: Union[str, List[ContentBlock]]) -> Message:
 def assistant(content: Union[str, List[ContentBlock]]) -> Message:
     return Message(role="assistant", content=content)
 
-
 LMPParams = Dict[str, Any]
 MessageOrDict = Union[Message, Dict[str, str]]
 Chat = List[
