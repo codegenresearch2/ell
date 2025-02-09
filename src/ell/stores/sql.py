@@ -19,7 +19,17 @@ import json
 
 
 class SQLStore(ell.store.Store):
+    """
+    A class for storing and managing serialized LMPs and invocations in a database.
+    """
     def __init__(self, db_uri: str, has_blob_storage: bool = False):
+        """
+        Initializes the SQLStore with a database URI and optional blob storage support.
+        
+        Args:
+            db_uri (str): The URI for the database.
+            has_blob_storage (bool): Whether the store supports external blob storage.
+        """
         self.engine = create_engine(db_uri,
                                     json_serializer=lambda obj: json.dumps(pydantic_ltype_aware_cattr.unstructure(obj), 
                                      sort_keys=True, default=repr))
