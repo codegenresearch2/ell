@@ -20,21 +20,23 @@ names_list = [
 def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
 
-Name: <name>
-Backstory: <3 sentence backstory>'"""
+    Name: <name>
+    Backstory: <3 sentence backstory>'"""
     name = random.choice(names_list)
-    return f"Name: {name}\nBackstory: A brief backstory about {name}"
+    return f"Name: {name}\nBackstory: {name} has a fascinating backstory."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
-    return ell.system(f"""Here is your description.
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
+    return [
+        ell.system(f"""Here is your description.
 {personality}. 
 
 Your goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."""),
-    ell.user(format_message_history(message_history))
+        ell.user(format_message_history(message_history))
+    ]
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
