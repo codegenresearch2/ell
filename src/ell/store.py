@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional, Dict, List, Set, Union
 from ell.lstr import lstr
 from ell.types import InvocableLM
@@ -78,27 +78,6 @@ class Store(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def search_lmps(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for LMPs in the storage.
-
-    #     :param query: Search query string.
-    #     :return: List of LMPs matching the query.
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def search_invocations(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for invocations in the storage.
-
-    #     :param query: Search query string.
-    #     :return: List of invocations matching the query.
-    #     """
-    #     pass
-
-
     @abstractmethod
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
         """
@@ -107,7 +86,6 @@ class Store(ABC):
         :return: List of the latest LMPs.
         """
         pass
-
 
     @contextmanager
     def freeze(self, *lmps: InvocableLM):
