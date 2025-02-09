@@ -6,15 +6,15 @@ BASE_PROMPT = """You are an adept python programmer. Only answer in python code.
 @ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
 def create_a_python_class(user_spec : str):
     """
-    Creates a Python class based on the user specification.
+    Generates a Python class based on the user's specific requirements.
     Returns a list containing the system message and the user specification.
     """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nCreate a Python class according to the provided user specification."
+            f"{BASE_PROMPT}\n\nCreate a Python class according to the user's specific requirements provided in the specification."
         ),
         ell.user(
-            f"User specification: {user_spec}"
+            f"User's specific requirements: {user_spec}"
         )
     ]
 
@@ -26,10 +26,10 @@ def write_unit_for_a_class(class_def : str):
     """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nWrite a unit test for the given class definition."
+            f"{BASE_PROMPT}\n\nWrite a unit test for the given class definition provided."
         ),
         ell.user(
-            f"Class definition: {class_def}"
+            f"Class definition to be tested: {class_def}"
         )
     ]
 
