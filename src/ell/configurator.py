@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Dict, Any, Optional, Union, Tuple
+from typing import Dict, Any, Optional, Union
 import openai
 import logging
 from contextlib import contextmanager
@@ -50,9 +50,10 @@ class _Config:
         finally:
             self._local.stack.pop()
 
-    def get_client_for(self, model_name: str) -> Optional[openai.Client]:
+    def get_client_for(self, model_name: str) -> Tuple[Optional[openai.Client], bool]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
         client = current_registry.get(model_name)
+        fallback = False
         if client is None:
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
@@ -61,8 +62,9 @@ class _Config:
             else:
                 _config_logger.debug(warning_message)
             client = self._default_openai_client
+            fallback = True
 
-        return client
+        return client, fallback
 
     def reset(self) -> None:
         with self._lock:
