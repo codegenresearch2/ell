@@ -7,6 +7,8 @@ import ell.store
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_, text
+import cattrs
+import numpy as np
 
 def utc_now() -> datetime.datetime:
     """
@@ -123,8 +125,8 @@ class SQLStore(ell.store.Store):
             # Add usage information
             for lmp in lmps:
                 lmp['uses'] = []
-                for use in session.query(SerializedLMP).filter(SerializedLMPUses.lmp_using_id == lmp['lmp_id']).all():
-                    lmp['uses'].append(use.lmp_id)
+                for use in session.query(SerializedLMPUses.lmp_user_id).filter(SerializedLMPUses.lmp_using_id == lmp['lmp_id']).all():
+                    lmp['uses'].append(use.lmp_user_id)
             
             return lmps
 
