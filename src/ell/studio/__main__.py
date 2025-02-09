@@ -4,9 +4,15 @@ from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import run_process
+import asyncio
 
-def main():
+async def db_watcher():
+    # Placeholder for the actual database watcher logic
+    while True:
+        await asyncio.sleep(1)  # Simulate database changes
+        print("Database changed, notifying clients...")
+
+async def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
     parser.add_argument("--storage-dir", default=os.getcwd(),
                         help="Directory for filesystem serializer storage (default: current directory)")
@@ -29,11 +35,19 @@ def main():
             except FileNotFoundError:
                 return {"error": "File not found"}, 404
 
-    # Enhanced error handling for API responses
-    try:
-        uvicorn.run(app, host=args.host, port=args.port)
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # Create a new event loop for running the server and the database watcher
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Start the database watcher
+    db_watcher_task = asyncio.create_task(db_watcher())
+
+    # Create a Uvicorn config and server instance
+    config = uvicorn.Config(app, host=args.host, port=args.port)
+    server = uvicorn.Server(config)
+
+    # Run the server and the database watcher concurrently
+    await asyncio.gather(server.serve(), db_watcher_task)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
