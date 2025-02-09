@@ -24,7 +24,8 @@ def create_personality() -> str:
     Backstory: <3 sentence backstory>
     """
     name = random.choice(names_list)
-    return f"Name: {name}\nBackstory: {name} has a fascinating history."
+    backstory = f"Once upon a time, {name} was an adventurer who embarked on numerous quests."
+    return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -44,16 +45,11 @@ if __name__ == "__main__":
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
         
     messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(2)]  # Changed to list comprehension
+    personalities = [create_personality() for _ in range(2)]
 
-    names = []
-    backstories = []
-    for personality in personalities:
-        parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+    names = [personality.split("\n")[0].split(": ")[1] for personality in personalities]
     
-    print("Names extracted:", names)  # Removed debugging print statement
+    print("Names extracted:", names)
 
     whos_turn = 0 
     for _ in range(10):
