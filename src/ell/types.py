@@ -1,5 +1,4 @@
-# Addressing the feedback from the oracle, here is the revised code snippet:
-
+# Correctly formatted comment
 from typing import Callable, Dict, List, Union, Any, Optional
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
