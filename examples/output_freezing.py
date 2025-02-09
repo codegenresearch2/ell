@@ -11,25 +11,25 @@ def create_a_python_class(user_spec : str):
     """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nYour goal is to create a Python class based on the user specification provided."
+            f"{BASE_PROMPT}\n\nCreate a Python class according to the user specification."
         ),
         ell.user(
-            f"Here is the user spec: {user_spec}"
+            f"User spec: {user_spec}"
         )
     ]
 
 @ell.lm(model="gpt-4o", temperature=0.7)
 def write_unit_for_a_class(class_def : str):
     """
-    Writes a unit test for a given class definition.
-    Returns a list containing the system message and the class definition.
+    Writes a single unit test for the specified class definition.
+    Do not use the `unittest` package.
     """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nYour goal is to write a single unit test for the specified class definition. Do not use the `unittest` package."
+            f"{BASE_PROMPT}\n\nWrite a unit test for the given class definition."
         ),
         ell.user(
-            f"Here is the class definition: {class_def}"
+            f"Class definition: {class_def}"
         )
     ]
 
@@ -39,5 +39,5 @@ if __name__ == "__main__":
     ell.set_store(store, autocommit=True)
 
     with store.freeze(create_a_python_class):
-        _class_def = create_a_python_class("A class that represents a bank")
-        _unit_tests = write_unit_for_a_class(_class_def)
+        class_def = create_a_python_class("A class that represents a bank")
+        unit_tests = write_unit_for_a_class(class_def)
