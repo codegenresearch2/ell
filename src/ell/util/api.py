@@ -73,7 +73,7 @@ def call(*, model: str,
         model_call = client.chat.completions.create
         api_params["stream"] = True
         api_params["stream_options"] = {"include_usage": True}
-    
+     
     client_safe_messages_messages = process_messages_for_client(messages, client)
     # print(api_params)
     model_result = model_call(model=model, messages=client_safe_messages_messages, **api_params)
@@ -93,7 +93,7 @@ def call(*, model: str,
                 metadata = chunk.to_dict()
                 if streaming:
                     continue
-            
+             
             for choice in chunk.choices:
                 choices_progress[choice.index].append(choice)
                 if config.verbose and choice.index == 0 and not _exempt_from_tracking:
@@ -128,6 +128,6 @@ def call(*, model: str,
                             params = matching_tool.__ell_params_model__(**json.loads(tool_call.function.arguments))
                             content.append(ContentBlock(tool_call=ToolCall(tool=matching_tool, tool_call_id=_lstr(tool_call.id, _origin_trace=_invocation_origin), params=params)))
         tracked_results.append(Message(role=choice_deltas[0].delta.role if streaming else choice_deltas[0].message.role, content=content))
-    
+     
     api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
