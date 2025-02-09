@@ -29,6 +29,16 @@ class SQLStore(ell.store.Store):
         super().__init__(has_blob_storage)
 
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
+        """
+        Writes a serialized LMP to the database and updates its uses.
+        
+        Args:
+            serialized_lmp (SerializedLMP): The LMP to be written.
+            uses (Dict[str, Any]): A dictionary of LMP IDs that this LMP uses.
+        
+        Returns:
+            Optional[Any]: Returns the existing LMP if it was already in the database, otherwise None.
+        """
         with Session(self.engine) as session:
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id)).first()
             
@@ -46,6 +56,16 @@ class SQLStore(ell.store.Store):
         return None
 
     def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
+        """
+        Writes an invocation to the database and updates the related LMP and invocations.
+        
+        Args:
+            invocation (Invocation): The invocation to be written.
+            consumes (Set[str]): A set of invocation IDs that this invocation consumes.
+        
+        Returns:
+            Optional[Any]: Returns None if successful, otherwise an error message.
+        """
         with Session(self.engine) as session:
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id)).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
@@ -65,14 +85,44 @@ class SQLStore(ell.store.Store):
             return None
         
     def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
+        """
+        Retrieves cached invocations for a specific LMP and state cache key.
+        
+        Args:
+            lmp_id (str): The ID of the LMP.
+            state_cache_key (str): The state cache key to filter invocations.
+        
+        Returns:
+            List[Invocation]: A list of cached invocations.
+        """
         with Session(self.engine) as session:
             return self.get_invocations(session, lmp_filters={"lmp_id": lmp_id}, filters={"state_cache_key": state_cache_key})
         
     def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
+        """
+        Retrieves all versions of an LMP by fully qualified name.
+        
+        Args:
+            fqn (str): The fully qualified name of the LMP.
+        
+        Returns:
+            List[SerializedLMP]: A list of serialized LMPs.
+        """
         with Session(self.engine) as session:
             return self.get_lmps(session, name=fqn)
         
     def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Retrieves the latest LMPs, grouped by name with the most recent creation date.
+        
+        Args:
+            session (Session): The database session.
+            skip (int): Number of records to skip.
+            limit (int): Maximum number of records to retrieve.
+        
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the latest LMPs.
+        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
@@ -87,6 +137,19 @@ class SQLStore(ell.store.Store):
         return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
     def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Retrieves LMPs based on optional filters and pagination.
+        
+        Args:
+            session (Session): The database session.
+            skip (int): Number of records to skip.
+            limit (int): Maximum number of records to retrieve.
+            subquery (Optional[Select]): A subquery to join with the main query.
+            **filters (Optional[Dict[str, Any]]): Filters to apply to the query.
+        
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the LMPs.
+        """
         query = select(SerializedLMP)
         
         if subquery is not None:
@@ -106,6 +169,20 @@ class SQLStore(ell.store.Store):
         return results
 
     def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
+        """
+        Retrieves invocations based on LMP filters, optional filters, and pagination.
+        
+        Args:
+            session (Session): The database session.
+            lmp_filters (Dict[str, Any]): Filters to apply to the LMPs.
+            skip (int): Number of records to skip.
+            limit (int): Maximum number of records to retrieve.
+            filters (Optional[Dict[str, Any]]): Additional filters to apply to the invocations.
+            hierarchical (bool): Whether to retrieve hierarchical invocations.
+        
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the invocations.
+        """
         query = select(Invocation).join(SerializedLMP)
 
         for key, value in lmp_filters.items():
@@ -121,6 +198,15 @@ class SQLStore(ell.store.Store):
         return invocations
 
     def get_traces(self, session: Session):
+        """
+        Retrieves invocation traces from the database.
+        
+        Args:
+            session (Session): The database session.
+        
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the invocation traces.
+        """
         query = text("""
         SELECT 
             consumer.lmp_id, 
@@ -145,6 +231,16 @@ class SQLStore(ell.store.Store):
         return traces
         
     def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieves all traces leading to a specific invocation.
+        
+        Args:
+            session (Session): The database session.
+            invocation_id (str): The ID of the invocation.
+        
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries representing the invocation traces.
+        """
         traces = []
         visited = set()
         queue = [(invocation_id, 0)]
@@ -183,6 +279,18 @@ class SQLStore(ell.store.Store):
         return list(unique_traces.values())
     
     def get_invocations_aggregate(self, session: Session, lmp_filters: Dict[str, Any] = None, filters: Dict[str, Any] = None, days: int = 30) -> Dict[str, Any]:
+        """
+        Retrieves aggregate data for invocations over a specified period.
+        
+        Args:
+            session (Session): The database session.
+            lmp_filters (Dict[str, Any]): Filters to apply to the LMPs.
+            filters (Dict[str, Any]): Additional filters to apply to the invocations.
+            days (int): Number of days to look back for invocation data.
+        
+        Returns:
+            Dict[str, Any]: A dictionary containing aggregate invocation data.
+        """
         start_date = datetime.utcnow() - timedelta(days=days)
 
         base_subquery = (
