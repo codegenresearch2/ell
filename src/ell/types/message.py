@@ -1,8 +1,8 @@
-# todo: implement tracing for structured outs. this a v2 feature.
+# todo: implement tracing for structured outputs. This is a v2 feature.
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
-from PIL.Image import Image
+from PIL.Image import Image as PILImage
 import numpy as np
 import base64
 from io import BytesIO
@@ -17,16 +17,16 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 
 from ell.util.serialization import serialize_image
 _lstr_generic = Union[_lstr, str]
-InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"], ]]
+InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"]]]
 
 class ToolResult(BaseModel):
     tool_call_id: _lstr_generic
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
-    tool : InvocableTool
-    tool_call_id : Optional[_lstr_generic] = Field(default=None)
-    params : Union[Type[BaseModel], BaseModel]
+    tool: InvocableTool
+    tool_call_id: Optional[_lstr_generic] = Field(default=None)
+    params: Union[Type[BaseModel], BaseModel]
     def __call__(self, **kwargs):
         assert not kwargs, "Unexpected arguments provided. Calling a tool uses the params provided in the ToolCall."
 
@@ -41,9 +41,9 @@ class ToolCall(BaseModel):
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
 
-class ContentBlock(BaseModel):    
+class ContentBlock(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     text: Optional[_lstr_generic] = Field(default=None)
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
@@ -54,7 +54,7 @@ class ContentBlock(BaseModel):
     @model_validator(mode='after')
     def check_single_non_null(self):
         non_null_fields = [field for field, value in self.__dict__.items() if value is not None]
-        if len(non_null_fields) > 1:
+        if len(non_null_fields) > 1:  
             raise ValueError(f"Only one field can be non-null. Found: {', '.join(non_null_fields)}")
         return self
 
@@ -87,7 +87,6 @@ class ContentBlock(BaseModel):
         if isinstance(content, BaseModel):
             return cls(parsed=content)
         if isinstance(content, (PILImage.Image, np.ndarray)):
-
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
@@ -120,7 +119,6 @@ class ContentBlock(BaseModel):
         if image is None:
             return None
         return serialize_image(image)
-    
 
     def to_openai_content_block(self):
         if self.image:
@@ -142,8 +140,8 @@ class ContentBlock(BaseModel):
                 "json": self.parsed.model_dump_json()
             }
         else:
-            return None 
-        
+            return None
+
 
 def coerce_content_list(content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs) -> List[ContentBlock]:
     if not content:
@@ -151,17 +149,16 @@ def coerce_content_list(content: Union[str, List[ContentBlock], List[Union[str, 
 
     if not isinstance(content, list):
         content = [content]
-    
+
     return [ContentBlock.model_validate(ContentBlock.coerce(c)) for c in content]
 
 class Message(BaseModel):
     role: str
     content: List[ContentBlock]
-    
 
     def __init__(self, role, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
         content = coerce_content_list(content, **content_block_kwargs)
-        
+
         super().__init__(content=content, role=role)
 
     @cached_property
@@ -175,15 +172,15 @@ class Message(BaseModel):
     @cached_property
     def tool_calls(self) -> List[ToolCall]:
         return [c.tool_call for c in self.content if c.tool_call is not None]
-    
+
     @cached_property
     def tool_results(self) -> List[ToolResult]:
         return [c.tool_result for c in self.content if c.tool_result is not None]
 
     @cached_property
-    def structured(self) -> List[BaseModel]:
+    def parsed_content(self) -> List[BaseModel]:
         return [c.parsed for c in self.content if c.parsed is not None]
-    
+
     def call_tools_and_collect_as_message(self, parallel=False, max_workers=None):
         if parallel:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -194,14 +191,12 @@ class Message(BaseModel):
         return Message(role="user", content=content)
 
     def to_openai_message(self) -> Dict[str, Any]:
-
         message = {
             "role": "tool" if self.tool_results else self.role,
             "content": list(filter(None, [
                 c.to_openai_content_block() for c in self.content
             ]))
         }
-        print(message, self.content)
         if self.tool_calls:
             message["tool_calls"] = [
                 {
@@ -217,14 +212,13 @@ class Message(BaseModel):
 
         if self.tool_results:
             message["tool_call_id"] = self.tool_results[0].tool_call_id
-            # message["name"] = self.tool_results[0].tool_call_id.split('-')[0]  # Assuming the tool name is the first part of the tool_call_id
             message["content"] = self.tool_results[0].result[0].text
-            # Let';s assert no other type of content block in the tool result
             assert len(self.tool_results[0].result) == 1, "Tool result should only have one content block"
             assert self.tool_results[0].result[0].type == "text", "Tool result should only have one text content block"
         return message
 
-# HELPERS 
+# HELPERS
+
 def system(content: Union[str, List[ContentBlock]]) -> Message:
     """
     Create a system message with the given content.
@@ -264,12 +258,12 @@ def assistant(content: Union[str, List[ContentBlock]]) -> Message:
     return Message(role="assistant", content=content)
 
 
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
+# Want to enable a use case where the user can actually return a standard OpenAI chat format
+# This is a placeholder will likely come back later for this
 LMPParams = Dict[str, Any]
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta. TypedDict is the ticket ell oh ell.
+# Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can reference role or content this way. Probably will can the dict sync meta. TypedDict is the ticket ell oh ell.
 MessageOrDict = Union[Message, Dict[str, str]]
-# Can support iamge prompts later.
+# Can support image prompts later.
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
