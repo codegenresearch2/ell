@@ -59,7 +59,7 @@ class SQLStore(ell.store.Store):
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
-                    serialized_lmp.uses.append(used_lmp)
+                    serialized_lmp.uses.append(used_mp)
             
             session.commit()
         return None
@@ -79,11 +79,19 @@ class SQLStore(ell.store.Store):
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id)).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
-            lmp.num_invocations = lmp.num_invocations + 1 if lmp.num_invocations is not None else 1
+            # Increment num_invocations
+            if lmp.num_invocations is None:
+                lmp.num_invocations = 1
+            else:
+                lmp.num_invocations += 1
 
+            # Add the invocation contents
             session.add(invocation.contents)
+            
+            # Add the invocation
             session.add(invocation)
 
+            # Now create traces.
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
