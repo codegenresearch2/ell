@@ -19,8 +19,26 @@ from typing import Any, Callable, OrderedDict, Tuple
 
 logger = logging.getLogger(__name__)
 
-def exclude_var(v):
+def exclude_var(v: Any) -> bool:
+    """
+    Determines if a variable is a module or is immutable.
+
+    Args:
+        v (Any): The variable to check.
+
+    Returns:
+        bool: True if the variable is a module or is immutable, False otherwise.
+    """
     return inspect.ismodule(v)
+
+def utc_now() -> datetime:
+    """
+    Returns the current UTC timestamp.
+
+    Returns:
+        datetime: The current UTC timestamp.
+    """
+    return datetime.now(timezone.utc)
 
 def track(fn: Callable) -> Callable:
     """
@@ -83,14 +101,14 @@ def track(fn: Callable) -> Callable:
             else:
                 logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
         
-        _start_time = datetime.now(timezone.utc)
+        _start_time = utc_now()
 
         (result, invocation_kwargs, metadata) = (
             (fn(*fn_args, **fn_kwargs), None)
             if not lmp
             else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs, )
             )
-        latency_ms = (datetime.now(timezone.utc) - _start_time).total_seconds() * 1000
+        latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
@@ -137,7 +155,7 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
         config._store.write_lmp(
             lmp_id=func.__ell_hash__,
             name=name,
-            created_at=datetime.now(timezone.utc),
+            created_at=utc_now(),
             source=fn_closure[0],
             dependencies=fn_closure[1],
             commit_message=commit,
@@ -154,7 +172,7 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
     config._store.write_invocation(
         id=invocation_id,
         lmp_id=func.__ell_hash__,
-        created_at=datetime.now(timezone.utc),
+        created_at=utc_now(),
         global_vars=get_immutable_vars(func.__ell_closure__[2]),
         free_vars=get_immutable_vars(func.__ell_closure__[3]),
         latency_ms=latency_ms,
