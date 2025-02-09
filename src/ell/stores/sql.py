@@ -11,6 +11,7 @@ from sqlalchemy.sql import text
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
+from datetime import datetime, timedelta
 
 class SQLStore(ell.store.Store):
     """
