@@ -10,7 +10,7 @@ from ell.util.dict_sync_meta import DictSyncMeta
 # Define a function to get the current UTC timestamp
 def utc_now() -> datetime:
     """
-    Returns the current UTC time.
+    Returns the current UTC time in ISO-8601 format.
     """
     return datetime.utcnow()
 
@@ -34,6 +34,7 @@ Chat = List[Message]
 
 T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
+MultiTurnLMP = Callable[..., Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
