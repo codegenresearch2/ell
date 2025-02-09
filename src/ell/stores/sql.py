@@ -22,9 +22,12 @@ class SQLStore(ell.store.Store):
                   uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any], commit_message: Optional[str] = None,
                   created_at: Optional[float]=None) -> Optional[Any]:
         with Session(self.engine) as session:
+            # Check if the LMP already exists
             lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id)).first()
             if lmp:
                 return lmp
+
+            # Create a new LMP instance
             lmp = SerializedLMP(
                 lmp_id=lmp_id,
                 name=name,
@@ -39,10 +42,14 @@ class SQLStore(ell.store.Store):
                 commit_message=commit_message
             )
             session.add(lmp)
+
+            # Add dependencies
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
                     lmp.uses.append(used_lmp)
+
+            # Commit the transaction
             session.commit()
         return None
 
@@ -57,13 +64,19 @@ class SQLStore(ell.store.Store):
             elif isinstance(result, list):
                 results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")            
+                raise TypeError("Result must be either lstr or List[lstr]")
+
+            # Ensure the LMP exists
             lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id)).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
+
+            # Update invocation count
             if lmp.num_invocations is None:
                 lmp.num_invocations = 1
             else:
                 lmp.num_invocations += 1
+
+            # Create the invocation record
             invocation = Invocation(
                 id=id,
                 lmp_id=lmp.lmp_id,
@@ -78,19 +91,28 @@ class SQLStore(ell.store.Store):
                 latency_ms=latency_ms,
                 state_cache_key=state_cache_key,
             )
+
+            # Add results
             for res in results:
                 serialized_lstr = SerializedLStr(content=str(res), logits=res.logits)
                 session.add(serialized_lstr)
                 invocation.results.append(serialized_lstr)
+
             session.add(invocation)
+
+            # Add consumption traces
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=id,
                     invocation_consuming_id=consumed_id
                 ))
+
             session.commit()
 
     def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Gets all the lmps grouped by unique name with the highest created at
+        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
