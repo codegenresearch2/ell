@@ -4,10 +4,7 @@ import os
 from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
-import cattrs
-import numpy as np
-from sqlalchemy.sql import text
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
@@ -42,7 +39,7 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= created_at or utc_now(),
+                    created_at= datetime.datetime.utcnow(),
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
@@ -111,73 +108,44 @@ class SQLStore(ell.store.Store):
             session.commit()
     def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
-            query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
-                SerializedLMPUses,
-                SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id
-            ).order_by(SerializedLMP.created_at.desc())  # Sort by created_at in descending order
-            
+            query = select(SerializedLMP)
             if filters:
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
             results = session.exec(query).all()
-            
-            lmp_dict = {lmp.lmp_id: {**lmp.model_dump(), 'uses': []} for lmp, _ in results}
-            for lmp, using_id in results:
-                if using_id:
-                    lmp_dict[lmp.lmp_id]['uses'].append(using_id)
-            return list(lmp_dict.values())
+            return [lmp.model_dump() for lmp in results]
 
-    def get_invocations(self, lmp_filters: Dict[str, Any], filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
-            query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
+            query = select(Invocation, SerializedLStr).join(SerializedLStr).where(Invocation.lmp_id == lmp_id)
             
-            # Apply LMP filters
-            for key, value in lmp_filters.items():
-                query = query.where(getattr(SerializedLMP, key) == value)
-            
-            # Apply invocation filters
             if filters:
                 for key, value in filters.items():
                     query = query.where(getattr(Invocation, key) == value)
             
-            # Sort from newest to oldest
-            query = query.order_by(Invocation.created_at.desc())
-            
             results = session.exec(query).all()
             
             invocations = {}
-            for inv, lstr, lmp in results:
+            for inv, lstr in results:
                 if inv.id not in invocations:
                     inv_dict = inv.model_dump()
-                    inv_dict['lmp'] = lmp.model_dump()
+                    inv_dict['results'] = []
                     invocations[inv.id] = inv_dict
-                    invocations[inv.id]['results'] = []
                 if lstr:
-                    invocations[inv.id]['results'].append(dict(**lstr.model_dump(), __lstr=True))
+                    invocations[inv.id]['results'].append(lstr.model_dump())
             
             return list(invocations.values())
 
     def get_traces(self):
         with Session(self.engine) as session:
-            query = text("""
-            SELECT 
-                consumer.lmp_id, 
-                trace.*, 
-                consumed.lmp_id
-            FROM 
-                invocation AS consumer
-            JOIN 
-                invocationtrace AS trace ON consumer.id = trace.invocation_consumer_id
-            JOIN 
-                invocation AS consumed ON trace.invocation_consuming_id = consumed.id
-            """)
+            query = session.query(InvocationTrace, Invocation, SerializedLMP).join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id).join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id).order_by(Invocation.created_at.desc())
             results = session.exec(query).all()
             
             traces = []
-            for (consumer_lmp_id, consumer_invocation_id, consumed_invocation_id, consumed_lmp_id) in results:
+            for (trace, inv, lmp) in results:
                 traces.append({
-                    'consumer': consumer_lmp_id,
-                    'consumed': consumed_lmp_id
+                    'consumer': inv.lmp_id,
+                    'consumed': lmp.lmp_id
                 })
             
             return traces
@@ -199,17 +167,11 @@ class SQLStore(ell.store.Store):
 
                 visited.add(current_invocation_id)
 
-                results = session.exec(
-                    select(InvocationTrace, Invocation, SerializedLMP)
-                    .join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id)
-                    .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
-                    .where(InvocationTrace.invocation_consumer_id == current_invocation_id)
-                ).all()
+                results = session.query(InvocationTrace, Invocation, SerializedLMP).join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id).join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id).filter(InvocationTrace.invocation_consumer_id == current_invocation_id).all()
                 for row in results:
-                    print(row)
                     trace = {
                         'consumer_id': row.InvocationTrace.invocation_consumer_id,
-                        'consumed': {key: value for key, value in row.Invocation.__dict__.items() if key not in ['invocation_consumer_id', 'invocation_consuming_id']},
+                        'consumed': row.Invocation.model_dump(),
                         'consumed_lmp': row.SerializedLMP.model_dump()
                     }
                     traces.append(trace)
