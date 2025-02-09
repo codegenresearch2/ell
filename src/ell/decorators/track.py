@@ -18,6 +18,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Optional, OrderedDict, Tuple
 
+# Thread-local storage for the invocation stack
 _invocation_stack = threading.local()
 
 def get_current_invocation() -> Optional[str]:
