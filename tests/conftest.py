@@ -1,11 +1,13 @@
 import pytest
-import os
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
-    # Set a fake OpenAI API key for all tests
-    with patch('os.environ', {'OPENAI_API_KEY': 'sk-fake-api-key-for-testing'}):
-        yield
-    
-    # Clean up after tests if necessary
+    # Patch the OpenAI client
+    with patch('openai.ChatCompletion.create', return_value=None) as mock_create:
+        # Configure the mock client
+        mock_client = MagicMock()
+        mock_client.chat.completions.create = mock_create
+        
+        # Yield the mock client to the tests
+        yield mock_client
