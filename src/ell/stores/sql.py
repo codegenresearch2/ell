@@ -1,12 +1,9 @@
-from datetime import datetime
+import datetime
 import json
 import os
 from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
-import cattrs
-import numpy as np
-from sqlalchemy.sql import text
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
@@ -42,7 +39,7 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= created_at or utc_now(),
+                    created_at=created_at or utc_now(),
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
@@ -59,7 +56,7 @@ class SQLStore(ell.store.Store):
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
                          global_vars: Dict[str, Any],
-                         free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
+                         free_vars: Dict[str, Any], created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
@@ -141,7 +138,6 @@ class SQLStore(ell.store.Store):
                 ))
             
             if filters:
-                print(f"Filters: {filters}")
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
             
