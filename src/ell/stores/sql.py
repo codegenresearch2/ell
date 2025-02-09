@@ -7,7 +7,7 @@ import ell.store
 import cattrs
 import numpy as np
 from sqlalchemy.sql import text
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
@@ -16,13 +16,11 @@ class SQLStore(ell.store.Store):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
-
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
-
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, 
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str,
                   version_number: int,
-                  uses: Dict[str, Any], 
+                  uses: Dict[str, Any],
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
@@ -42,8 +40,8 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= created_at or utc_now(),
-                    is_lm=is_lmp,
+                    created_at= datetime.datetime.utcnow() if created_at is None else datetime.datetime.fromtimestamp(created_at, datetime.timezone.utc),
+                    is_lm=is_lm,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
                 )
@@ -57,12 +55,14 @@ class SQLStore(ell.store.Store):
             session.commit()
         return None
 
-    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
-                         global_vars: Dict[str, Any],
-                         free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
-                         completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
-                         state_cache_key: Optional[str] = None,
-                         cost_estimate: Optional[float] = None) -> Optional[Any]:
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
+                          global_vars: Dict[str, Any],
+                          free_vars: Dict[str, Any], created_at: Optional[float],
+                          consumes: Set[str], prompt_tokens: Optional[int] = None,
+                          completion_tokens: Optional[int] = None,
+                          latency_ms: Optional[float] = None,
+                          state_cache_key: Optional[str] = None,
+                          cost_estimate: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             if isinstance(result, lstr):
                 results = [result]
@@ -95,7 +95,10 @@ class SQLStore(ell.store.Store):
             )
 
             for res in results:
-                serialized_lstr = SerializedLStr(content=str(res), logits=res.logits)
+                serialized_lstr = SerializedLStr(
+                    content=str(res),
+                    logits=res.logits
+                )
                 session.add(serialized_lstr)
                 invocation.results.append(serialized_lstr)
             
@@ -107,14 +110,15 @@ class SQLStore(ell.store.Store):
                     invocation_consumer_id=id,
                     invocation_consuming_id=consumed_id
                 ))
-
+            
             session.commit()
+
     def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
             query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
                 SerializedLMPUses,
                 SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id
-            ).order_by(SerializedLMP.created_at.desc())  # Sort by created_at in descending order
+            ).order_by(SerializedLMP.created_at.desc())
             
             if filters:
                 for key, value in filters.items():
@@ -182,7 +186,6 @@ class SQLStore(ell.store.Store):
             
             return traces
         
-
     def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
             traces = []
@@ -206,7 +209,6 @@ class SQLStore(ell.store.Store):
                     .where(InvocationTrace.invocation_consumer_id == current_invocation_id)
                 ).all()
                 for row in results:
-                    print(row)
                     trace = {
                         'consumer_id': row.InvocationTrace.invocation_consumer_id,
                         'consumed': {key: value for key, value in row.Invocation.__dict__.items() if key not in ['invocation_consumer_id', 'invocation_consuming_id']},
@@ -225,13 +227,11 @@ class SQLStore(ell.store.Store):
             # Convert the dictionary values back to a list
             return list(unique_traces.values())
 
-
     def get_lmp_versions(self, name: str) -> List[Dict[str, Any]]:
         return self.get_lmps(name=name)
 
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
         raise NotImplementedError()
-
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
