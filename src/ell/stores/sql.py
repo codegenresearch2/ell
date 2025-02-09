@@ -9,6 +9,7 @@ from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 import cattrs
 import numpy as np
+from sqlalchemy.sql import text
 
 def utc_now() -> datetime.datetime:
     """
