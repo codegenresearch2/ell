@@ -14,7 +14,7 @@ def create_a_python_class(user_spec : str):
             f"{BASE_PROMPT}\n\nYour goal is to create a Python class based on the user specification provided."
         ),
         ell.user(
-            f"Here is the user specification: {user_spec}"
+            f"Here is the user spec: {user_spec}"
         )
     ]
 
