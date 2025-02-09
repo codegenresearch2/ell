@@ -19,9 +19,7 @@ import gzip
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str, has_blob_storage: bool = False):
-        self.engine = create_engine(db_uri,
-                                    json_serializer=lambda obj: json.dumps(pydantic_ltype_aware_cattr.unstructure(obj), 
-                                     sort_keys=True, default=repr))
+        self.engine = create_engine(db_uri, json_serializer=lambda obj: json.dumps(pydantic_ltype_aware_cattr.unstructure(obj), sort_keys=True, default=repr))
         SQLModel.metadata.create_all(self.engine)
         self.open_files: Dict[str, Dict[str, Any]] = {}
         super().__init__(has_blob_storage)
@@ -163,8 +161,10 @@ class SQLStore(ell.store.Store):
             .filter(Invocation.created_at >= start_date)
         )
         if lmp_filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))        if filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))        data = session.exec(base_subquery).all()
+            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))
+        if filters:
+            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))
+        data = session.exec(base_subquery).all()
         total_invocations = len(data)
         total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
         avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
