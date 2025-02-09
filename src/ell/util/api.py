@@ -39,7 +39,7 @@ def call(
     _exempt_from_tracking: bool,
     _logging_color=None,
     _name: str = None,
-) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
+) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]], Dict[str, Any]]:
     """
     Helper function to run the language model with the provided messages and parameters.
     """
