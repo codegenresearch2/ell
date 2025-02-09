@@ -44,7 +44,7 @@ if __name__ == "__main__":
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
         
     messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(2)]
+    personalities = [create_personality() for _ in range(2)]  # Changed to list comprehension
 
     names = []
     backstories = []
