@@ -1,7 +1,8 @@
 # Updated code snippet addressing the feedback from the oracle
 
-from datetime import datetime, timedelta
-from sqlalchemy import case
+from typing import Dict, Optional, Any, List, Set
+import json
+import os
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
 import cattrs
@@ -10,7 +11,6 @@ from sqlalchemy.sql import text
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
-import os
 
 class SQLStore(ell.store.Store):
     """
