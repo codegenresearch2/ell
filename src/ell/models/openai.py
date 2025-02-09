@@ -2,6 +2,7 @@ from ell.configurator import config
 import openai
 import logging
 import os
+import colorama
 
 logger = logging.getLogger(__name__)
 
