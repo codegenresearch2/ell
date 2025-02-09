@@ -90,6 +90,7 @@ def create_app(config: Config):
         if not lmps:
             raise HTTPException(status_code=404, detail="LMP not found")
         
+        print(lmps[0])  # Debugging statement
         return lmps
 
     @app.get("/api/invocation/{invocation_id}")
@@ -167,8 +168,8 @@ def create_app(config: Config):
         lmp_id: Optional[str] = Query(None),
         session: Session = Depends(get_session)
     ):
-        # TODO: Implement the aggregation logic for invocations
-        # This is a placeholder for the actual implementation
+        # Aggregate invocations logic
+        # TODO: Implement the actual aggregation logic
         aggregate = InvocationsAggregate(
             total_invocations=100,
             total_tokens=100000,
