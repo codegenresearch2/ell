@@ -1,23 +1,19 @@
 # Let's define the core types.
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union
-
+from datetime import datetime, timezone
 from typing import Any
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
-
-from datetime import datetime, timezone
-from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from sqlalchemy import TIMESTAMP, func
-import sqlalchemy.types as types
+from sqlalchemy import TIMESTAMP, func, types
 
 _lstr_generic = Union[lstr, str]
 
 OneTurn = Callable[..., _lstr_generic]
 
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
+# want to enable a use case where the user can actually return a standard oai chat format
+# This is a placeholder will likely come back later for this
 LMPParams = Dict[str, Any]
 
 
@@ -43,10 +39,6 @@ T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
-
-from datetime import timezone
-from sqlmodel import Field
-from typing import Optional
 
 
 def utc_now() -> datetime:
