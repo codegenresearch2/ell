@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 import json
 import os
@@ -17,34 +18,22 @@ from ell.util.serialization import pydantic_ltype_aware_cattr
 import gzip
 
 
-class SQLStore(ell.store.Store):
-    """
-    A class to manage storage operations for serialized LMPs and invocations.
-    """
-    def __init__(self, db_uri: str, has_blob_storage: bool = False):
-        """
-        Initializes the SQLStore with a database URI and optional blob storage.
+class SQLStore(ell.store.Store, ABC):
+    @abstractmethod
+    def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
+        pass
 
-        Args:
-            db_uri (str): The URI for the database.
-            has_blob_storage (bool, optional): Whether the store has blob storage. Defaults to False.
-        """
+    @abstractmethod
+    def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
+        pass
+
+    def __init__(self, db_uri: str, has_blob_storage: bool = False):
         self.engine = create_engine(db_uri, json_serializer=lambda obj: json.dumps(pydantic_ltype_aware_cattr.unstructure(obj), sort_keys=True, default=repr))
         SQLModel.metadata.create_all(self.engine)
         self.open_files: Dict[str, Dict[str, Any]] = {}
         super().__init__(has_blob_storage)
 
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
-        """
-        Writes a serialized LMP to the database and updates its uses.
-
-        Args:
-            serialized_lmp (SerializedLMP): The serialized LMP to write.
-            uses (Dict[str, Any]): A dictionary of LMP IDs that this LMP uses.
-
-        Returns:
-            Optional[Any]: Returns the existing LMP if it was already in the database, otherwise None.
-        """
         with Session(self.engine) as session:
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id)).first()
             if lmp:
@@ -59,16 +48,6 @@ class SQLStore(ell.store.Store):
         return None
 
     def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
-        """
-        Writes an invocation to the database and updates its consumes.
-
-        Args:
-            invocation (Invocation): The invocation to write.
-            consumes (Set[str]): A set of invocation IDs that this invocation consumes.
-
-        Returns:
-            Optional[Any]: Returns None if successful, otherwise raises an error.
-        """
         with Session(self.engine) as session:
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id)).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
@@ -83,4 +62,4 @@ class SQLStore(ell.store.Store):
             session.commit()
         return None
 
-    # ... (other methods truncated for brevity)
+    # ... (other methods truncated for brevity) ...
