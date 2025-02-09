@@ -15,7 +15,6 @@ class Store(ABC):
     def __init__(self, has_blob_storage: bool = False):
         self.has_blob_storage = has_blob_storage
 
-
     @abstractmethod
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
         """
@@ -28,13 +27,12 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def write_invocation(self, invocation: Invocation, consumes: Set[str], results: List[SerializedLMP]) -> Optional[Any]:
+    def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
 
         :param invocation: Invocation object containing all invocation details.
         :param consumes: Set of invocation IDs consumed by this invocation.
-        :param results: List of SerializedLMP objects representing the results.
         :return: Optional return value.
         """
         pass
@@ -76,4 +74,4 @@ class Store(ABC):
                 if lmp in old_cache_values:
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
                 else:
-                    delattr(lmp, '__ell_use_cache__')
+                    delattr(lmp, '__ell_use_cache__'
