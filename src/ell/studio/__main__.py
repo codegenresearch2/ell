@@ -27,32 +27,31 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
+    # Define the database path variable
+    db_path = os.path.join(args.storage_dir, "ell.db")
+
     # Define the database watcher function
     async def db_watcher():
-        db_path = os.path.join(args.storage_dir, "ell.db")
         async for changes in awatch(db_path):
             print(f"Database changed: {changes}")
             # Notify clients about the database change
             await app.notify_clients("database_updated")
 
-    # Create the event loop
+    # Create and run the event loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    # Define the database path variable
-    db_path = os.path.join(args.storage_dir, "ell.db")
-
-    # Create and run the database watcher task
+    # Create the database watcher task
     watcher_task = loop.create_task(db_watcher())
 
-    # Create a Uvicorn config and server instance
+    # Create the Uvicorn config and server instance
     config = uvicorn.Config(app, host=args.host, port=args.port, loop=loop)
     server = uvicorn.Server(config)
 
-    # Create and run the server task
+    # Create the server task
     server_task = loop.create_task(server.serve())
 
-    # Run the event loop
+    # Start the event loop
     loop.run_forever()
 
 if __name__ == "__main__":
