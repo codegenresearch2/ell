@@ -5,10 +5,6 @@ from datetime import datetime, timezone
 from ell.lstr import lstr
 from ell.types import InvocableLM
 
-# Explicit imports for better code clarity
-from ell.lstr import lstr
-from ell.types import InvocableLM
-
 class Store(ABC):
     """
     Abstract base class for serializers. Defines the interface for serializing and deserializing LMPs and invocations.
