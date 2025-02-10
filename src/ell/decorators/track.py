@@ -1,5 +1,5 @@
 import logging
-from ell.types import SerializedLStr, utc_now
+from ell.types import SerializedLStr
 import ell.util.closure
 from ell.configurator import config
 from ell.lstr import lstr
@@ -9,18 +9,17 @@ import inspect
 import cattrs
 import numpy as np
 
-
 import hashlib
 import json
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, OrderedDict, Tuple
 
 logger = logging.getLogger(__name__)
+
 def exclude_var(v):
-    # is module or is immutable
     return inspect.ismodule(v)
 
 def track(fn: Callable) -> Callable:
@@ -33,38 +32,30 @@ def track(fn: Callable) -> Callable:
         lm_kwargs = None
         lmp = False
 
-
-    # see if it exists
     _name = func_to_track.__qualname__
     _has_serialized_lmp = False
 
-    fn_closure : Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]
+    fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]
     if not hasattr(func_to_track, "__ell_hash__") and not config.lazy_versioning:
         fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
     @wraps(fn)
     def wrapper(*fn_args, **fn_kwargs) -> str:
-        # XXX: Cache keys and global variable binding is not thread safe.
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
-        # Compute the invocation id and hash the inputs for serialization.
         invocation_id = "invocation-" + secrets.token_hex(16)
-        state_cache_key : str = None
+        state_cache_key: str = None
         if not config._store:
             return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
 
-
-        # Get the list of consumed lmps and clean the invocation paramns for serialization.
         cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
 
         try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
 
-        if  try_use_cache:
-            # Todo: add nice logging if verbose for when using a cahced invocaiton. IN a different color with thar args..
-            if not hasattr(func_to_track, "__ell_hash__")  and config.lazy_versioning:
+        if try_use_cache:
+            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
                 fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
-            # compute the state cachekey
             state_cache_key = compute_state_cache_key(ipstr, func_to_track.__ell_closure__)
             
             cache_store = func_to_track.__wrapper__.__ell_use_cache__
@@ -73,34 +64,27 @@ def track(fn: Callable) -> Callable:
             ))
 
             if len(cached_invocations) > 0:
-                # TODO THis is bad?
-                results =  [SerializedLStr(**d).deserialize() for  d in cached_invocations[0]['results']]
+                results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0]['results']]
 
                 logger.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
                 if len(results) == 1:
                     return results[0]
                 else:
                     return results
-                # Todo: Unfiy this with the non-cached case. We should go through the same code pathway.
             else:
                 logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
         
-        
-        _start_time = utc_now()
+        _start_time = datetime.now(timezone.utc)
 
-        # XXX: thread saftey note, if I prevent yielding right here and get the global context I should be fine re: cache key problem
-
-        # get the prompt
         (result, invocation_kwargs, metadata) = (
             (fn(*fn_args, **fn_kwargs), None)
             if not lmp
             else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs, )
             )
-        latency_ms = (utc_now() - _start_time).total_seconds() * 1000
+        latency_ms = (datetime.now(timezone.utc) - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
-        prompt_tokens=usage.get("prompt_tokens", 0)
-        completion_tokens=usage.get("completion_tokens", 0)
-
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
 
         if not _has_serialized_lmp:
             if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
@@ -117,8 +101,7 @@ def track(fn: Callable) -> Callable:
 
         return result
 
-
-    fn.__wrapper__  = wrapper
+    fn.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
     wrapper.__ell_func__ = func_to_track
     wrapper.__ell_track = True
@@ -145,7 +128,7 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
         config._store.write_lmp(
             lmp_id=func.__ell_hash__,
             name=name,
-            created_at=utc_now(),
+            created_at=datetime.now(timezone.utc),
             source=fn_closure[0],
             dependencies=fn_closure[1],
             commit_message=commit,
@@ -162,7 +145,7 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
     config._store.write_invocation(
         id=invocation_id,
         lmp_id=func.__ell_hash__,
-        created_at=utc_now(),
+        created_at=datetime.now(timezone.utc),
         global_vars=get_immutable_vars(func.__ell_closure__[2]),
         free_vars=get_immutable_vars(func.__ell_closure__[3]),
         latency_ms=latency_ms,
@@ -175,15 +158,12 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
         result=result
     )
 
-
 def compute_state_cache_key(ipstr, fn_closure):
     _global_free_vars_str = f"{json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)}"
     _free_vars_str = f"{json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)}"
     state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
     return state_cache_key
 
-# TODO: If you are contributo this is a massive place to optimize jesus christ.
-# Consider using VS-code's prefered method or gdb's prefered method of strifying symbols recursively.
 def get_immutable_vars(vars_dict):
     converter = cattrs.Converter()
 
@@ -235,12 +215,6 @@ def prepare_invocation_params(fn_args, fn_kwargs):
         lambda s: list(sorted(s))
     )
  
-
     cleaned_invocation_params = invocation_converter.unstructure(invocation_params)
     jstr = json.dumps(cleaned_invocation_params, sort_keys=True, default=repr)
-    #  TODO: This is a hack fix it.
-    # XXX:  Unify this with above so that we don't have to do this.
-    # XXX: I really think there is some standard var explorer we can leverage from from ipython or someshit.
     return json.loads(jstr), jstr, consumes
-
-
