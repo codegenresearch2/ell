@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Dict
+from typing import Any, List, Optional, Dict, Union
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column, create_engine, Session, select
 from sqlalchemy import func
 import sqlalchemy.types as types
+from dataclasses import dataclass
 from ell.lstr import lstr
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
@@ -10,12 +11,20 @@ from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 _lstr_generic = Union[lstr, str]
 LMPParams = Dict[str, Any]
 
-class Message(SQLModel):
+@dataclass
+class Message:
     role: str
     content: _lstr_generic
 
 MessageOrDict = Union[Message, Dict[str, str]]
 Chat = List[Message]
+
+def utc_now() -> datetime:
+    """
+    Returns the current UTC timestamp.
+    Serializes to ISO-8601.
+    """
+    return datetime.now(tz=timezone.utc)
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
