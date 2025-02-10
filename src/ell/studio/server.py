@@ -1,20 +1,17 @@
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, validator
-from sqlmodel import Session, Index, create_engine
+from pydantic import BaseModel
+from sqlmodel import Session
 from ell.stores.sql import PostgresStore, SQLiteStore
 from ell import __version__
 from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 import json
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
-from ell.studio.datamodels import SerializedLMPWithUses
+from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
-
-logger = logging.getLogger(__name__)
 
 def get_serializer(config: Config):
     if config.pg_connection_string:
@@ -26,12 +23,6 @@ def get_serializer(config: Config):
 
 def create_app(config:Config):
     serializer = get_serializer(config)
-
-    # Add indexing for performance
-    Index(columns=[SerializedLMP.lmp_id], unique=True)
-    Index(columns=[SerializedLMP.name])
-    Index(columns=[Invocation.id], unique=True)
-    Index(columns=[Invocation.lmp_id])
 
     def get_session():
         with Session(serializer.engine) as session:
@@ -180,34 +171,6 @@ def create_app(config:Config):
     # Add this method to the app object
     app.notify_clients = notify_clients
 
-    # Enhance data aggregation capabilities
-    class InvocationsAggregate(BaseModel):
-        total_invocations: int
-        total_tokens: int
-        avg_latency: float
-        unique_lmps: int
-        graph_data: list[dict]
-
-        @validator('graph_data')
-        def aggregate_graph_data(cls, v):
-            aggregated_data = {}
-            for entry in v:
-                date_str = entry['date'].strftime('%Y-%m-%d')
-                if date_str not in aggregated_data:
-                    aggregated_data[date_str] = {
-                        'count': 0,
-                        'avg_latency': 0,
-                        'tokens': 0
-                    }
-                aggregated_data[date_str]['count'] += entry['count']
-                aggregated_data[date_str]['avg_latency'] += entry['avg_latency']
-                aggregated_data[date_str]['tokens'] += entry['tokens']
-
-            for date_str, data in aggregated_data.items():
-                data['avg_latency'] /= data['count']
-
-            return [{'date': date_str, **data} for date_str, data in aggregated_data.items()]
-
     @app.get("/api/invocations-aggregate", response_model=InvocationsAggregate)
     def get_invocations_aggregate(
         days: int = Query(30, ge=1, le=365),
@@ -222,6 +185,6 @@ def create_app(config:Config):
             lmp_filters["lmp_id"] = lmp_id
 
         aggregate = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
-        return aggregate
+        return InvocationsAggregate(**aggregate)
 
     return app
