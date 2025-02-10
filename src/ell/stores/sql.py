@@ -8,6 +8,8 @@ from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPU
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_, text
 import logging
+import cattrs
+import numpy as np
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
