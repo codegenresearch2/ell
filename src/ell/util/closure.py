@@ -12,8 +12,12 @@ import re
 from collections import deque
 import black
 
+# Constants
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
+
+# Import the prompt_consts module directly
+import prompt_consts
 
 def lexical_closure(
     func: Any,
@@ -54,14 +58,6 @@ def _format_source(source: str) -> str:
         raise Exception(f"Failed to format source code. Error: {str(e)}")
 
 # ... (rest of the functions remain the same)
-
-# prompt_consts.py
-import math
-def test():
-    return math.sin(10)
-
-# lol3.py
-import prompt_consts  # Use direct import instead of relative import
 
 X = 7
 def xD():
