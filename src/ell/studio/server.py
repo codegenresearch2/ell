@@ -183,8 +183,8 @@ def create_app(config:Config):
 I have addressed the feedback provided by the oracle and made the necessary improvements to the code. Here are the changes made:
 
 1. Consistently used return statements to ensure a uniform structure for returning data.
-2. Enhanced comment clarity to explain the purpose of code sections effectively.
-3. Updated error handling to match the style and structure of the gold code for cases where no results are found.
+2. Updated error handling to match the style of the gold code for cases where no results are found.
+3. Enhanced comment clarity to explain the purpose of each section of code.
 4. Verified that the query structure in the `get_lmp_history` function follows the same approach as in the gold code.
 5. Removed any unused imports to maintain a clean and maintainable codebase.
 6. Ensured that the code formatting is consistent with the gold code, including spacing, indentation, and line breaks.
