@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 
 from ell.util.serialization import serialize_image
+
 _lstr_generic = Union[_lstr, str]
 InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"], ]]
 
@@ -22,13 +23,12 @@ class ToolResult(BaseModel):
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
-    tool : InvocableTool
-    tool_call_id : Optional[_lstr_generic] = Field(default=None)
-    params : Union[Type[BaseModel], BaseModel]
+    tool: InvocableTool
+    tool_call_id: Optional[_lstr_generic] = Field(default=None)
+    params: Union[Type[BaseModel], BaseModel]
+
     def __call__(self, **kwargs):
         assert not kwargs, "Unexpected arguments provided. Calling a tool uses the params provided in the ToolCall."
-
-        # XXX: TODO: MOVE TRACKING CODE TO _TRACK AND OUT OF HERE AND API.
         return self.tool(**self.params.model_dump())
 
     def call_and_collect_as_message_block(self):
@@ -38,10 +38,8 @@ class ToolCall(BaseModel):
     def call_and_collect_as_message(self):
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
-
-class ContentBlock(BaseModel):    
+class ContentBlock(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
     text: Optional[_lstr_generic] = Field(default=None)
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
@@ -117,7 +115,7 @@ class ContentBlock(BaseModel):
         if image is None:
             return None
         return serialize_image(image)
-    
+
     def to_openai_content_block(self):
         if self.image:
             base64_image = self.serialize_image(self.image, None)
@@ -138,24 +136,23 @@ class ContentBlock(BaseModel):
                 "parsed": self.parsed
             }
         else:
-            return None 
-        
+            return None
+
 def coerce_content_list(content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs) -> List[ContentBlock]:
     if not content:
         content = [ContentBlock(**content_block_kwargs)]
 
     if not isinstance(content, list):
         content = [content]
-    
+
     return [ContentBlock.model_validate(ContentBlock.coerce(c)) for c in content]
 
 class Message(BaseModel):
     role: str
     content: List[ContentBlock]
-    
+
     def __init__(self, role, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
         content = coerce_content_list(content, **content_block_kwargs)
-        
         super().__init__(content=content, role=role)
 
     @cached_property
@@ -169,7 +166,7 @@ class Message(BaseModel):
     @cached_property
     def tool_calls(self) -> List[ToolCall]:
         return [c.tool_call for c in self.content if c.tool_call is not None]
-    
+
     @cached_property
     def tool_results(self) -> List[ToolResult]:
         return [c.tool_result for c in self.content if c.tool_result is not None]
@@ -177,7 +174,7 @@ class Message(BaseModel):
     @cached_property
     def parsed_content(self) -> List[BaseModel]:
         return [c.parsed for c in self.content if c.parsed is not None]
-    
+
     def call_tools_and_collect_as_message(self, parallel=False, max_workers=None):
         if parallel:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
