@@ -40,18 +40,23 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns the written LMP if it already exists, otherwise None.
         """
         with Session(self.engine) as session:
+            # Check if the LMP already exists in the database
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id)).first()
             
             if lmp:
+                # LMP already exists, return it
                 return lmp
             else:
+                # LMP does not exist, add it to the database
                 session.add(serialized_lmp)
             
+            # Update the uses of the LMP
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
                     serialized_lmp.uses.append(used_lmp)
             
+            # Commit the transaction
             session.commit()
         return None
 
@@ -67,20 +72,30 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns None if successful, otherwise an error message.
         """
         with Session(self.engine) as session:
+            # Ensure the LMP exists
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id)).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
-            lmp.num_invocations = lmp.num_invocations + 1 if lmp.num_invocations is not None else 1
+            # Increment the number of invocations for the LMP
+            if lmp.num_invocations is None:
+                lmp.num_invocations = 1
+            else:
+                lmp.num_invocations += 1
 
+            # Add the invocation contents
             session.add(invocation.contents)
+            
+            # Add the invocation
             session.add(invocation)
 
+            # Now create traces
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
                     invocation_consuming_id=consumed_id
                 ))
 
+            # Commit the transaction
             session.commit()
             return None
         
@@ -94,15 +109,7 @@ class SQLStore(ell.store.Store):
         
     def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         """
-        Retrieves the latest LMPs grouped by unique name with the highest created at date.
-        
-        Args:
-            session (Session): The database session.
-            skip (int): Number of records to skip.
-            limit (int): Maximum number of records to retrieve.
-        
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries representing the latest LMPs.
+        Gets all the lmps grouped by unique name with the highest created at
         """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
@@ -179,15 +186,6 @@ class SQLStore(ell.store.Store):
         return invocations
 
     def get_traces(self, session: Session):
-        """
-        Retrieves invocation traces.
-        
-        Args:
-            session (Session): The database session.
-        
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries representing the invocation traces.
-        """
         query = text("""
         SELECT 
             consumer.lmp_id, 
