@@ -16,23 +16,16 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
-templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Theme configuration
 html_theme = "sphinxawesome_theme"
-
-# Configure syntax highlighting for Awesome Sphinx Theme
-pygments_style = "default"
-pygments_style_dark = "dracula"
-
-# Additional theme configuration
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://jobs.ell.so",
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -42,13 +35,9 @@ html_theme_options = {
             "name": "Discord",
         },
     },
-
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
-    
 }
 
-
-
-
+# Path setup
 templates_path = ['_templates']
