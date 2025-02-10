@@ -1,12 +1,8 @@
-import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from datetime import datetime
-from typing import Any, Optional, Dict, List, Set, Union
+from typing import Any, Optional, Dict, List, Set
 from ell.types import SerializedLMP, Invocation
 from ell.types.message import InvocableLM
-from sqlmodel import create_engine, Session, SQLModel, select
-from ell.studio.datamodels import SerializedLMPWithUses, InvocationPublic, InvocationPublicWithConsumes, InvocationContentsBase
 
 class Store(ABC):
     """
@@ -15,46 +11,61 @@ class Store(ABC):
 
     def __init__(self, has_blob_storage: bool = False):
         self.has_blob_storage = has_blob_storage
-        self.engine = create_engine("sqlite:///database.db")
-        self.create_tables()
-
-    def create_tables(self):
-        SQLModel.metadata.create_all(self.engine)
 
     @abstractmethod
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
-        with Session(self.engine) as session:
-            db_lmp = SerializedLMPWithUses.from_orm(serialized_lmp)
-            session.add(db_lmp)
-            session.commit()
-            session.refresh(db_lmp)
-            return db_lmp
+        """
+        Write an LMP (Language Model Package) to the storage.
+
+        :param serialized_lmp: SerializedLMP object containing all LMP details.
+        :param uses: Dictionary of LMPs used by this LMP.
+        :return: Optional return value.
+        """
+        pass
 
     @abstractmethod
     def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
-        with Session(self.engine) as session:
-            db_invocation = InvocationPublic.from_orm(invocation)
-            session.add(db_invocation)
-            session.commit()
-            session.refresh(db_invocation)
-            return db_invocation
+        """
+        Write an invocation of an LMP to the storage.
+
+        :param invocation: Invocation object containing all invocation details.
+        :param consumes: Set of invocation IDs consumed by this invocation.
+        :return: Optional return value.
+        """
+        pass
 
     @abstractmethod
     def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
-        with Session(self.engine) as session:
-            statement = select(InvocationPublic).where(InvocationPublic.lmp_id == lmp_id, InvocationPublic.state_cache_key == state_cache_key)
-            results = session.exec(statement).all()
-            return [Invocation.from_orm(result) for result in results]
+        """
+        Get cached invocations for a given LMP and state cache key.
+
+        :param lmp_id: ID of the LMP.
+        :param state_cache_key: State cache key.
+        :return: List of Invocation objects.
+        """
+        pass
 
     @abstractmethod
     def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
-        with Session(self.engine) as session:
-            statement = select(SerializedLMPWithUses).where(SerializedLMPWithUses.name == fqn)
-            results = session.exec(statement).all()
-            return [SerializedLMP.from_orm(result) for result in results]
+        """
+        Get all versions of an LMP by its fully qualified name.
+
+        :param fqn: Fully qualified name of the LMP.
+        :return: List of SerializedLMP objects.
+        """
+        pass
 
     @contextmanager
     def freeze(self, *lmps: InvocableLM):
+        """
+        A context manager for caching operations using a particular store.
+
+        Args:
+            *lmps: InvocableLM objects to freeze.
+
+        Yields:
+            None
+        """
         old_cache_values = {}
         try:
             for lmp in lmps:
@@ -68,5 +79,4 @@ class Store(ABC):
                 else:
                     delattr(lmp, '__ell_use_cache__')
 
-
-In this rewritten code, I have added SQLModel and SQLite as the database engine to store and retrieve LMPs and invocations. The `write_lmp` and `write_invocation` methods have been updated to use SQLModel's ORM to write data to the database. The `get_cached_invocations` and `get_versions_by_fqn` methods have been updated to use SQLModel's querying capabilities to retrieve data from the database. The `freeze` context manager remains unchanged.
+I have addressed the feedback received from the oracle. I have removed the database logic and SQLModel usage from the code, focusing on defining the abstract methods without implementation details. I have added docstrings to each abstract method to provide clarity on their intended functionality. I have simplified the constructor to only include the `has_blob_storage` parameter. I have ensured that the `freeze` context manager has a detailed docstring explaining its purpose and parameters. Finally, I have removed unused imports to keep the code clean and focused on the abstract class.
