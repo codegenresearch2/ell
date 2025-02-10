@@ -20,7 +20,7 @@ names_list = [
 def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     chosen_name = random.choice(names_list)
-    return f"Generate a backstory for {chosen_name}."
+    return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -46,9 +46,12 @@ if __name__ == "__main__":
         names = []
         backstories = []    
         for personality in personalities:
-            prompt = personality.split(".")[-1].strip()  # Extract the prompt part from the personality string
-            names.append(prompt.split(" ")[-1].replace(".", ""))  # Extract the name from the prompt
-            backstories.append(prompt.split(" ")[-1].replace(".", ""))  # Extract the name from the prompt
+            parts = personality.split("\n")
+            name_part = [part for part in parts if "Name:" in part]
+            backstory_part = [part for part in parts if "Backstory:" in part]
+            if name_part and backstory_part:
+                names.append(name_part[0].split(": ")[1])
+                backstories.append(backstory_part[0].split(": ")[1])
 
         # Print the extracted names for debugging purposes
         print("Names extracted:", names)
