@@ -1,28 +1,7 @@
 from datetime import datetime
 from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
-
-class SerializedLMP(SQLModel, table=True):
-    lmp_id: Optional[str] = Field(default=None, primary_key=True)
-    name: str
-    source: str
-    dependencies: List[str] = Field(sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=utc_now)
-    is_lm: bool
-    lm_kwargs: dict = Field(sa_column=Column(JSON))
-    invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"))
-    uses: List["SerializedLMP"] = Relationship(back_populates="used_by", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"))
-    initial_free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    num_invocations: Optional[int] = Field(default=0)
-    commit_message: Optional[str] = Field(default=None)
-    version_number: Optional[int] = Field(default=None)
-
-    class Config:
-        table_name = "serializedlmp"
-        unique_together = [("version_number", "name")]
+from ell.types import InvocationTrace, SerializedLMPUses, SerializedLStr, utc_now
 
 class Invocation(SQLModel, table=True):
     id: Optional[str] = Field(default=None, primary_key=True)
@@ -37,10 +16,31 @@ class Invocation(SQLModel, table=True):
     prompt_tokens: Optional[int] = Field(default=None)
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
-    lmp: SerializedLMP = Relationship(back_populates="invocations")
-    results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")
-    consumed_by: List["Invocation"] = Relationship(back_populates="consumes", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id"))
-    consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id"))
+    lmp: 'SerializedLMP' = Relationship(back_populates="invocations")
+    results: List['SerializedLStr'] = Relationship(back_populates="producer_invocation")
+    consumed_by: List['Invocation'] = Relationship(back_populates="consumes", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id"))
+    consumes: List['Invocation'] = Relationship(back_populates="consumed_by", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id"))
+
+class SerializedLMP(SQLModel, table=True):
+    lmp_id: Optional[str] = Field(default=None, primary_key=True)
+    name: str
+    source: str
+    dependencies: str = Field(sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=utc_now)
+    is_lm: bool
+    lm_kwargs: dict = Field(sa_column=Column(JSON))
+    invocations: List[Invocation] = Relationship(back_populates="lmp")
+    used_by: Optional[List['SerializedLMP']] = Relationship(back_populates="uses", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"))
+    uses: List['SerializedLMP'] = Relationship(back_populates="used_by", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"))
+    initial_free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    initial_global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    num_invocations: Optional[int] = Field(default=0)
+    commit_message: Optional[str] = Field(default=None)
+    version_number: Optional[int] = Field(default=None)
+
+    class Config:
+        table_name = "serializedlmp"
+        unique_together = [("version_number", "name")]
 
 class SerializedLStr(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
