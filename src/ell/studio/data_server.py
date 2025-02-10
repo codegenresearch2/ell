@@ -63,16 +63,24 @@ def create_app(storage_dir: Optional[str] = None):
         try:
             while True:
                 data = await websocket.receive_text()
-                # Removed handling of incoming messages
+                # TODO: Implement handling of incoming messages if needed
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
     @app.get("/api/lmps")
     def get_lmps(
         skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100)
+        limit: int = Query(100, ge=1, le=100),
+        lmp_id: Optional[str] = Query(None),
+        name: Optional[str] = Query(None),
     ):
-        lmps = serializer.get_lmps(skip=skip, limit=limit)
+        filters = {}
+        if name:
+            filters['name'] = name
+        if lmp_id:
+            filters['lmp_id'] = lmp_id
+
+        lmps = serializer.get_lmps(skip=skip, limit=limit, **filters)
         return lmps
 
     @app.get("/api/latest/lmps")
@@ -89,26 +97,6 @@ def create_app(storage_dir: Optional[str] = None):
     def get_lmp_by_id(lmp_id: str):
         lmp = serializer.get_lmps(lmp_id=lmp_id)[0]
         return lmp
-
-    @app.get("/api/lmps")
-    def get_lmp(
-        lmp_id: Optional[str] = Query(None),
-        name: Optional[str] = Query(None),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100)
-    ):
-        filters = {}
-        if name:
-            filters['name'] = name
-        if lmp_id:
-            filters['lmp_id'] = lmp_id
-
-        lmps = serializer.get_lmps(skip=skip, limit=limit, **filters)
-
-        if not lmps:
-            raise HTTPException(status_code=404, detail="LMP not found")
-
-        return lmps
 
     @app.get("/api/invocation/{invocation_id}")
     def get_invocation(
