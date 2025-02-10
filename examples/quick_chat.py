@@ -11,8 +11,7 @@ def create_personality() -> str:
     Generate a backstory for a character with a random name from the names_list.
 
     System Prompt:
-    You are backstoryGPT. Your task is to create a backstory for a character with a random name from the names_list.
-    The backstory should be a 3-sentence paragraph.
+    You are backstoryGPT. Your task is to create a 3-sentence backstory for a character with a random name from the names_list.
 
     Returns:
         str: A formatted string containing the character's name and backstory.
@@ -55,7 +54,7 @@ if __name__ == "__main__":
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
 
     messages: List[Tuple[str, str]] = []
-    personalities = [create_personality(), create_personality()]
+    personalities = [create_personality() for _ in range(2)]
 
     names = [personality.split("\n")[0].split(": ")[1] for personality in personalities]
     backstories = [personality.split("\n")[1].split(": ")[1] for personality in personalities]
