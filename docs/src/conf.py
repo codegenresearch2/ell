@@ -13,14 +13,22 @@ author = 'William Guss'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
+# Define the extensions to be used
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+
+# Define the paths that contain templates
 templates_path = ['_templates']
+
+# Define the patterns to exclude from building
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+# Set the theme for HTML output
 html_theme = "sphinxawesome_theme"
+
+# Configure syntax highlighting for Awesome Sphinx Theme
 pygments_style = "default"
 pygments_style_dark = "dracula"
 
@@ -31,7 +39,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://jobs.aigc.io/",
+        "AI Jobs Board": "https://jobs.aigc.io/",  # Updated URL
     },
     "extra_header_link_icons": {
         "Discord": {
