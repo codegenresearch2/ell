@@ -47,23 +47,18 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns the written LMP if it already exists, otherwise None.
         """
         with Session(self.engine) as session:
-            # Check if the LMP already exists in the database
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id)).first()
             
             if lmp:
-                # LMP already exists, return it
                 return lmp
             else:
-                # LMP does not exist, add it to the database
                 session.add(serialized_lmp)
             
-            # Update the uses of the LMP
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
                     serialized_lmp.uses.append(used_lmp)
             
-            # Commit the transaction
             session.commit()
         return None
 
@@ -79,30 +74,23 @@ class SQLStore(ell.store.Store):
             Optional[Any]: Returns None if successful, otherwise an error message.
         """
         with Session(self.engine) as session:
-            # Ensure the LMP exists
             lmp = session.exec(select(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id)).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
-            # Increment the number of invocations for the LMP
             if lmp.num_invocations is None:
                 lmp.num_invocations = 1
             else:
                 lmp.num_invocations += 1
 
-            # Add the invocation contents
             session.add(invocation.contents)
-            
-            # Add the invocation
             session.add(invocation)
 
-            # Now create traces
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
                     invocation_consuming_id=consumed_id
                 ))
 
-            # Commit the transaction
             session.commit()
             return None
         
@@ -115,9 +103,6 @@ class SQLStore(ell.store.Store):
             return self.get_lmps(session, name=fqn)
         
     def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
-        """
-        Gets all the lmps grouped by unique name with the highest created at
-        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
@@ -132,19 +117,6 @@ class SQLStore(ell.store.Store):
         return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
     def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Retrieves LMPs based on the provided filters.
-        
-        Args:
-            session (Session): The database session.
-            skip (int): Number of records to skip.
-            limit (int): Maximum number of records to retrieve.
-            subquery (Optional[Select]): A subquery to join with the main query.
-            **filters (Optional[Dict[str, Any]]): Additional filters to apply.
-        
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries representing the LMPs.
-        """
         query = select(SerializedLMP)
         
         if subquery is not None:
@@ -164,20 +136,6 @@ class SQLStore(ell.store.Store):
         return results
 
     def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
-        """
-        Retrieves invocations based on the provided filters.
-        
-        Args:
-            session (Session): The database session.
-            lmp_filters (Dict[str, Any]): Filters to apply to the LMPs.
-            skip (int): Number of records to skip.
-            limit (int): Maximum number of records to retrieve.
-            filters (Optional[Dict[str, Any]]): Additional filters to apply to the invocations.
-            hierarchical (bool): Whether to retrieve hierarchical invocations.
-        
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries representing the invocations.
-        """
         query = select(Invocation).join(SerializedLMP)
 
         for key, value in lmp_filters.items():
@@ -217,16 +175,6 @@ class SQLStore(ell.store.Store):
         return traces
         
     def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
-        """
-        Retrieves all traces leading to a specific invocation.
-        
-        Args:
-            session (Session): The database session.
-            invocation_id (str): The ID of the invocation.
-        
-        Returns:
-            List[Dict[str, Any]]: A list of dictionaries representing the invocation traces.
-        """
         traces = []
         visited = set()
         queue = [(invocation_id, 0)]
@@ -265,18 +213,6 @@ class SQLStore(ell.store.Store):
         return list(unique_traces.values())
     
     def get_invocations_aggregate(self, session: Session, lmp_filters: Dict[str, Any] = None, filters: Dict[str, Any] = None, days: int = 30) -> Dict[str, Any]:
-        """
-        Retrieves aggregate data for invocations over a specified period.
-        
-        Args:
-            session (Session): The database session.
-            lmp_filters (Dict[str, Any]): Filters to apply to the LMPs.
-            filters (Dict[str, Any]): Additional filters to apply to the invocations.
-            days (int): Number of days to look back for invocation data.
-        
-        Returns:
-            Dict[str, Any]: A dictionary containing aggregate invocation data.
-        """
         start_date = datetime.utcnow() - timedelta(days=days)
 
         base_subquery = (
