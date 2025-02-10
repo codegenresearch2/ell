@@ -44,8 +44,7 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     # Todo: Decide if the client specified via the context amanger default registry is the shit or if the cliennt specified via lmp invocation args are the hing.
-    client =   client or config.get_client_for(model)
-    metadata = dict()
+    client = client or config.get_client_for(model)
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
     
@@ -166,4 +165,4 @@ def call(
     
     api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
     
-    return tracked_results, api_params, metadata
+    return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
