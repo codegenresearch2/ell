@@ -142,11 +142,11 @@ I have addressed the feedback received from the oracle:
 
 2. **WebSocket Message Handling**: I have added a comment in the `websocket_endpoint` function to indicate where to handle incoming WebSocket messages.
 
-3. **Function Naming Consistency**: The function names are already consistent with their purposes.
+3. **Function Naming and Consistency**: The function names are already consistent with their purposes.
 
-4. **Parameter Handling**: In the `get_invocation` function, I have ensured that the filters are structured similarly to the gold code using a dictionary for filters and retrieving the invocation consistently.
+4. **Parameter Handling in `get_invocation`**: The filters for retrieving the invocation are structured similarly to the gold code using a dictionary for filters.
 
-5. **Notify Clients Function**: The `notify_clients` function is defined as an asynchronous function within the `create_app` function and added to the `app` object. The parameters and structure of the function match those in the gold code.
+5. **Notify Clients Function**: The `notify_clients` function is defined as an asynchronous function within the `create_app` function. The parameters and structure of the function match those in the gold code.
 
 6. **Code Structure and Comments**: I have reviewed the overall structure of the code and ensured that comments are clear and consistent with the gold code.
 
