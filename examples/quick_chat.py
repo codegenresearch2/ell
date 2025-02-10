@@ -20,8 +20,8 @@ names_list = [
 def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
 
-Name: <name>
-Backstory: <3 sentence backstory>'"""
+    Name: <name>
+    Backstory: <3 sentence backstory>"""
     chosen_name = random.choice(names_list)
     return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
     
-    for _ in range(100):  # Using double underscore for unused variable
+    for _ in range(100):  # Using single underscore for unused variable
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
