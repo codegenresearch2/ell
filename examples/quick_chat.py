@@ -20,8 +20,8 @@ names_list = [
 def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
 
-Name: <name>
-Backstory: <3 sentence backstory>'"""
+    Name: <name>
+    Backstory: <3 sentence backstory>'"""
     random_name = random.choice(names_list)
     return f"Name: {random_name}\nBackstory: This is a backstory for {random_name}."
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     ell.set_store('./logdir', autocommit=True)
         
     messages: List[Tuple[str, str]] = []
-    personalities = [create_personality(), create_personality()]
+    personalities = [create_personality() for _ in range(2)]  # Generate two personalities
 
     names = []
     backstories = []    
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     print(names)
 
     whos_turn = 0 
-    for _ in range(10):
+    for _ in range(100):  # Loop runs 100 times to generate multiple sets of messages
         personality_talking = personalities[whos_turn]
         messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
         whos_turn = (whos_turn + 1) % len(personalities)
