@@ -25,7 +25,6 @@ class SQLStore(ell.store.Store):
 
             # If the LMP already exists in the database, return it
             if lmp:
-                # LMP already added to the DB.
                 return lmp
             else:
                 lmp = SerializedLMP(
@@ -45,8 +44,10 @@ class SQLStore(ell.store.Store):
 
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
-                assert used_lmp is not None, f"LMP with id {use_id} not found. Writing LMP erroneously"
-                lmp.uses.append(used_lmp)
+                if used_lmp:
+                    lmp.uses.append(used_lmp)
+                else:
+                    raise ValueError(f"LMP with id {use_id} not found. Writing LMP erroneously")
 
             session.commit()
         return None
@@ -64,7 +65,8 @@ class SQLStore(ell.store.Store):
                 raise TypeError("Result must be either lstr or List[lstr]")
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
-            assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
+            if lmp is None:
+                raise ValueError(f"LMP with id {lmp_id} not found. Writing invocation erroneously")
 
             # Increment num_invocations
             if lmp.num_invocations is None:
@@ -102,6 +104,7 @@ class SQLStore(ell.store.Store):
                 ))
 
             session.commit()
+        return None
 
     # Implement additional methods like get_lmps, get_invocations, etc.
 
