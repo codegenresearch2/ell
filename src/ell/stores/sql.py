@@ -19,7 +19,7 @@ class SQLStore(ell.store.Store):
             with Session(self.engine) as session:
                 existing_lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
                 if existing_lmp:
-                    return existing_lmp
+                    return None  # Return None if the LMP already exists
                 session.add(serialized_lmp)
                 for use_id in uses:
                     used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
@@ -27,7 +27,7 @@ class SQLStore(ell.store.Store):
                         serialized_lmp.uses.append(used_lmp)
                 session.commit()
                 session.refresh(serialized_lmp)
-                return serialized_lmp
+                return serialized_lmp  # Return the serialized LMP object
         except SQLAlchemyError as e:
             print(f"An error occurred while writing LMP: {e}")
             session.rollback()
