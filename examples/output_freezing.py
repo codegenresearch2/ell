@@ -5,18 +5,30 @@ ell.config.verbose = True
 
 BASE_PROMPT = """You are an adept python programmer. Only answer in python code. Avoid markdown formatting at all costs."""
 
-def create_class_prompt(user_spec: str):
+def create_class_prompt(user_spec: str) -> list:
     """
     Generate a system prompt for creating a Python class based on the user specification.
+
+    Args:
+    user_spec (str): The user specification for the class.
+
+    Returns:
+    list: A list containing the system prompt and user prompt.
     """
     return [
-        ell.system(f"{BASE_PROMPT}\n\nTask: Create a Python class based on the user specification."),
+        ell.system(f"{BASE_PROMPT}\n\nTask: Create a Python class based on the provided user specification."),
         ell.user(f"User specification: {user_spec}")
     ]
 
-def write_unit_test_prompt(class_def: str):
+def write_unit_test_prompt(class_def: str) -> list:
     """
     Generate a system prompt for writing a unit test for the provided class definition.
+
+    Args:
+    class_def (str): The class definition for which to write a unit test.
+
+    Returns:
+    list: A list containing the system prompt and user prompt.
     """
     return [
         ell.system(f"{BASE_PROMPT}\n\nTask: Write a single unit test for the provided class definition. Avoid using the `unittest` package."),
@@ -24,16 +36,28 @@ def write_unit_test_prompt(class_def: str):
     ]
 
 @ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
-def create_a_python_class(user_spec: str):
+def create_a_python_class(user_spec: str) -> list:
     """
     Create a Python class based on the user specification.
+
+    Args:
+    user_spec (str): The user specification for the class.
+
+    Returns:
+    list: A list containing the system prompt and user prompt.
     """
     return create_class_prompt(user_spec)
 
 @ell.lm(model="gpt-4o", temperature=0.7)
-def write_unit_for_a_class(class_def: str):
+def write_unit_for_a_class(class_def: str) -> list:
     """
     Write a single unit test for the provided class definition.
+
+    Args:
+    class_def (str): The class definition for which to write a unit test.
+
+    Returns:
+    list: A list containing the system prompt and user prompt.
     """
     return write_unit_test_prompt(class_def)
 
