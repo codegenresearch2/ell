@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Optional, Dict, List, Set, Union
+
 from ell.lstr import lstr
 from ell.types import InvocableLM
-
 
 class Store(ABC):
     """
@@ -12,11 +12,9 @@ class Store(ABC):
     """
 
     @abstractmethod
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, 
-                  version_number: int,
-                  uses: Dict[str, Any], 
-                  commit_message: Optional[str] = None,
-                  created_at: Optional[datetime]=None) -> Optional[Any]:
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
+                  version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None,
+                  created_at: Optional[datetime] = None) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
 
@@ -33,10 +31,10 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any], 
-                         created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
-                         completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
-                         state_cache_key: Optional[str] = None,
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]],
+                         invocation_kwargs: Dict[str, Any], created_at: Optional[datetime], consumes: Set[str],
+                         prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None,
+                         latency_ms: Optional[float] = None, state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
@@ -78,27 +76,6 @@ class Store(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def search_lmps(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for LMPs in the storage.
-
-    #     :param query: Search query string.
-    #     :return: List of LMPs matching the query.
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def search_invocations(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for invocations in the storage.
-
-    #     :param query: Search query string.
-    #     :return: List of invocations matching the query.
-    #     """
-    #     pass
-
-
     @abstractmethod
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
         """
@@ -107,7 +84,6 @@ class Store(ABC):
         :return: List of the latest LMPs.
         """
         pass
-
 
     @contextmanager
     def freeze(self, *lmps: InvocableLM):
@@ -128,7 +104,6 @@ class Store(ABC):
                 setattr(lmp, '__ell_use_cache__', self)
             yield
         finally:
-            # TODO: Implement cache storage logic here
             for lmp in lmps:
                 if lmp in old_cache_values:
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
