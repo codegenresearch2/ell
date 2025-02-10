@@ -18,10 +18,9 @@ from ell.configurator import *
 
 class Documentation(BaseModel):
     description: str
-    external_links: list[str] = []
 
-# Add external links in navigation
-documentation = Documentation(description="ell is a Python library for language model programming (LMP). It provides a simple and intuitive interface for working with large language models.", external_links=["https://example.com/ell-library", "https://example.com/language-models"])
+# Remove external links and print statement
+documentation = Documentation(description="ell is a Python library for language model programming (LMP). It provides a simple and intuitive interface for working with large language models.")
 
-# Maintain consistent formatting in code
-print(documentation.json(indent=4))
+# Use model_dump_json instead of json
+print(documentation.model_dump_json(indent=4))
