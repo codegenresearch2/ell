@@ -12,6 +12,7 @@ def create_personality() -> str:
 
     Returns:
         str: A formatted string containing the character's name and backstory.
+              The format should be: "Name: <name>\nBackstory: <3-sentence backstory>"
     """
     name = random.choice(names_list)
     backstory = f"You are backstoryGPT. Come up with a 3-sentence backstory for a character named {name}."
@@ -30,7 +31,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
     """
     Generate a response to a chat based on the message history and the character's personality.
 
@@ -39,11 +40,11 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
         personality (str): The character's personality and backstory.
 
     Returns:
-        str: A response to the chat.
+        List[str]: A list containing the system and user prompts for the chat.
     """
     system_prompt = f"Here is your description:\n{personality}\nYour goal is to come up with a response to a chat. Only respond in one sentence, using informal text message style. Never use Emojis."
     user_prompt = format_message_history(message_history)
-    return ell.system(system_prompt) + ell.user(user_prompt)
+    return [ell.system(system_prompt), ell.user(user_prompt)]
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
