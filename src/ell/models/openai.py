@@ -46,3 +46,6 @@ except openai.OpenAIError as e:
 
 register_openai_models(default_client)
 config._default_openai_client = default_client
+
+import openai
+openai.chat.completions.create(model="gpt-4o-2024-08-06", messages=[{"role": "system", "content": "You are a helpful assistant."}])
