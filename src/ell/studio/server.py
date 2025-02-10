@@ -12,10 +12,9 @@ from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate, L
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
-from pydantic import BaseModel
+import os
 
 # Standard library imports
-import os
 
 # Third-party imports
 
@@ -166,6 +165,13 @@ def create_app(config: Config):
         results = session.exec(query).all()
         history = [LMPHistoryEntry(date=str(row), count=1) for row in results]
         return history
+
+    @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
+    def get_invocations_aggregate(
+        days: int = Query(30, ge=1, le=365),  # Default to 30 days, max 1 year
+        session: Session = Depends(get_session)
+    ):
+        return serializer.get_invocations_aggregate(session, days=days)
 
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = json.dumps({"entity": entity, "id": id})
