@@ -9,7 +9,7 @@ import json
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
 from ell.studio.datamodels import SerializedLMPWithUses
-from ell.types import SerializedLMP
+from ell.types import SerializedLMP, InvocationsAggregate, GraphDataPoint
 from datetime import datetime, timedelta
 from sqlmodel import select
 import os
@@ -159,6 +159,48 @@ def create_app(config: Config):
         results = session.exec(query).all()
         history = [{"date": str(row), "count": 1} for row in results]
         return history
+
+    @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
+    def get_invocations_aggregate(
+        days: int = Query(30, ge=1, le=365),  # Default to 30 days, max 365 days
+        session: Session = Depends(get_session)
+    ):
+        # Calculate the start date for the graph data
+        start_date = datetime.utcnow() - timedelta(days=days)
+
+        # Base subquery
+        base_subquery = (
+            select(Invocation.created_at, Invocation.latency_ms, Invocation.prompt_tokens, Invocation.completion_tokens)
+            .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
+            .filter(Invocation.created_at >= start_date)
+        )
+
+        # Apply filters
+        data = session.exec(base_subquery).all()
+
+        # Calculate aggregate metrics
+        total_invocations = len(data)
+        total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
+        avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
+        unique_lmps = len(set(row.name for row in data))
+
+        # Prepare graph data
+        graph_data = []
+        for row in data:
+            graph_data.append({
+                "date": row.created_at,
+                "avg_latency": row.latency_ms,
+                "tokens": row.prompt_tokens + row.completion_tokens,
+                "count": 1
+            })
+
+        return {
+            "total_invocations": total_invocations,
+            "total_tokens": total_tokens,
+            "avg_latency": avg_latency,
+            "unique_lmps": unique_lmps,
+            "graph_data": graph_data
+        }
 
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = json.dumps({"entity": entity, "id": id})
