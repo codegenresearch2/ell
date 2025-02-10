@@ -1,14 +1,14 @@
 from typing import Optional, Dict, Any
 from sqlmodel import Session, create_engine
-from ell.stores.sql import PostgresStore, SQLiteStore
-from ell import __version__
 from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import json
+from ell.stores.sql import PostgresStore, SQLiteStore
+from ell import __version__
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
-from ell.studio.datamodels import SerializedLMPWithUses
+from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
@@ -49,6 +49,7 @@ def create_app(config:Config):
         try:
             while True:
                 data = await websocket.receive_text()
+                # TODO: Handle incoming WebSocket messages if needed
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -95,7 +96,7 @@ def create_app(config:Config):
         invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})[0]
         return invocation
 
-    @app.get("/api/invocations")
+    @app.get("/api/invocations", response_model=list[InvocationPublic])
     def get_invocations(
         id: Optional[str] = Query(None),
         hierarchical: Optional[bool] = Query(False),
@@ -124,6 +125,22 @@ def create_app(config:Config):
             hierarchical=hierarchical
         )
         return invocations
+
+    @app.get("/api/invocations-aggregate", response_model=InvocationsAggregate)
+    def get_invocations_aggregate(
+        days: int = Query(30, ge=1, le=365),
+        lmp_name: Optional[str] = Query(None),
+        lmp_id: Optional[str] = Query(None),
+        session: Session = Depends(get_session)
+    ):
+        lmp_filters = {}
+        if lmp_name:
+            lmp_filters["name"] = lmp_name
+        if lmp_id:
+            lmp_filters["lmp_id"] = lmp_id
+
+        aggregate = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
+        return aggregate
 
     @app.get("/api/traces")
     def get_consumption_graph(
