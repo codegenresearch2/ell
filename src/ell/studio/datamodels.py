@@ -1,19 +1,16 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from sqlmodel import SQLModel, select, func
-from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase, UTCTimestampField
+from pydantic import BaseModel
+from sqlmodel import select, func
+from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
-# Additional classes as per oracle feedback
-class GraphDataPoint(SQLModel):
+class GraphDataPoint(BaseModel):
     date: datetime
     count: int
     avg_latency: float
     tokens: int
-    # unique_lmps: int
-    # total_tokens: int
-    # avg_latency: float
 
-class InvocationsAggregate(SQLModel):
+class InvocationsAggregate(BaseModel):
     lmp_id: str
     total_invocations: int
     total_latency_ms: float
@@ -36,3 +33,55 @@ class InvocationsAggregate(SQLModel):
         ).where(Invocation.lmp_id == lmp_id).group_by(Invocation.lmp_id)
         result = session.exec(query).first()
         return cls(**result._asdict(), graph_data=[]) if result else None
+
+class SerializedLMPPublic(SerializedLMPBase):
+    pass
+
+class SerializedLMPWithUses(SerializedLMPPublic):
+    lmp_id: str
+    uses: List[SerializedLMPPublic]
+
+class SerializedLMPCreate(SerializedLMPBase):
+    pass
+
+class SerializedLMPUpdate(BaseModel):
+    name: Optional[str] = None
+    source: Optional[str] = None
+    dependencies: Optional[str] = None
+    is_lm: Optional[bool] = None
+    lm_kwargs: Optional[Dict[str, Any]] = None
+    initial_free_vars: Optional[Dict[str, Any]] = None
+    initial_global_vars: Optional[Dict[str, Any]] = None
+    commit_message: Optional[str] = None
+    version_number: Optional[int] = None
+
+class InvocationPublic(InvocationBase):
+    lmp: SerializedLMPPublic
+    results: List[SerializedLStrBase]
+    consumes: List[str]
+    consumed_by: List[str]
+    uses: List[str]
+
+class InvocationCreate(InvocationBase):
+    pass
+
+class InvocationUpdate(BaseModel):
+    args: Optional[List[Any]] = None
+    kwargs: Optional[Dict[str, Any]] = None
+    global_vars: Optional[Dict[str, Any]] = None
+    free_vars: Optional[Dict[str, Any]] = None
+    latency_ms: Optional[float] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    state_cache_key: Optional[str] = None
+    invocation_kwargs: Optional[Dict[str, Any]] = None
+
+class SerializedLStrPublic(SerializedLStrBase):
+    pass
+
+class SerializedLStrCreate(SerializedLStrBase):
+    pass
+
+class SerializedLStrUpdate(BaseModel):
+    content: Optional[str] = None
+    logits: Optional[List[float]] = None
