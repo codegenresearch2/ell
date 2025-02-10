@@ -23,7 +23,7 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3 sentence backstory>"""
     chosen_name = random.choice(names_list)
-    return f"Name: {chosen_name}"
+    return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
     
-    for __ in range(100):  # Using double underscore for unused variable
+    for _ in range(100):  # Using single underscore for unused variable
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
