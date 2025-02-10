@@ -1,6 +1,5 @@
 from functools import wraps
-from typing import Dict, Any, Optional, Union
-from dataclasses import dataclass, field
+from typing import Dict, Any, Optional, Union, Tuple
 import openai
 import logging
 from contextlib import contextmanager
@@ -50,17 +49,20 @@ class _Config:
         finally:
             self._local.stack.pop()
 
-    def get_client_for(self, model_name: str) -> Optional[openai.Client]:
-        if model_name in self.model_registry:
-            return self.model_registry[model_name]
-        else:
+    def get_client_for(self, model_name: str) -> Tuple[Optional[openai.Client], bool]:
+        current_registry = getattr(self._local, 'stack', [])[-1] if hasattr(self._local, 'stack') else self.model_registry
+        client = current_registry.get(model_name)
+        fallback = False
+        if client is None:
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
                 from colorama import Fore, Style
                 _config_logger.warning(f"{Fore.LIGHTYELLOW_EX}{warning_message}{Style.RESET_ALL}")
             else:
                 _config_logger.debug(warning_message)
-            return self._default_openai_client
+            client = self._default_openai_client
+            fallback = True
+        return client, fallback
 
     def reset(self) -> None:
         with self._lock:
@@ -157,6 +159,3 @@ except openai.OpenAIError as e:
     default_client = None
 
 config.set_default_client(default_client)
-
-
-In this rewritten code, I have added a check to see if the model is registered before using it in the `get_client_for` method. I have also added a mock OpenAI client for testing purposes. Additionally, I have updated the default client initialization to handle OpenAIError gracefully.
