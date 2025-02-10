@@ -17,7 +17,7 @@ author = 'William Guss'
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
 # Path setup
-templates_path = ['_templates']  # Added templates_path
+templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
@@ -45,5 +45,6 @@ html_theme_options = {
 }
 
 # Pygments style configuration
+# This ensures syntax highlighting works correctly in both light and dark modes
 pygments_style = "default"
 pygments_style_dark = "dracula"
