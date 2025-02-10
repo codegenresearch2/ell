@@ -57,6 +57,26 @@ class Store(ABC):
         """
         pass
 
+    # @abstractmethod
+    # def search_lmps(self, query: str) -> List[Dict[str, Any]]:
+    #     """
+    #     Search for LMPs in the storage.
+
+    #     :param query: Search query string.
+    #     :return: List of LMPs matching the query.
+    #     """
+    #     pass
+
+    # @abstractmethod
+    # def search_invocations(self, query: str) -> List[Dict[str, Any]]:
+    #     """
+    #     Search for invocations in the storage.
+
+    #     :param query: Search query string.
+    #     :return: List of invocations matching the query.
+    #     """
+    #     pass
+
     @abstractmethod
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
         """
