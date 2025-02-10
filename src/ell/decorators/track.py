@@ -127,7 +127,7 @@ def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, Ordere
             commit_message=commit,
             initial_global_vars=get_immutable_vars(fn_closure[2]),
             initial_free_vars=get_immutable_vars(fn_closure[3]),
-            is_lm=is_lmp,
+            is_lmp=is_lmp,
             lm_kwargs=lm_kwargs if lm_kwargs else None,
             version_number=version,
         )
@@ -317,7 +317,7 @@ def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, Ordere
             commit_message=commit,
             initial_global_vars=get_immutable_vars(fn_closure[2]),
             initial_free_vars=get_immutable_vars(fn_closure[3]),
-            is_lm=is_lmp,
+            is_lmp=is_lmp,
             lm_kwargs=lm_kwargs if lm_kwargs else None,
             version_number=version,
         )
@@ -355,4 +355,4 @@ def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, pro
 def compute_state_cache_key(ipstr: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]) -> str:
     _global_free_vars_str = json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)
     _free_vars_str = json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)
-    state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_
+    state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_
