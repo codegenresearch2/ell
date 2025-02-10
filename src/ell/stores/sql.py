@@ -20,22 +20,23 @@ class SQLStore(ell.store.Store):
         self.open_files: Dict[str, Dict[str, Any]] = {}
         self.websocket_clients = set()
 
-    async def notify_clients(self, message: str):
+    def notify_clients(self, message: str):
         if self.websocket_clients:
-            await asyncio.wait([client.send(message) for client in self.websocket_clients])
+            for client in self.websocket_clients:
+                client.send(message)
 
-    async def handle_websocket(self, websocket, path):
+    def handle_websocket(self, websocket, path):
         self.websocket_clients.add(websocket)
         try:
-            await websocket.wait_closed()
+            websocket.wait_closed()
         finally:
             self.websocket_clients.remove(websocket)
 
-    async def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None, created_at: Optional[float]=None) -> Optional[Any]:
-        async with Session(self.engine) as session:
-            lmp = await session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+        with Session(self.engine) as session:
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
                 return lmp
             else:
@@ -47,25 +48,25 @@ class SQLStore(ell.store.Store):
                 )
                 session.add(lmp)
             for use_id in uses:
-                used_lmp = await session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
                 if used_lmp:
                     lmp.uses.append(used_lmp)
-            await session.commit()
-            await self.notify_clients(json.dumps({'action': 'lmp_updated', 'lmp_id': lmp_id}))
+            session.commit()
+            self.notify_clients(json.dumps({'action': 'lmp_updated', 'lmp_id': lmp_id}))
         return None
 
-    async def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
                          global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
-        async with Session(self.engine) as session:
+        with Session(self.engine) as session:
             if isinstance(result, lstr):
                 results = [result]
             elif isinstance(result, list):
                 results = result
             else:
                 raise TypeError("Result must be either lstr or List[lstr]")
-            lmp = await session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
             if lmp.num_invocations is None:
                 lmp.num_invocations = 1
@@ -73,8 +74,8 @@ class SQLStore(ell.store.Store):
                 lmp.num_invocations += 1
             invocation = Invocation(
                 id=id, lmp_id=lmp.lmp_id, args=args, kwargs=kwargs,
-                global_vars=json.loads(json.dumps(global_vars, default=str)),
-                free_vars=json.loads(json.dumps(free_vars, default=str)), created_at=created_at,
+                global_vars=json.dumps(global_vars),
+                free_vars=json.dumps(free_vars), created_at=created_at,
                 invocation_kwargs=invocation_kwargs, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
                 latency_ms=latency_ms, state_cache_key=state_cache_key,
             )
@@ -85,20 +86,20 @@ class SQLStore(ell.store.Store):
             session.add(invocation)
             for consumed_id in consumes:
                 session.add(InvocationTrace(invocation_consumer_id=id, invocation_consuming_id=consumed_id))
-            await session.commit()
-            await self.notify_clients(json.dumps({'action': 'invocation_updated', 'invocation_id': id}))
+            session.commit()
+            self.notify_clients(json.dumps({'action': 'invocation_updated', 'invocation_id': id}))
 
-    async def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
             .subquery()
         )
         filters = {"name": subquery.c.name, "created_at": subquery.c.max_created_at}
-        return await self.get_lmps(skip=skip, limit=limit, subquery=subquery, **filters)
+        return self.get_lmps(skip=skip, limit=limit, subquery=subquery, **filters)
 
-    async def get_lmps(self, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        async with Session(self.engine) as session:
+    def get_lmps(self, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        with Session(self.engine) as session:
             query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
                 SerializedLMPUses, SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id
             )
@@ -111,15 +112,15 @@ class SQLStore(ell.store.Store):
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
             query = query.order_by(SerializedLMP.created_at.desc()).offset(skip).limit(limit)
-            results = await session.exec(query).all()
+            results = session.exec(query).all()
             lmp_dict = {lmp.lmp_id: {**lmp.model_dump(), 'uses': []} for lmp, _ in results}
             for lmp, using_id in results:
                 if using_id:
                     lmp_dict[lmp.lmp_id]['uses'].append(using_id)
             return list(lmp_dict.values())
 
-    async def get_invocations(self, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-        async with Session(self.engine) as session:
+    def get_invocations(self, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        with Session(self.engine) as session:
             query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
             for key, value in lmp_filters.items():
                 query = query.where(getattr(SerializedLMP, key) == value)
@@ -127,7 +128,7 @@ class SQLStore(ell.store.Store):
                 for key, value in filters.items():
                     query = query.where(getattr(Invocation, key) == value)
             query = query.order_by(Invocation.created_at.desc()).offset(skip).limit(limit)
-            results = await session.exec(query).all()
+            results = session.exec(query).all()
             invocations = {}
             for inv, lstr, lmp in results:
                 if inv.id not in invocations:
@@ -139,22 +140,22 @@ class SQLStore(ell.store.Store):
                     invocations[inv.id]['results'].append(dict(**lstr.model_dump(), __lstr=True))
             return list(invocations.values())
 
-    async def get_traces(self):
-        async with Session(self.engine) as session:
+    def get_traces(self):
+        with Session(self.engine) as session:
             query = text("""
             SELECT consumer.lmp_id, trace.*, consumed.lmp_id
             FROM invocation AS consumer
             JOIN invocationtrace AS trace ON consumer.id = trace.invocation_consumer_id
             JOIN invocation AS consumed ON trace.invocation_consuming_id = consumed.id
             """)
-            results = await session.exec(query).all()
+            results = session.exec(query).all()
             traces = []
             for (consumer_lmp_id, consumer_invocation_id, consumed_invocation_id, consumed_lmp_id) in results:
                 traces.append({'consumer': consumer_lmp_id, 'consumed': consumed_lmp_id})
             return traces
 
-    async def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
-        async with Session(self.engine) as session:
+    def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
+        with Session(self.engine) as session:
             traces = []
             visited = set()
             queue = [(invocation_id, 0)]
@@ -165,7 +166,7 @@ class SQLStore(ell.store.Store):
                 if current_invocation_id in visited:
                     continue
                 visited.add(current_invocation_id)
-                results = await session.exec(
+                results = session.exec(
                     select(InvocationTrace, Invocation, SerializedLMP)
                     .join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id)
                     .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
@@ -192,11 +193,11 @@ class SQLiteStore(SQLStore):
         db_path = os.path.join(storage_dir, 'ell.db')
         super().__init__(f'sqlite:///{db_path}')
 
-async def main():
+def main():
     store = SQLiteStore('/path/to/storage')
     start_server = websockets.serve(store.handle_websocket, 'localhost', 8765)
-    async with start_server:
-        await asyncio.Future()
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
