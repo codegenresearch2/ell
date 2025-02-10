@@ -168,15 +168,22 @@ def create_app(config: Config):
         session: Session = Depends(get_session)
     ):
         # Aggregate invocations logic
-        # TODO: Implement the actual aggregation logic
+        invocations_data = serializer.get_invocations_aggregate(
+            session,
+            lmp_filters={"name": lmp_name} if lmp_name else None,
+            filters={"created_at": {"gt": datetime.utcnow() - timedelta(days=days)}}
+        )
         aggregate = InvocationsAggregate(
-            total_invocations=100,
-            total_tokens=100000,
-            avg_latency=10.5,
-            unique_lmps=50,
+            total_invocations=invocations_data["total_invocations"],
+            total_tokens=invocations_data["total_tokens"],
+            avg_latency=invocations_data["avg_latency"],
+            unique_lmps=invocations_data["unique_lmps"],
             graph_data=[
-                GraphDataPoint(date=datetime.utcnow() - timedelta(days=i), count=i*10, avg_latency=i*0.5, tokens=i*1000)
-                for i in range(days)
+                GraphDataPoint(date=datetime.strptime(str(data["date"]), "%Y-%m-%d %H:%M:%S.%f"),
+                               count=data["count"],
+                               avg_latency=data["avg_latency"],
+                               tokens=data["tokens"])
+                for data in invocations_data["graph_data"]
             ]
         )
         return aggregate
