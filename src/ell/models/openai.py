@@ -1,12 +1,17 @@
 from ell.configurator import config
 import openai
-
 import logging
-import colorama
 
 logger = logging.getLogger(__name__)
 
-def register_openai_models(client: openai.Client):
+def register_openai_models(client: openai.Client = None):
+    if client is None:
+        try:
+            client = openai.Client()
+        except openai.OpenAIError as e:
+            logger.error(f"Failed to create OpenAI client: {e}")
+            return
+
     model_data = [
         ('gpt-4-1106-preview', 'system'),
         ('gpt-4-32k-0314', 'openai'),
@@ -43,7 +48,13 @@ default_client = None
 try:
     default_client = openai.Client()
 except openai.OpenAIError as e:
-    pass
+    logger.error(f"Failed to create default OpenAI client: {e}")
 
-register_openai_models(default_client)
-config._default_openai_client = default_client
+if default_client:
+    register_openai_models(default_client)
+    config._default_openai_client = default_client
+
+try:
+    response = openai.chat.completions.create(model="gpt-4o-2024-08-06", messages=[{"role": "system", "content": "You are a helpful assistant."}])
+except openai.OpenAIError as e:
+    logger.error(f"Failed to create chat completion: {e}")
