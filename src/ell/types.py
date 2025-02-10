@@ -4,10 +4,10 @@ from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
 from ell.lstr import lstr  # Importing the lstr type
-from ell.types import InvocableLM, Message  # Importing the required types from ell.types
 
-# Define the required types from ell.types
-# These definitions are assumed based on the feedback and may need to be adjusted based on the actual definitions
+# Moving the definitions of InvocableLM and Message to a separate module to avoid circular dependencies
+# Assuming these definitions are in a module called ell.core
+from ell.core import InvocableLM, Message
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
