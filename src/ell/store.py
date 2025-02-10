@@ -6,10 +6,32 @@ from ell.lstr import lstr
 from ell.types import InvocableLM
 
 class Store(ABC):
+    """
+    Abstract base class for serializers. Defines the interface for serializing and deserializing LMPs and invocations.
+    """
+
     @abstractmethod
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None,
                   created_at: Optional[datetime] = None) -> Optional[Any]:
+        """
+        Write an LMP (Language Model Package) to the storage.
+
+        Args:
+            lmp_id (str): Unique identifier for the LMP.
+            name (str): Name of the LMP.
+            source (str): Source code or reference for the LMP.
+            dependencies (List[str]): List of dependencies for the LMP.
+            is_lmp (bool): Boolean indicating if it is an LMP.
+            lm_kwargs (str): Additional keyword arguments for the LMP.
+            version_number (int): Version number of the LMP.
+            uses (Dict[str, Any]): Dictionary of LMPs used by this LMP.
+            commit_message (Optional[str], optional): Optional commit message for the LMP. Defaults to None.
+            created_at (Optional[datetime], optional): Optional timestamp of when the LMP was created. Defaults to None.
+
+        Returns:
+            Optional[Any]: Optional return value.
+        """
         pass
 
     @abstractmethod
@@ -18,22 +40,103 @@ class Store(ABC):
                          prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None,
                          latency_ms: Optional[float] = None, state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
+        """
+        Write an invocation of an LMP to the storage.
+
+        Args:
+            id (str): Unique identifier for the invocation.
+            lmp_id (str): Unique identifier for the LMP.
+            args (str): Arguments used in the invocation.
+            kwargs (str): Keyword arguments used in the invocation.
+            result (Union[lstr, List[lstr]]): Result of the invocation.
+            invocation_kwargs (Dict[str, Any]): Additional keyword arguments for the invocation.
+            created_at (Optional[datetime]): Optional timestamp of when the invocation was created.
+            consumes (Set[str]): Set of invocation IDs consumed by this invocation.
+            prompt_tokens (Optional[int], optional): Optional number of prompt tokens used. Defaults to None.
+            completion_tokens (Optional[int], optional): Optional number of completion tokens used. Defaults to None.
+            latency_ms (Optional[float], optional): Optional latency in milliseconds. Defaults to None.
+            state_cache_key (Optional[str], optional): Optional state cache key. Defaults to None.
+            cost_estimate (Optional[float], optional): Optional estimated cost of the invocation. Defaults to None.
+
+        Returns:
+            Optional[Any]: Optional return value.
+        """
         pass
 
     @abstractmethod
     def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Retrieve LMPs from the storage.
+
+        Args:
+            **filters (Optional[Dict[str, Any]]): Optional dictionary of filters to apply.
+
+        Returns:
+            List[Dict[str, Any]]: List of LMPs.
+        """
         pass
 
     @abstractmethod
     def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve invocations of an LMP from the storage.
+
+        Args:
+            lmp_id (str): Unique identifier for the LMP.
+            filters (Optional[Dict[str, Any]], optional): Optional dictionary of filters to apply. Defaults to None.
+
+        Returns:
+            List[Dict[str, Any]]: List of invocations.
+        """
         pass
+
+    # @abstractmethod
+    # def search_lmps(self, query: str) -> List[Dict[str, Any]]:
+    #     """
+    #     Search for LMPs in the storage.
+
+    #     Args:
+    #         query (str): Search query string.
+
+    #     Returns:
+    #         List[Dict[str, Any]]: List of LMPs matching the query.
+    #     """
+    #     pass
+
+    # @abstractmethod
+    # def search_invocations(self, query: str) -> List[Dict[str, Any]]:
+    #     """
+    #     Search for invocations in the storage.
+
+    #     Args:
+    #         query (str): Search query string.
+
+    #     Returns:
+    #         List[Dict[str, Any]]: List of invocations matching the query.
+    #     """
+    #     pass
 
     @abstractmethod
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
+        """
+        Retrieve the latest versions of all LMPs from the storage.
+
+        Returns:
+            List[Dict[str, Any]]: List of the latest LMPs.
+        """
         pass
 
     @contextmanager
     def freeze(self, *lmps: InvocableLM):
+        """
+        A context manager for caching operations using a particular store.
+
+        Args:
+            *lmps (InvocableLM): Language Model Programs (LMPs) to cache.
+
+        Yields:
+            None
+        """
         old_cache_values = {}
         try:
             for lmp in lmps:
