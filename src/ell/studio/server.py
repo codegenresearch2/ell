@@ -23,7 +23,7 @@ def get_serializer(config: Config):
     else:
         raise ValueError("No storage configuration found")
 
-def create_app(config:Config):
+def create_app(config: Config):
     serializer = get_serializer(config)
     serializer.engine = create_engine(serializer.engine.url)  # Initialize the database engine directly
 
