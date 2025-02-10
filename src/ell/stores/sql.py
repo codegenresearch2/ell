@@ -4,7 +4,6 @@ import os
 from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
-from pydantic import BaseModel
 import cattrs
 import numpy as np
 from sqlalchemy.sql import text
@@ -13,13 +12,31 @@ from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
 class SQLStore(ell.store.Store):
+    """
+    A class for storing and retrieving Language Model Packages (LMPs) and their invocations.
+    """
     def __init__(self, db_uri: str):
+        """
+        Initializes the SQLStore with a database URI.
+        
+        Args:
+            db_uri (str): The URI for the database.
+        """
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
+        """
+        Writes an LMP to the storage.
+        
+        Args:
+            serialized_lmp (SerializedLMP): The serialized LMP object.
+            uses (Dict[str, Any]): A dictionary of LMPs used by this LMP.
+        
+        Returns:
+            Optional[Any]: Returns the LMP if it already exists, otherwise None.
+        """
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
             
@@ -37,6 +54,17 @@ class SQLStore(ell.store.Store):
         return None
 
     def write_invocation(self, invocation: Invocation, results: List[SerializedLStr], consumes: Set[str]) -> Optional[Any]:
+        """
+        Writes an invocation of an LMP to the storage.
+        
+        Args:
+            invocation (Invocation): The invocation object.
+            results (List[SerializedLStr]): The list of serialized LStr results.
+            consumes (Set[str]): The set of invocation IDs consumed by this invocation.
+        
+        Returns:
+            Optional[Any]: Returns None.
+        """
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
@@ -62,29 +90,71 @@ class SQLStore(ell.store.Store):
             return None
         
     def get_cached_invocations(self, lmp_id :str, state_cache_key :str) -> List[Invocation]:
+        """
+        Gets cached invocations for a given LMP and state cache key.
+        
+        Args:
+            lmp_id (str): The ID of the LMP.
+            state_cache_key (str): The state cache key.
+        
+        Returns:
+            List[Invocation]: The list of cached invocations.
+        """
         with Session(self.engine) as session:
             return self.get_invocations(session, lmp_filters={"lmp_id": lmp_id}, filters={"state_cache_key": state_cache_key})
         
     def get_versions_by_fqn(self, fqn :str) -> List[SerializedLMP]:
+        """
+        Gets all versions of an LMP by its fully qualified name.
+        
+        Args:
+            fqn (str): The fully qualified name of the LMP.
+        
+        Returns:
+            List[SerializedLMP]: The list of serialized LMPs.
+        """
         with Session(self.engine) as session:
             return self.get_lmps(session, name=fqn)
         
-    def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
-        with Session(self.engine) as session:
-            subquery = (
-                select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
-                .group_by(SerializedLMP.name)
-                .subquery()
-            )
-            
-            filters = {
-                "name": subquery.c.name,
-                "created_at": subquery.c.max_created_at
-            }
-            
-            return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
+    def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Gets all the lmps grouped by unique name with the highest created at.
+        
+        Args:
+            session (Session): The database session.
+            skip (int): The number of records to skip.
+            limit (int): The maximum number of records to return.
+        
+        Returns:
+            List[Dict[str, Any]]: The list of latest LMPs.
+        """
+        subquery = (
+            select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
+            .group_by(SerializedLMP.name)
+            .subquery()
+        )
+        
+        filters = {
+            "name": subquery.c.name,
+            "created_at": subquery.c.max_created_at
+        }
+        
+        return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
     def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Retrieves LMPs from the storage.
+        
+        Args:
+            session (Session): The database session.
+            skip (int): The number of records to skip.
+            limit (int): The maximum number of records to return.
+            subquery (Optional[Any]): The subquery for filtering.
+            **filters (Optional[Dict[str, Any]]): Additional filters.
+        
+        Returns:
+            List[Dict[str, Any]]: The list of LMPs.
+        """
         query = select(SerializedLMP)
         
         if subquery is not None:
@@ -104,6 +174,20 @@ class SQLStore(ell.store.Store):
         return [lmp.model_dump() for lmp in results]
 
     def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
+        """
+        Retrieves invocations of an LMP from the storage.
+        
+        Args:
+            session (Session): The database session.
+            lmp_filters (Dict[str, Any]): Filters for the LMP.
+            skip (int): The number of records to skip.
+            limit (int): The maximum number of records to return.
+            filters (Optional[Dict[str, Any]]): Additional filters for the invocations.
+            hierarchical (bool): Whether to include hierarchical information.
+        
+        Returns:
+            List[Dict[str, Any]]: The list of invocations.
+        """
         def fetch_invocation(inv_id):
             query = (
                 select(Invocation, SerializedLStr, SerializedLMP)
@@ -156,6 +240,15 @@ class SQLStore(ell.store.Store):
         return invocations
 
     def get_traces(self, session: Session):
+        """
+        Retrieves all traces from the storage.
+        
+        Args:
+            session (Session): The database session.
+        
+        Returns:
+            List[Dict[str, Any]]: The list of traces.
+        """
         query = text("""
         SELECT 
             consumer.lmp_id, 
@@ -181,6 +274,16 @@ class SQLStore(ell.store.Store):
         
 
     def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieves all traces leading to a specific invocation.
+        
+        Args:
+            session (Session): The database session.
+            invocation_id (str): The ID of the invocation.
+        
+        Returns:
+            List[Dict[str, Any]]: The list of traces leading to the specified invocation.
+        """
         traces = []
         visited = set()
         queue = [(invocation_id, 0)]
@@ -217,14 +320,3 @@ class SQLStore(ell.store.Store):
                 unique_traces[consumed_id] = trace
         
         return list(unique_traces.values())
-
-
-class SQLiteStore(SQLStore):
-    def __init__(self, storage_dir: str):
-        os.makedirs(storage_dir, exist_ok=True)
-        db_path = os.path.join(storage_dir, 'ell.db')
-        super().__init__(f'sqlite:///{db_path}')
-
-class PostgresStore(SQLStore):
-    def __init__(self, db_uri: str):
-        super().__init__(db_uri)
