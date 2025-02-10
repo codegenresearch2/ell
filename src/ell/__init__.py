@@ -8,13 +8,9 @@ from ell.lmp.simple import simple
 from ell.lmp.tool import tool
 from ell.lmp.complex import complex
 from ell.types.message import system, user, assistant, Message, ContentBlock
-from ell.models import *  # Importing all models from ell.models
-from ell import __version__  # Importing the version of the ell library
+import ell.models  # Importing models from ell.models
+from ell import __version__ as ell_version  # Importing the version of the ell library
 from ell.configurator import *  # Importing everything from ell.configurator
-
-# Ensured consistent formatting and removed redundant string literals
-# Checked for unused imports and imported all necessary classes from ell.models
-# Ensured comment clarity and added a version import
 
 # For more information about ell, visit: https://github.com/microsoft/ell
 # For more information about BaseModel, visit: https://docs.pydantic.dev/usage/models/
