@@ -7,10 +7,10 @@ BASE_PROMPT = """You are an adept python programmer. Only answer in python code.
 def create_a_python_class(user_spec: str):
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nYour goal is to create a Python class based on a user specification."
+            f"{BASE_PROMPT}\n\nCreate a Python class based on the user specification provided."
         ),
         ell.user(
-            f"Here is the user specification: {user_spec}"
+            f"User specification: {user_spec}"
         )
     ]
 
@@ -18,10 +18,10 @@ def create_a_python_class(user_spec: str):
 def write_unit_for_a_class(class_def: str):
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nYour goal is to write a single unit test for a specific class definition. Do not use the `unittest` package."
+            f"{BASE_PROMPT}\n\nWrite a single unit test for the given class definition without using the `unittest` package."
         ),
         ell.user(
-            f"Here is the class definition: {class_def}"
+            f"Class definition: {class_def}"
         )
     ]
 
