@@ -47,8 +47,12 @@ if __name__ == "__main__":
     messages: List[Tuple[str, str]] = []
     personalities = [create_personality() for _ in range(2)]
 
-    names = [personality.split(": ")[1] for personality in personalities]
-    backstories = [personality.split(": ")[2] for personality in personalities]
+    names = []
+    backstories = []
+    for personality in personalities:
+        parts = personality.split("\n")
+        names.append(parts[0].split(": ")[1])
+        backstories.append(parts[1].split(": ")[1])
 
     print("Names:", names)
 
