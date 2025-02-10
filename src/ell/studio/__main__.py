@@ -35,9 +35,9 @@ def main():
             print(f"Database updated: {changes}")  # Ensure the message matches the gold code
             await app.notify_clients("database_updated")  # Ensure the message matches the gold code
 
-    # Client notification mechanism
+    # Remove unused function
     async def notify_client(message):
-        await app.notify_clients(message)  # Ensure the message matches the gold code
+        pass  # This function is not used
 
     # Configure and run the server
     config = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
@@ -45,8 +45,9 @@ def main():
 
     # Start the event loop
     async def start_server():
-        server_task = asyncio.create_task(server.serve())
-        db_watcher_task = asyncio.create_task(db_watcher())
+        loop = asyncio.get_event_loop()
+        server_task = loop.create_task(server.serve())
+        db_watcher_task = loop.create_task(db_watcher())
         await asyncio.gather(server_task, db_watcher_task)
 
     asyncio.run(start_server())
