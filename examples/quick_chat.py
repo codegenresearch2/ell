@@ -35,7 +35,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
 @ell.lm(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
 def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     formatted_history = format_message_history(message_history)
-    return f"""
+    return ell.system(f"""
     Here is your description:
     {personality}
 
@@ -43,7 +43,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
 
     Chat History:
     {formatted_history}
-    """
+    """)
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         parts = personality.split("\n")
         names.append(parts[0].split(": ")[1])
         backstories.append(parts[1].split(": ")[1])
-    print(f"Names: {names}")
+    print(names)
 
     whos_turn = 0
     for _ in range(10):
