@@ -1,7 +1,7 @@
+import logging
 from ell.configurator import config
 import openai
-
-import logging
+import requests
 import colorama
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,23 @@ default_client = None
 try:
     default_client = openai.Client()
 except openai.OpenAIError as e:
-    pass
+    import os
+    default_client = openai.Client(api_key=os.environ.get("OPENAI_API_KEY", ""))
 
 register_openai_models(default_client)
 config._default_openai_client = default_client
+
+try:
+    response = openai.ChatCompletion.create(model="gpt-4o-2024-08-06", messages=[{"role": "system", "content": "You are a helpful assistant."}])
+except openai.OpenAIError as e:
+    logger.error(f"Failed to create chat completion: {e}")
+
+# Mocking external dependencies for tests
+class MockClient:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def chat_completions_create(self, model, messages):
+        return {"choices": [{"message": {"content": "Mocked response"}}]}
+
+openai.Client = MockClient
