@@ -8,9 +8,9 @@ from typing import Callable, Dict, List, Union
 
 def utc_now() -> datetime:
     """
-    Returns the current UTC timestamp.
+    Returns the current UTC timestamp in ISO-8601 format.
     """
-    return datetime.utcnow()
+    return datetime.utcnow().isoformat()
 
 _lstr_generic = Union[lstr, str]
 OneTurn = Callable[..., _lstr_generic]
@@ -20,6 +20,10 @@ LMPParams = Dict[str, Any]
 class Message(dict, metaclass=DictSyncMeta):
     """
     Represents a message in a chat conversation.
+
+    Attributes:
+        role (str): The role of the message sender.
+        content (_lstr_generic): The content of the message.
     """
     role: str
     content: _lstr_generic
@@ -35,6 +39,10 @@ InvocableLM = Callable[..., _lstr_generic]
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
+
+    Attributes:
+        lmp_user_id (Optional[str]): The ID of the LMP that is being used.
+        lmp_using_id (Optional[str]): The ID of the LMP that is using the other LMP.
     """
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
@@ -42,6 +50,23 @@ class SerializedLMPUses(SQLModel, table=True):
 class SerializedLMP(SQLModel, table=True):
     """
     Represents a serialized Language Model Program (LMP).
+
+    Attributes:
+        lmp_id (Optional[str]): The unique identifier for the LMP.
+        name (str): The name of the LMP.
+        source (str): The source code or reference for the LMP.
+        dependencies (str): The list of dependencies for the LMP, stored as a string.
+        created_at (datetime): The timestamp of when the LMP was created.
+        is_lm (bool): A boolean indicating if it is an LM (Language Model) or an LMP.
+        lm_kwargs (dict): Additional keyword arguments for the LMP.
+        invocations (List[Invocation]): The list of invocations of this LMP.
+        used_by (Optional[List[SerializedLMP]]): The list of LMPs that use this LMP.
+        uses (List[SerializedLMP]): The list of LMPs used by this LMP.
+        initial_free_vars (dict): The initial free variables for the LMP.
+        initial_global_vars (dict): The initial global variables for the LMP.
+        num_invocations (Optional[int]): The number of invocations of this LMP.
+        commit_message (Optional[str]): The commit message for the LMP.
+        version_number (Optional[int]): The version number of the LMP.
     """
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str
@@ -66,6 +91,10 @@ class SerializedLMP(SQLModel, table=True):
 class InvocationTrace(SQLModel, table=True):
     """
     Represents a many-to-many relationship between Invocations and other Invocations.
+
+    Attributes:
+        invocation_consumer_id (str): The ID of the Invocation that is consuming another Invocation.
+        invocation_consuming_id (str): The ID of the Invocation that is being consumed by another Invocation.
     """
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
@@ -73,6 +102,24 @@ class InvocationTrace(SQLModel, table=True):
 class Invocation(SQLModel, table=True):
     """
     Represents an invocation of an LMP.
+
+    Attributes:
+        id (Optional[str]): The unique identifier for the invocation.
+        lmp_id (str): The ID of the LMP that was invoked.
+        args (List[Any]): The arguments used in the invocation.
+        kwargs (dict): The keyword arguments used in the invocation.
+        global_vars (dict): The global variables used in the invocation.
+        free_vars (dict): The free variables used in the invocation.
+        latency_ms (float): The latency of the invocation in milliseconds.
+        prompt_tokens (Optional[int]): The number of prompt tokens used in the invocation.
+        completion_tokens (Optional[int]): The number of completion tokens used in the invocation.
+        state_cache_key (Optional[str]): The state cache key for the invocation.
+        created_at (datetime): The timestamp of when the invocation was created.
+        invocation_kwargs (dict): Additional keyword arguments for the invocation.
+        lmp (SerializedLMP): The LMP that was invoked.
+        results (List[SerializedLStr]): The list of LStr results of the invocation.
+        consumed_by (List[Invocation]): The list of invocations that consumed this invocation.
+        consumes (List[Invocation]): The list of invocations consumed by this invocation.
     """
     id: Optional[str] = Field(default=None, primary_key=True)
     lmp_id: str = Field(foreign_key="serializedlmp.lmp_id")
@@ -94,6 +141,13 @@ class Invocation(SQLModel, table=True):
 class SerializedLStr(SQLModel, table=True):
     """
     Represents a Language String (LStr) result from an LMP invocation.
+
+    Attributes:
+        id (Optional[int]): The unique identifier for the LStr.
+        content (str): The content of the LStr.
+        logits (List[float]): The logits associated with the LStr, if available.
+        producer_invocation_id (Optional[int]): The ID of the Invocation that produced this LStr.
+        producer_invocation (Optional[Invocation]): The Invocation that produced this LStr.
     """
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
