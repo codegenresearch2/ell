@@ -1,19 +1,22 @@
-from typing import Optional, List, Callable, Dict, Any, TypeVar
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Union, TypeVar
+from ell.lstr import lstr
+from ell.util.dict_sync_meta import DictSyncMeta
+from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON
 import sqlalchemy.types as types
-from datetime import datetime, timezone
 
 # Define type variables
 T = TypeVar('T')
 
 # Define the core types
-_lstr_generic = Optional[str]
+_lstr_generic = Union[lstr, str]
 
 OneTurn = Callable[..., _lstr_generic]
 LMPParams = Dict[str, Any]
 
 @dataclass
-class Message(dict):
+class Message(dict, metaclass=DictSyncMeta):
     role: str
     content: _lstr_generic
 
