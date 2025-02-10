@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException, WebSocket
+from fastapi import FastAPI, Query, HTTPException, WebSocket, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict, Any
 import os
