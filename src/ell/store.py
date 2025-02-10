@@ -37,32 +37,52 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[SerializedLMP]:
+    def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Retrieve LMPs from the storage.
 
         :param filters: Optional dictionary of filters to apply.
-        :return: List of SerializedLMP objects.
+        :return: List of LMPs.
         """
         pass
 
     @abstractmethod
-    def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Invocation]:
+    def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Retrieve invocations of an LMP from the storage.
 
         :param lmp_id: Unique identifier for the LMP.
         :param filters: Optional dictionary of filters to apply.
-        :return: List of Invocation objects.
+        :return: List of invocations.
         """
         pass
 
     @abstractmethod
-    def get_latest_lmps(self) -> List[SerializedLMP]:
+    def search_lmps(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Search for LMPs in the storage.
+
+        :param query: Search query string.
+        :return: List of LMPs matching the query.
+        """
+        pass
+
+    @abstractmethod
+    def search_invocations(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Search for invocations in the storage.
+
+        :param query: Search query string.
+        :return: List of invocations matching the query.
+        """
+        pass
+
+    @abstractmethod
+    def get_latest_lmps(self) -> List[Dict[str, Any]]:
         """
         Retrieve the latest versions of all LMPs from the storage.
 
-        :return: List of the latest SerializedLMP objects.
+        :return: List of the latest LMPs.
         """
         pass
 
@@ -73,6 +93,8 @@ class Store(ABC):
 
         Args:
             *lmps: Variable length argument list of InvocableLM objects.
+            key (Optional[str]): The cache key. If None, a default key will be generated.
+            condition (Optional[Callable[..., bool]]): A function that determines whether to cache or not.
 
         Yields:
             None
@@ -84,6 +106,7 @@ class Store(ABC):
                 setattr(lmp, '__ell_use_cache__', self)
             yield
         finally:
+            # TODO: Implement cache storage logic here
             for lmp in lmps:
                 if lmp in old_cache_values:
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
