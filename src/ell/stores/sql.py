@@ -15,6 +15,7 @@ from sqlalchemy.types import TypeDecorator, VARCHAR
 from ell.types.lmp import SerializedLMPUses, utc_now
 from ell.util.serialization import pydantic_ltype_aware_cattr
 import gzip
+import json
 
 
 class SQLStore(ell.store.Store):
