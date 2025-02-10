@@ -1,80 +1,80 @@
-from datetime import datetime
-import json
-import os
-from typing import Any, Optional, Dict, List, Set, Union
+from datetime import datetime, timedelta
+from typing import Any, Optional, Dict, List, Set
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
 import cattrs
 import numpy as np
-from sqlalchemy.sql import text
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
-from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
+from sqlalchemy.exc import SQLAlchemyError
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
-
-        self.open_files: Dict[str, Dict[str, Any]] = {}
-
-
-    def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
-        with Session(self.engine) as session:
-            # Bind the serialized_lmp to the session
-            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
-            
-            if lmp:
-                # Already added to the DB.
-                return lmp
-            else:
-                session.add(serialized_lmp)
-            
-            for use_id in uses:
-                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
-                if used_lmp:
-                    serialized_lmp.uses.append(used_lmp)
-            
-            session.commit()
-        return None
-
-    def write_invocation(self, invocation: Invocation, results: List[SerializedLStr], consumes: Set[str]) -> Optional[Any]:
-        with Session(self.engine) as session:
-            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id).first()
-            assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
-            
-            # Increment num_invocations
-            if lmp.num_invocations is None:
-                lmp.num_invocations = 1
-            else:
-                lmp.num_invocations += 1
-
-            session.add(invocation)
-
-            for result in results:
-                result.producer_invocation = invocation
-                session.add(result)
-
-            # Now create traces.
-            for consumed_id in consumes:
-                session.add(InvocationTrace(
-                    invocation_consumer_id=invocation.id,
-                    invocation_consuming_id=consumed_id
-                ))
-
-            session.commit()
+    def write_lmp(self, serialized_lmp: 'SerializedLMP', uses: Dict[str, Any]) -> Optional[Any]:
+        try:
+            with Session(self.engine) as session:
+                # Bind the serialized_lmp to the session
+                lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
+                
+                if lmp:
+                    # Already added to the DB.
+                    return lmp
+                else:
+                    session.add(serialized_lmp)
+                
+                for use_id in uses:
+                    used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                    if used_lmp:
+                        serialized_lmp.uses.append(used_lmp)
+                
+                session.commit()
+        except SQLAlchemyError as e:
+            print(f"An error occurred while writing LMP: {e}")
+            session.rollback()
             return None
-        
-    def get_cached_invocations(self, lmp_id :str, state_cache_key :str) -> List[Invocation]:
+
+    def write_invocation(self, invocation: 'Invocation', results: List['SerializedLStr'], consumes: Set[str]) -> Optional[Any]:
+        try:
+            with Session(self.engine) as session:
+                lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id).first()
+                assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
+                
+                # Increment num_invocations
+                if lmp.num_invocations is None:
+                    lmp.num_invocations = 1
+                else:
+                    lmp.num_invocations += 1
+
+                session.add(invocation)
+
+                for result in results:
+                    result.producer_invocation = invocation
+                    session.add(result)
+
+                # Now create traces.
+                for consumed_id in consumes:
+                    session.add(InvocationTrace(
+                        invocation_consumer_id=invocation.id,
+                        invocation_consuming_id=consumed_id
+                    ))
+
+                session.commit()
+            return None
+        except SQLAlchemyError as e:
+            print(f"An error occurred while writing invocation: {e}")
+            session.rollback()
+            return None
+
+    def get_cached_invocations(self, lmp_id :str, state_cache_key :str) -> List['Invocation']:
         with Session(self.engine) as session:
             return self.get_invocations(session, lmp_filters={"lmp_id": lmp_id}, filters={"state_cache_key": state_cache_key})
         
-    def get_versions_by_fqn(self, fqn :str) -> List[SerializedLMP]:
+    def get_versions_by_fqn(self, fqn :str) -> List['SerializedLMP']:
         with Session(self.engine) as session:
             return self.get_lmps(session, name=fqn)
         
-    ## HELPER METHODS FOR ELL STUDIO! :) 
     def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Gets all the lmps grouped by unique name with the highest created at
@@ -92,9 +92,17 @@ class SQLStore(ell.store.Store):
         
         return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
-        
     def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-
+        """
+        Retrieves LMPs from the storage.
+        
+        :param session: SQLModel session
+        :param skip: Number of records to skip
+        :param limit: Maximum number of records to return
+        :param subquery: Optional subquery for filtering
+        :param filters: Dictionary of filters to apply
+        :return: List of LMPs
+        """
         query = select(SerializedLMP)
         
         if subquery is not None:
@@ -111,9 +119,20 @@ class SQLStore(ell.store.Store):
         query = query.offset(skip).limit(limit)
         results = session.exec(query).all()
         
-        return results
+        return [lmp.model_dump() for lmp in results]
 
     def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
+        """
+        Retrieves invocations of an LMP from the storage.
+        
+        :param session: SQLModel session
+        :param lmp_filters: Filters to apply on the LMP level
+        :param skip: Number of records to skip
+        :param limit: Maximum number of records to return
+        :param filters: Optional dictionary of filters to apply on the invocation level
+        :param hierarchical: Whether to include hierarchical information
+        :return: List of invocations
+        """
         def fetch_invocation(inv_id):
             query = (
                 select(Invocation, SerializedLStr, SerializedLMP)
@@ -138,7 +157,6 @@ class SQLStore(ell.store.Store):
             inv_dict['consumes'] = [r for r in session.exec(consumes_query).all()]
             inv_dict['consumed_by'] = [r for r in session.exec(consumed_by_query).all()]
             inv_dict['uses'] = list([d.id for d in inv.uses]) 
-
 
             return inv_dict
 
@@ -173,6 +191,12 @@ class SQLStore(ell.store.Store):
         return invocations
 
     def get_traces(self, session: Session):
+        """
+        Retrieves all traces from the storage.
+        
+        :param session: SQLModel session
+        :return: List of traces
+        """
         query = text("""
         SELECT 
             consumer.lmp_id, 
@@ -198,7 +222,13 @@ class SQLStore(ell.store.Store):
         
 
     def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
-
+        """
+        Retrieves all traces leading to a specific invocation.
+        
+        :param session: SQLModel session
+        :param invocation_id: ID of the invocation to trace
+        :return: List of traces leading to the specified invocation
+        """
         traces = []
         visited = set()
         queue = [(invocation_id, 0)]
@@ -237,14 +267,3 @@ class SQLStore(ell.store.Store):
         
         # Convert the dictionary values back to a list
         return list(unique_traces.values())
-
-
-class SQLiteStore(SQLStore):
-    def __init__(self, storage_dir: str):
-        os.makedirs(storage_dir, exist_ok=True)
-        db_path = os.path.join(storage_dir, 'ell.db')
-        super().__init__(f'sqlite:///{db_path}')
-
-class PostgresStore(SQLStore):
-    def __init__(self, db_uri: str):
-        super().__init__(db_uri)
