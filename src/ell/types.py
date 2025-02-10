@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from ell.types import InvocationTrace, SerializedLStr, utc_now
+from ell.types import utc_now
 
-# Moving the definition of SerializedLMPUses to a separate module to resolve circular import issue
-class SerializedLMPUses(SQLModel, table=True):
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
+# Forward declaration to resolve circular import issue
+class InvocationTrace(SQLModel, table=True):
+    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
+    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
 
 class Invocation(SQLModel, table=True):
     id: Optional[str] = Field(default=None, primary_key=True)
@@ -35,8 +35,8 @@ class SerializedLMP(SQLModel, table=True):
     is_lm: bool
     lm_kwargs: dict = Field(sa_column=Column(JSON))
     invocations: List[Invocation] = Relationship(back_populates="lmp")
-    used_by: Optional[List['SerializedLMP']] = Relationship(back_populates="uses", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"))
-    uses: List['SerializedLMP'] = Relationship(back_populates="used_by", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"))
+    used_by: Optional[List['SerializedLMP']] = Relationship(back_populates="uses", link_model='SerializedLMPUses', sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"))
+    uses: List['SerializedLMP'] = Relationship(back_populates="used_by", link_model='SerializedLMPUses', sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"))
     initial_free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
     initial_global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
     num_invocations: Optional[int] = Field(default=0)
@@ -56,3 +56,8 @@ class SerializedLStr(SQLModel, table=True):
 
     def deserialize(self) -> lstr:
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
+
+# Moving the definition of SerializedLMPUses to a separate module to resolve circular import issue
+class SerializedLMPUses(SQLModel, table=True):
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
