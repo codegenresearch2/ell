@@ -1,98 +1,84 @@
-import datetime
-import json
-import os
-from typing import Any, Optional, Dict, List, Set, Union
-from sqlmodel import Session, SQLModel, create_engine, select
-from sqlalchemy import or_, func, and_, text
-from ell.lstr import lstr
-from sqlalchemy import Column
-from sqlalchemy.types import TIMESTAMP
+from datetime import datetime, timezone
+from typing import Any, List, Optional, Union
+from sqlmodel import Field, SQLModel, Relationship, JSON, Column
+from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
-from dataclasses import dataclass
+from ell.lstr import lstr
 
-# Importing the required classes and functions locally to avoid circular import issues
-from ell.types import InvocationTrace, SerializedLMPUses, utc_now
+# Type Aliases
+_lstr_generic = Union[lstr, str]
+LMPParams = Dict[str, Any]
 
-class UTCTimestamp(types.TypeDecorator[datetime.datetime]):
-    impl = TIMESTAMP
-    def process_result_value(self, value: datetime.datetime, dialect:Any):
-        return value.replace(tzinfo=datetime.timezone.utc)
+# Message Class with DictSyncMeta
+from ell.util.dict_sync_meta import DictSyncMeta
 
-def UTCTimestampField(index:bool=False, **kwargs:Any):
-    return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
-
-@dataclass
-class Message:
+class Message(dict, metaclass=DictSyncMeta):
     role: str
-    content: Union[lstr, str]
+    content: _lstr_generic
 
-class SerializedLMPUses(SQLModel, table=True):
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+# Chat Type
+Chat = List[Message]
 
-class SerializedLMP(SQLModel, table=True):
-    """
-    Represents a serialized Language Model Program (LMP).
+# Invocation Class
+class InvocationTrace(SQLModel, table=True):
+    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
+    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
 
-    This class is used to store and retrieve LMP information in the database.
-    """
-    lmp_id: Optional[str] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    source: str
-    dependencies: str
-    created_at: datetime.datetime = UTCTimestampField(index=True, default=func.now(), nullable=False)
-    is_lm: bool
-    lm_kwargs: dict = Field(sa_column=Column(JSON))
-    initial_free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
-    num_invocations: Optional[int] = Field(default=0)
-    commit_message: Optional[str] = Field(default=None)
-    version_number: Optional[int] = Field(default=None)
-    invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(
-        back_populates="uses",
-        link_model=SerializedLMPUses,
+class Invocation(SQLModel, table=True):
+    id: Optional[str] = Field(default=None, primary_key=True)
+    lmp_id: str = Field(foreign_key="serializedlmp.lmp_id", index=True)
+    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
+    kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    latency_ms: float
+    prompt_tokens: Optional[int] = Field(default=None)
+    completion_tokens: Optional[int] = Field(default=None)
+    state_cache_key: Optional[str] = Field(default=None)
+    created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
+    invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    lmp: SerializedLMP = Relationship(back_populates="invocations")
+    results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")
+    consumed_by: List["Invocation"] = Relationship(
+        back_populates="consumes", link_model=InvocationTrace,
         sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
         ),
     )
-    uses: List["SerializedLMP"] = Relationship(
-        back_populates="used_by",
-        link_model=SerializedLMPUses,
+    consumes: List["Invocation"] = Relationship(
+        back_populates="consumed_by", link_model=InvocationTrace,
         sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
         ),
     )
 
-    class Config:
-        table_name = "serializedlmp"
-        unique_together = [("version_number", "name")]
+# SerializedLStr Class
+class SerializedLStr(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    content: str
+    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
+    producer_invocation_id: Optional[int] = Field(default=None, foreign_key="invocation.id", index=True)
+    producer_invocation: Optional[Invocation] = Relationship(back_populates="results")
 
+    def deserialize(self) -> lstr:
+        return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
+
+# SQLStore Class with updated methods
 class SQLStore:
-    def __init__(self, db_uri: str):
-        self.engine = create_engine(db_uri)
-        SQLModel.metadata.create_all(self.engine)
+    # ... (other methods)
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
-                  commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
-        # TODO: Implement write_lmp method
+                  commit_message: Optional[str] = None, created_at: Optional[datetime] = None) -> Optional[Any]:
+        # Implement write_lmp method
         pass
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]],
                          invocation_kwargs: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
-                         created_at: Optional[datetime.datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
+                         created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
-        # TODO: Implement write_invocation method
+        # Implement write_invocation method
         pass
-
-    # Other methods...
-
-class SQLiteStore(SQLStore):
-    def __init__(self, storage_dir: str):
-        os.makedirs(storage_dir, exist_ok=True)
-        db_path = os.path.join(storage_dir, 'ell.db')
-        super().__init__(f'sqlite:///{db_path}')
