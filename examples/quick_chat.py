@@ -18,18 +18,17 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
-
-    Name: <name>
-    Backstory: <3 sentence backstory>"""
+    """Generates a prompt for a backstory about a randomly chosen name from the list."""
     chosen_name = random.choice(names_list)
-    return f"Name: {chosen_name}"
+    return f"Generate a backstory for {chosen_name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
+    """Formats the message history for display."""
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
 def chat(message_history: List[Tuple[str, str]], *, personality: str):
+    """Generates a response based on the message history and personality."""
     return [
         ell.system(f"""Here is your description.
 {personality}. 
@@ -46,14 +45,14 @@ if __name__ == "__main__":
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
-        names: List[str] = []  # Adding comments to clarify the purpose of the variables
-        backstories: List[str] = []
+        names: List[str] = []  # List to store names
+        backstories: List[str] = []  # List to store backstories
         for personality in personalities:
             parts = list(filter(None, personality.split("\n")))
             names.append(parts[0].split(": ")[1])
             backstories.append(parts[1].split(": ")[1])
 
-        print(names)  # Adding a print statement to match the gold code's structure
+        print(names)  # Printing names for debugging purposes
 
         whos_turn = 0
         for _ in range(10):
