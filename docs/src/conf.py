@@ -36,7 +36,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Added entry for AI Jobs Board
+        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Updated link to match gold code
     },
     "extra_header_link_icons": {
         "Discord": {
