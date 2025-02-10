@@ -15,11 +15,7 @@ import ell.models
 # Import everything from configurator
 from ell.configurator import *
 
-# Import specific classes from ell.types.message
-from ell.types.message import Message, ContentBlock
+# Consolidate imports for ell.types.message
+from ell.types.message import Message, ContentBlock, system, user, assistant
 
-# Add new navigation links in documentation
-# For example:
-# - [Getting Started](../getting_started.md)
-# - [API Reference](../api_reference.md)
-# - [FAQ](../faq.md)
+# No need for additional comments about navigation links
