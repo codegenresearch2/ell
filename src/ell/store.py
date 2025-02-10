@@ -11,25 +11,34 @@ class Store(ABC):
     """
 
     @abstractmethod
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], lm_kwargs: str,
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], created_at: Optional[datetime] = None,
                   commit_message: Optional[str] = None) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
 
-        Args:
-            lmp_id (str): Unique identifier for the LMP.
-            name (str): Name of the LMP.
-            source (str): Source code or reference for the LMP.
-            dependencies (List[str]): List of dependencies for the LMP.
-            lm_kwargs (str): Additional keyword arguments for the LMP.
-            version_number (int): Version number of the LMP.
-            uses (Dict[str, Any]): Dictionary of LMPs used by this LMP.
-            created_at (Optional[datetime], optional): Optional timestamp of when the LMP was created. Defaults to None.
-            commit_message (Optional[str], optional): Optional commit message for the LMP. Defaults to None.
-
-        Returns:
-            Optional[Any]: Optional return value.
+        :param lmp_id: Unique identifier for the LMP.
+        :type lmp_id: str
+        :param name: Name of the LMP.
+        :type name: str
+        :param source: Source code or reference for the LMP.
+        :type source: str
+        :param dependencies: List of dependencies for the LMP.
+        :type dependencies: List[str]
+        :param is_lmp: Boolean indicating if it is an LMP.
+        :type is_lmp: bool
+        :param lm_kwargs: Additional keyword arguments for the LMP.
+        :type lm_kwargs: str
+        :param version_number: Version number of the LMP.
+        :type version_number: int
+        :param uses: Dictionary of LMPs used by this LMP.
+        :type uses: Dict[str, Any]
+        :param created_at: Optional timestamp of when the LMP was created.
+        :type created_at: Optional[datetime]
+        :param commit_message: Optional commit message for the LMP.
+        :type commit_message: Optional[str]
+        :return: Optional return value.
+        :rtype: Optional[Any]
         """
         pass
 
@@ -42,23 +51,34 @@ class Store(ABC):
         """
         Write an invocation of an LMP to the storage.
 
-        Args:
-            id (str): Unique identifier for the invocation.
-            lmp_id (str): Unique identifier for the LMP.
-            args (str): Arguments used in the invocation.
-            kwargs (str): Keyword arguments used in the invocation.
-            result (Union[lstr, List[lstr]]): Result of the invocation.
-            invocation_kwargs (Dict[str, Any]): Additional keyword arguments for the invocation.
-            created_at (Optional[datetime]): Optional timestamp of when the invocation was created.
-            consumes (Set[str]): Set of invocation IDs consumed by this invocation.
-            prompt_tokens (Optional[int], optional): Optional number of prompt tokens used. Defaults to None.
-            completion_tokens (Optional[int], optional): Optional number of completion tokens used. Defaults to None.
-            latency_ms (Optional[float], optional): Optional latency in milliseconds. Defaults to None.
-            state_cache_key (Optional[str], optional): Optional state cache key. Defaults to None.
-            cost_estimate (Optional[float], optional): Optional estimated cost of the invocation. Defaults to None.
-
-        Returns:
-            Optional[Any]: Optional return value.
+        :param id: Unique identifier for the invocation.
+        :type id: str
+        :param lmp_id: Unique identifier for the LMP.
+        :type lmp_id: str
+        :param args: Arguments used in the invocation.
+        :type args: str
+        :param kwargs: Keyword arguments used in the invocation.
+        :type kwargs: str
+        :param result: Result of the invocation.
+        :type result: Union[lstr, List[lstr]]
+        :param invocation_kwargs: Additional keyword arguments for the invocation.
+        :type invocation_kwargs: Dict[str, Any]
+        :param created_at: Optional timestamp of when the invocation was created.
+        :type created_at: Optional[datetime]
+        :param consumes: Set of invocation IDs consumed by this invocation.
+        :type consumes: Set[str]
+        :param prompt_tokens: Optional number of prompt tokens used.
+        :type prompt_tokens: Optional[int]
+        :param completion_tokens: Optional number of completion tokens used.
+        :type completion_tokens: Optional[int]
+        :param latency_ms: Optional latency in milliseconds.
+        :type latency_ms: Optional[float]
+        :param state_cache_key: Optional state cache key.
+        :type state_cache_key: Optional[str]
+        :param cost_estimate: Optional estimated cost of the invocation.
+        :type cost_estimate: Optional[float]
+        :return: Optional return value.
+        :rtype: Optional[Any]
         """
         pass
 
@@ -67,11 +87,10 @@ class Store(ABC):
         """
         Retrieve LMPs from the storage.
 
-        Args:
-            **filters (Optional[Dict[str, Any]]): Optional dictionary of filters to apply.
-
-        Returns:
-            List[Dict[str, Any]]: List of LMPs.
+        :param filters: Optional dictionary of filters to apply.
+        :type filters: Optional[Dict[str, Any]]
+        :return: List of LMPs.
+        :rtype: List[Dict[str, Any]]
         """
         pass
 
@@ -80,12 +99,12 @@ class Store(ABC):
         """
         Retrieve invocations of an LMP from the storage.
 
-        Args:
-            lmp_id (str): Unique identifier for the LMP.
-            filters (Optional[Dict[str, Any]], optional): Optional dictionary of filters to apply. Defaults to None.
-
-        Returns:
-            List[Dict[str, Any]]: List of invocations.
+        :param lmp_id: Unique identifier for the LMP.
+        :type lmp_id: str
+        :param filters: Optional dictionary of filters to apply.
+        :type filters: Optional[Dict[str, Any]]
+        :return: List of invocations.
+        :rtype: List[Dict[str, Any]]
         """
         pass
 
@@ -94,21 +113,23 @@ class Store(ABC):
         """
         Retrieve the latest versions of all LMPs from the storage.
 
-        Returns:
-            List[Dict[str, Any]]: List of the latest LMPs.
+        :return: List of the latest LMPs.
+        :rtype: List[Dict[str, Any]]
         """
         pass
 
     @contextmanager
-    def freeze(self, *lmps: InvocableLM):
+    def freeze(self, *lmps: InvocableLM, key: Optional[str] = None, condition: Optional[Callable[..., bool]] = None):
         """
         A context manager for caching operations using a particular store.
 
-        Args:
-            *lmps (InvocableLM): Language Model Programs (LMPs) to cache.
-
-        Yields:
-            None
+        :param lmps: Language Model Programs (LMPs) to cache.
+        :type lmps: InvocableLM
+        :param key: The cache key. If None, a default key will be generated.
+        :type key: Optional[str]
+        :param condition: A function that determines whether to cache or not.
+        :type condition: Optional[Callable[..., bool]]
+        :yields: None
         """
         old_cache_values = {}
         try:
