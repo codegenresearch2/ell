@@ -3,12 +3,9 @@ import enum
 from functools import cached_property
 import sqlalchemy.types as types
 from ell.types.message import Any, Any, Field, Message, Optional
-from sqlmodel import Column, Field, SQLModel
-from typing import Optional, Dict, List, Union, Any
-from pydantic import field_validator
-from sqlmodel import JSON
+from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from sqlalchemy import Index, func
-from typing import TypeVar
+from typing import Optional, Dict, List, Union, Any
 
 def utc_now() -> datetime:
     """
