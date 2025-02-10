@@ -20,26 +20,30 @@ class SQLStore(ell.store.Store):
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
         with Session(self.engine) as session:
-            lmp = SerializedLMP(
-                lmp_id=lmp_id,
-                name=name,
-                version_number=version_number,
-                source=source,
-                dependencies=dependencies,
-                initial_global_vars=global_vars,
-                initial_free_vars=free_vars,
-                created_at=created_at or utc_now(),
-                is_lm=is_lmp,
-                lm_kwargs=lm_kwargs,
-                commit_message=commit_message
-            )
-            session.add(lmp)
-            for use_id in uses:
-                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
-                if used_lmp:
-                    lmp.uses.append(used_lmp)
-            session.commit()
-            return lmp
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+            if lmp:
+                return None
+            else:
+                lmp = SerializedLMP(
+                    lmp_id=lmp_id,
+                    name=name,
+                    version_number=version_number,
+                    source=source,
+                    dependencies=dependencies,
+                    initial_global_vars=global_vars,
+                    initial_free_vars=free_vars,
+                    created_at=created_at or utc_now(),
+                    is_lm=is_lmp,
+                    lm_kwargs=lm_kwargs,
+                    commit_message=commit_message
+                )
+                session.add(lmp)
+                for use_id in uses:
+                    used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                    if used_lmp:
+                        lmp.uses.append(used_lmp)
+                session.commit()
+                return None
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
                          global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[datetime.datetime], consumes: Set[str],
