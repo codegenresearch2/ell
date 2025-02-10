@@ -3,6 +3,7 @@ from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
+from ell.lstr import lstr  # Importing the lstr type
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
@@ -13,11 +14,15 @@ def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(
         sa_column= Column(UTCTimestamp(timezone=True),index=index, **kwargs))
 
-class SerializedLMPUses(SQLModel, table=True):
+class SerializedLMPUses(SQLModel, table=True, extend_existing=True):  # Adding extend_existing=True
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class SerializedLMP(SQLModel, table=True):
+    """
+    Represents a serialized Language Model Program (LMP).
+    This class is used to store and retrieve LMP information in the database.
+    """
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     source: str
@@ -33,6 +38,10 @@ class SerializedLMP(SQLModel, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
     used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"))
     uses: List["SerializedLMP"] = Relationship(back_populates="used_by", link_model=SerializedLMPUses, sa_relationship_kwargs=dict(primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id", secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"))
+
+    class Config:
+        table_name = "serializedlmp"
+        unique_together = [("version_number", "name")]
 
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
@@ -57,6 +66,10 @@ class Invocation(SQLModel, table=True):
     consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id"))
 
 class SerializedLStr(SQLModel, table=True):
+    """
+    Represents a Language String (LStr) result from an LMP invocation.
+    This class is used to store the output of LMP invocations.
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
     logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
@@ -64,4 +77,7 @@ class SerializedLStr(SQLModel, table=True):
     producer_invocation: Optional[Invocation] = Relationship(back_populates="results")
 
     def deserialize(self) -> lstr:
+        """
+        Convert an SerializedLStr to an lstr
+        """
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
