@@ -1,19 +1,17 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
-from sqlmodel import select, func
+from sqlmodel import SQLModel, select, func
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
-class GraphDataPoint(BaseModel):
+class GraphDataPoint(SQLModel):
     date: datetime
     count: int
     avg_latency: float
     tokens: int
+    # cost: Optional[float] = None  # Uncomment if relevant
 
-class InvocationsAggregate(BaseModel):
-    lmp_id: str
+class InvocationsAggregate(SQLModel):
     total_invocations: int
-    total_latency_ms: float
     total_tokens: int
     avg_latency: float
     unique_lmps: int
@@ -23,9 +21,7 @@ class InvocationsAggregate(BaseModel):
     def get_aggregate_for_lmp(cls, session, lmp_id: str):
         query = select(
             [
-                Invocation.lmp_id,
                 func.count(Invocation.id).label('total_invocations'),
-                func.sum(Invocation.latency_ms).label('total_latency_ms'),
                 func.sum(Invocation.prompt_tokens + Invocation.completion_tokens).label('total_tokens'),
                 func.avg(Invocation.latency_ms).label('avg_latency'),
                 func.count(func.distinct(Invocation.lmp_id)).label('unique_lmps'),
@@ -44,7 +40,7 @@ class SerializedLMPWithUses(SerializedLMPPublic):
 class SerializedLMPCreate(SerializedLMPBase):
     pass
 
-class SerializedLMPUpdate(BaseModel):
+class SerializedLMPUpdate(SQLModel):
     name: Optional[str] = None
     source: Optional[str] = None
     dependencies: Optional[str] = None
@@ -65,7 +61,7 @@ class InvocationPublic(InvocationBase):
 class InvocationCreate(InvocationBase):
     pass
 
-class InvocationUpdate(BaseModel):
+class InvocationUpdate(SQLModel):
     args: Optional[List[Any]] = None
     kwargs: Optional[Dict[str, Any]] = None
     global_vars: Optional[Dict[str, Any]] = None
@@ -82,6 +78,6 @@ class SerializedLStrPublic(SerializedLStrBase):
 class SerializedLStrCreate(SerializedLStrBase):
     pass
 
-class SerializedLStrUpdate(BaseModel):
+class SerializedLStrUpdate(SQLModel):
     content: Optional[str] = None
     logits: Optional[List[float]] = None
