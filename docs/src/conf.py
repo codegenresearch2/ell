@@ -24,6 +24,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
 
+# Add templates path
+templates_path = ['_templates']
+
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
@@ -43,3 +46,7 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
+
+# Configure syntax highlighting
+pygments_style = "default"
+pygments_style_dark = "dracula"
