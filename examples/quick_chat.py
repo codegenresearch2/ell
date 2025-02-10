@@ -35,8 +35,11 @@ def create_personality() -> str:
     # Choose a random name from the list
     name = random.choice(names_list)
 
+    # Generate a backstory for the character
+    backstory = f"{name} is a mysterious and enigmatic individual with a past shrouded in mystery. They have a unique talent for solving complex problems and a knack for getting into trouble. Despite their rough exterior, {name} has a soft spot for animals and often spends time volunteering at a local shelter."
+
     # Return the formatted backstory
-    return f"Name: {name}\nBackstory: {name} is a character with a unique and compelling background."
+    return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -51,7 +54,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], personality: str) -> List[str]:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
     """
     Generate a chat response based on the message history and personality.
 
@@ -63,7 +66,7 @@ def chat(message_history: List[Tuple[str, str]], personality: str) -> List[str]:
     List[str]: A list containing the system and user prompts.
     """
     # Format the system prompt
-    system_prompt = f"You are {personality}. Your goal is to respond to a chat in one sentence, using an informal tone."
+    system_prompt = f"You are {personality}. Your goal is to respond to a chat in one sentence, using an informal tone. Keep your response concise and engaging."
 
     # Format the user prompt
     user_prompt = format_message_history(message_history)
