@@ -1,12 +1,21 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Callable, Dict
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
-from ell.core import InvocableLM, Message  # Importing the required types from ell.core
+from ell.lstr import lstr  # Importing lstr from ell.lstr
+from ell.util.dict_sync_meta import DictSyncMeta  # Importing DictSyncMeta from ell.util.dict_sync_meta
 
-# Added the missing import statement
-from typing import Any
+# Define the specific callable types used in the gold code
+_lstr_generic = Union[lstr, str]
+OneTurn = Callable[..., _lstr_generic]
+LMPParams = Dict[str, Any]
+Message = Dict[str, _lstr_generic]
+Chat = List[Message]
+MultiTurnLMP = Callable[..., Chat]
+ChatLMP = Callable[[Chat, Any], Chat]
+LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
+InvocableLM = Callable[..., _lstr_generic]
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
@@ -14,8 +23,7 @@ class UTCTimestamp(types.TypeDecorator[datetime]):
         return value.replace(tzinfo=timezone.utc)
 
 def UTCTimestampField(index:bool=False, **kwargs:Any):
-    return Field(
-        sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
+    return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
 class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
@@ -85,5 +93,10 @@ class SerializedLStr(SQLModel, table=True):
         """
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
 
-# Added the missing import statement to resolve the NameError
-from typing import Any
+# Define the utility function utc_now()
+def utc_now() -> datetime:
+    """
+    Returns the current UTC timestamp.
+    Serializes to ISO-8601.
+    """
+    return datetime.now(tz=timezone.utc)
