@@ -14,39 +14,40 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3 sentence backstory>"""
     name = random.choice(names_list)
-    backstory = f"{name} is a mysterious character with a hidden past. They have a unique skill that sets them apart from others and a deep-seated secret that drives their actions."
-    return f"Name: {name}\nBackstory: {backstory}"
+    system_prompt = "You are backstoryGPT. Come up with a 3-sentence backstory for a character."
+    user_prompt = f"Name: {name}"
+    return f"{system_prompt}\n{user_prompt}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """Format the message history into a string."""
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> Tuple[str, str]:
     """Generate a response to the chat based on the message history and personality."""
     system_message = f"Here is your description.\n{personality}\nYour goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."
     user_message = format_message_history(message_history)
-    return f"{system_message}\n{user_message}"
+    return ell.system(system_message), ell.user(user_message)
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
 
-    messages: List[str] = []
+    messages: List[Tuple[str, str]] = []
     personalities = [create_personality(), create_personality()]
 
     names = []
     backstories = []
     for personality in personalities:
         parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+        names.append(parts[1].split(": ")[1])
+        backstories.append(parts[2])
     print(f"Names: {names}")
 
     whos_turn = 0
     for _ in range(10):
         personality_talking = personalities[whos_turn]
         response = chat(messages, personality=personality_talking)
-        messages.append(response)
+        messages.append((names[whos_turn], response))
         whos_turn = (whos_turn + 1) % len(personalities)
     print(f"Messages: {messages}")
