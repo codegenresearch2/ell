@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlmodel import Session
 from ell.stores.sql import PostgresStore, SQLiteStore
 from ell import __version__
@@ -81,7 +81,7 @@ def create_app(config: Config):
         )
         return lmps
 
-    @app.get("/api/lmp/{lmp_id}")
+    @app.get("/api/lmp/{lmp_id}", response_model=SerializedLMP)
     def get_lmp_by_id(lmp_id: str, session: Session = Depends(get_session)):
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
         return lmp
@@ -107,7 +107,7 @@ def create_app(config: Config):
         
         return lmps
 
-    @app.get("/api/invocation/{invocation_id}")
+    @app.get("/api/invocation/{invocation_id}", response_model=SerializedLMP)
     def get_invocation(
         invocation_id: str,
         session: Session = Depends(get_session)
@@ -115,7 +115,7 @@ def create_app(config: Config):
         invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})[0]
         return invocation
 
-    @app.get("/api/invocations")
+    @app.get("/api/invocations", response_model=List[SerializedLMP])
     def get_invocations(
         id: Optional[str] = Query(None),
         hierarchical: Optional[bool] = Query(False),
@@ -145,14 +145,14 @@ def create_app(config: Config):
         )
         return invocations
 
-    @app.get("/api/traces")
+    @app.get("/api/traces", response_model=List[Dict[str, str]])
     def get_consumption_graph(
         session: Session = Depends(get_session)
     ):
         traces = serializer.get_traces(session)
         return traces
 
-    @app.get("/api/traces/{invocation_id}")
+    @app.get("/api/traces/{invocation_id}", response_model=List[Dict[str, str]])
     def get_all_traces_leading_to(
         invocation_id: str,
         session: Session = Depends(get_session)
@@ -160,7 +160,7 @@ def create_app(config: Config):
         traces = serializer.get_all_traces_leading_to(session, invocation_id)
         return traces
 
-    @app.get("/api/lmp-history")
+    @app.get("/api/lmp-history", response_model=List[Dict[str, str]])
     def get_lmp_history(
         days: int = Query(365, ge=1, le=3650),  # Default to 1 year, max 10 years
         session: Session = Depends(get_session)
@@ -180,42 +180,8 @@ def create_app(config: Config):
         days: int = Query(30, ge=1, le=365),  # Default to 30 days, max 365 days
         session: Session = Depends(get_session)
     ):
-        # Calculate the start date for the graph data
-        start_date = datetime.utcnow() - timedelta(days=days)
-
-        # Base subquery
-        base_subquery = (
-            select(Invocation.created_at, Invocation.latency_ms, Invocation.prompt_tokens, Invocation.completion_tokens)
-            .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
-            .filter(Invocation.created_at >= start_date)
-        )
-
-        # Apply filters
-        data = session.exec(base_subquery).all()
-
-        # Calculate aggregate metrics
-        total_invocations = len(data)
-        total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
-        avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
-        unique_lmps = len(set(row.name for row in data))
-
-        # Prepare graph data
-        graph_data = []
-        for row in data:
-            graph_data.append({
-                "date": row.created_at,
-                "avg_latency": row.latency_ms,
-                "tokens": row.prompt_tokens + row.completion_tokens,
-                "count": 1
-            })
-
-        return {
-            "total_invocations": total_invocations,
-            "total_tokens": total_tokens,
-            "avg_latency": avg_latency,
-            "unique_lmps": unique_lmps,
-            "graph_data": graph_data
-        }
+        # TODO: Implement the aggregation logic here
+        pass
 
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = json.dumps({"entity": entity, "id": id})
