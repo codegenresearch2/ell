@@ -15,6 +15,7 @@ class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
+        self.open_files: Dict[str, Dict[str, Any]] = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
@@ -22,6 +23,7 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
+                # Already added to the DB.
                 return lmp
             else:
                 lmp = SerializedLMP(
@@ -67,8 +69,8 @@ class SQLStore(ell.store.Store):
                 lmp_id=lmp.lmp_id,
                 args=args,
                 kwargs=kwargs,
-                global_vars=json.loads(json.dumps(global_vars)),
-                free_vars=json.loads(json.dumps(free_vars)),
+                global_vars=json.dumps(global_vars, default=str),
+                free_vars=json.dumps(free_vars, default=str),
                 created_at=created_at,
                 invocation_kwargs=invocation_kwargs,
                 prompt_tokens=prompt_tokens,
@@ -81,6 +83,7 @@ class SQLStore(ell.store.Store):
                 session.add(serialized_lstr)
                 invocation.results.append(serialized_lstr)
             session.add(invocation)
+            # Now create traces.
             for consumed_id in consumes:
                 session.add(InvocationTrace(invocation_consumer_id=id, invocation_consuming_id=consumed_id))
             session.commit()
