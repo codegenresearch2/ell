@@ -41,3 +41,6 @@ html_theme_options = {
 # Add Pygments style configuration
 pygments_style = "default"
 pygments_style_dark = "dracula"
+
+# Include templates path
+templates_path = ['_templates']
