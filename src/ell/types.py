@@ -1,9 +1,13 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
 from ell.lstr import lstr  # Importing the lstr type
+from ell.types import InvocableLM, Message  # Importing the required types from ell.types
+
+# Define the required types from ell.types
+# These definitions are assumed based on the feedback and may need to be adjusted based on the actual definitions
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
@@ -14,7 +18,7 @@ def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(
         sa_column= Column(UTCTimestamp(timezone=True),index=index, **kwargs))
 
-class SerializedLMPUses(SQLModel, table=True, extend_existing=True):  # Adding extend_existing=True
+class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
@@ -26,7 +30,7 @@ class SerializedLMP(SQLModel, table=True):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     source: str
-    dependencies: List[str] = Field(sa_column=Column(JSON))
+    dependencies: str  # Changed the type to string as per the feedback
     created_at: datetime = UTCTimestampField(index=True, default=func.now(), nullable=False)
     is_lm: bool
     lm_kwargs: dict = Field(sa_column=Column(JSON))
