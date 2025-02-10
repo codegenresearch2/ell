@@ -12,7 +12,7 @@ class Store(ABC):
 
     @abstractmethod
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool,
-                  version_number: int, lm_kwargs: str, uses: Dict[str, Any],
+                  lm_kwargs: str, version_number: int, uses: Dict[str, Any],
                   created_at: Optional[datetime] = None, commit_message: Optional[str] = None) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
@@ -27,10 +27,10 @@ class Store(ABC):
         :type dependencies: List[str]
         :param is_lmp: Boolean indicating if it is an LMP.
         :type is_lmp: bool
-        :param version_number: Version number of the LMP.
-        :type version_number: int
         :param lm_kwargs: Additional keyword arguments for the LMP.
         :type lm_kwargs: str
+        :param version_number: Version number of the LMP.
+        :type version_number: int
         :param uses: Dictionary of LMPs used by this LMP.
         :type uses: Dict[str, Any]
         :param created_at: Optional timestamp of when the LMP was created.
