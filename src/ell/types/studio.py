@@ -45,8 +45,24 @@ class SerializedLMPBase(SQLModel):
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses")
-    uses: List["SerializedLMP"] = Relationship(back_populates="used_by")
+    used_by: List["SerializedLMP"] = Relationship(
+        back_populates="uses",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            foreign_keys="[SerializedLMPUses.lmp_user_id, SerializedLMPUses.lmp_using_id]"
+        )
+    )
+    uses: List["SerializedLMP"] = Relationship(
+        back_populates="used_by",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            foreign_keys="[SerializedLMPUses.lmp_using_id, SerializedLMPUses.lmp_user_id]"
+        )
+    )
 
     class Config:
         table_name = "serializedlmp"
@@ -104,7 +120,7 @@ class Invocation(InvocationBase, table=True):
         sa_relationship_kwargs=dict(
             primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
             secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
-            foreign_keys=[InvocationTrace.invocation_consumer_id, InvocationTrace.invocation_consuming_id]
+            foreign_keys="[InvocationTrace.invocation_consumer_id, InvocationTrace.invocation_consuming_id]"
         )
     )
     consumes: List["Invocation"] = Relationship(
@@ -113,7 +129,7 @@ class Invocation(InvocationBase, table=True):
         sa_relationship_kwargs=dict(
             primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
             secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
-            foreign_keys=[InvocationTrace.invocation_consuming_id, InvocationTrace.invocation_consumer_id]
+            foreign_keys="[InvocationTrace.invocation_consuming_id, InvocationTrace.invocation_consumer_id]"
         )
     )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
