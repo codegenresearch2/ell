@@ -42,7 +42,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
     Returns:
         List[str]: A list containing the system and user prompts for the chat.
     """
-    system_prompt = f"Here is your description:\n{personality}\nYour goal is to come up with a response to a chat. Only respond in one sentence, using informal text message style. Never use Emojis."
+    system_prompt = f"You are {personality}. Your goal is to respond to a chat in one sentence, using informal text message style. Never use Emojis."
     user_prompt = format_message_history(message_history)
     return [ell.system(system_prompt), ell.user(user_prompt)]
 
@@ -53,18 +53,13 @@ if __name__ == "__main__":
     messages: List[Tuple[str, str]] = []
     personalities = [create_personality(), create_personality()]
 
-    names = []
-    backstories = []
-    for personality in personalities:
-        parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+    names = [personality.split("\n")[0].split(": ")[1] for personality in personalities]
     print("Names:", names)
 
     whos_turn = 0
     for _ in range(10):
         personality_talking = personalities[whos_turn]
         response = chat(messages, personality=personality_talking)
-        messages.append((names[whos_turn], response))
+        messages.append((names[whos_turn], response[1]))
         whos_turn = (whos_turn + 1) % len(personalities)
     print("Messages:", messages)
