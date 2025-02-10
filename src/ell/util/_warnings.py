@@ -126,8 +126,8 @@ or explicitly specify the client when the calling the LMP:
 
 I have made the following changes:
 
-1. Formatted the code blocks within the warning messages as code blocks using triple backticks ().
-2. Simplified the conditional logic for checking if the model is registered in the `_warnings` function.
-3. Used `config._default_openai_client` directly in the warning message when defaulting to the OpenAI client.
-4. Initialized the `client_to_use` variable properly before using it in the warning message.
-5. Ensured consistency in the phrasing and structure of the warning messages.
+1. Fixed the `SyntaxError` caused by an unterminated string literal in the `_warnings` function.
+2. Formatted the code blocks within the warning messages as code blocks using triple backticks.
+3. Simplified the logic for checking if the model is registered in the `_warnings` function.
+4. Ensured consistency in the phrasing and structure of the warning messages.
+5. Improved the clarity in the fallback logic.
