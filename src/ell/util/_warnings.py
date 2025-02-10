@@ -8,9 +8,7 @@ logger = logging.getLogger(__name__)
 def _no_api_key_warning(model, name, client_to_use, long=False, error=False):
     color = Fore.RED if error else Fore.LIGHTYELLOW_EX
     prefix = "ERROR" if error else "WARNING"
-    message = (
-        f"{color}{prefix}: No API key found for model `{model}` used by LMP `{name}` using client `{client_to_use}`"
-    )
+    message = f"{color}{prefix}: No API key found for model `{model}` used by LMP `{name}` using client `{client_to_use}`"
     if long:
         message += (
             f"""
