@@ -1,6 +1,6 @@
 # Let's define the core types.
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Union
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
@@ -19,15 +19,10 @@ OneTurn = Callable[..., _lstr_generic]
 LMPParams = Dict[str, Any]
 
 
-@dataclass(init=False, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False, metaclass=DictSyncMeta)
-class Message(dict):
+@dataclass
+class Message:
     role: str
     content: _lstr_generic
-
-    def __init__(self, role: str, content: _lstr_generic):
-        super().__init__()
-        self.role = role
-        self.content = content
 
 
 # Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta.
