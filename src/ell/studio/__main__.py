@@ -1,12 +1,15 @@
-import asyncio
 import os
 import uvicorn
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import awatch
+from watchfiles import run_process
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
@@ -28,23 +31,27 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    db_path = os.path.join(args.storage_dir, "ell.db")
+    # Add WebSocket support for real-time communication
+    if args.dev:
+        async def websocket_endpoint(websocket):
+            await websocket.accept()
+            while True:
+                data = await websocket.receive_text()
+                await websocket.send_text(f"Message text was: {data}")
 
-    async def db_watcher():
-        async for changes in awatch(db_path):
-            print(f"Database changed: {changes}")
-            await app.notify_clients("database_updated")
+        @app.websocket("/ws")
+        async def websocket_endpoint(websocket):
+            await websocket.accept()
+            while True:
+                data = await websocket.receive_text()
+                await websocket.send_text(f"Message text was: {data}")
 
-    # Start the database watcher
+    # Log filters for debugging purposes
+    logger.setLevel(logging.DEBUG)
+    logger.addFilter(lambda record: "WebSocket" in record.msg or "websocket" in record.msg)
 
-
-    loop = asyncio.new_event_loop()
-
-    config = uvicorn.Config(app=app, port=args.port, loop=loop)
-    server = uvicorn.Server(config)
-    loop.create_task(server.serve())
-    loop.create_task(db_watcher())
-    loop.run_forever()
+    # In production mode, run without auto-reloading
+    uvicorn.run(app, host=args.host, port=args.port)
 
 if __name__ == "__main__":
     main()
