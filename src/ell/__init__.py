@@ -16,4 +16,4 @@ import ell.models
 from ell.configurator import *
 
 # Consolidate imports for ell.types.message
-from ell.types.message import Message, ContentBlock, system, user, assistant
+from ell.types.message import system, user, assistant, Message, ContentBlock
