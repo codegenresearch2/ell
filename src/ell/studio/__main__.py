@@ -2,7 +2,6 @@ import os
 import uvicorn
 import asyncio
 from argparse import ArgumentParser
-from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import watchfiles
@@ -32,7 +31,7 @@ def main():
 
     # Watcher for database changes
     async def db_watcher():
-        async for changes in watchfiles.awatch(db_path):
+        async for changes in watchfiles.watch(db_path):
             print(f"Database changed: {changes}")
             await app.notify_clients("database_updated")
 
