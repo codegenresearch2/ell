@@ -1,15 +1,11 @@
-# Let's define the core types.
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union, Any, Optional
-
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
-
 from datetime import datetime, timezone
-from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from sqlalchemy import Index, func
 import sqlalchemy.types as types
+from sqlalchemy import func
 
 _lstr_generic = Union[lstr, str]
 
@@ -19,30 +15,22 @@ OneTurn = Callable[..., _lstr_generic]
 # This is a placehodler will likely come back later for this
 LMPParams = Dict[str, Any]
 
-
 @dataclass
 class Message(dict, metaclass=DictSyncMeta):
     role: str
     content: _lstr_generic
 
-
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta.
 MessageOrDict = Union[Message, Dict[str, str]]
 
-# Can support iamge prompts later.
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
 
 MultiTurnLMP = Callable[..., Chat]
-from typing import TypeVar, Any
-
-# This is the specific LMP that must accept history as an argument and can take any additional arguments
 T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
-
 
 def utc_now() -> datetime:
     """
@@ -50,6 +38,7 @@ def utc_now() -> datetime:
     Serializes to ISO-8601.
     """
     return datetime.now(tz=timezone.utc)
+
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
@@ -60,18 +49,15 @@ class SerializedLMPUses(SQLModel, table=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
 
-
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
     impl = types.TIMESTAMP
-    def process_result_value(self, value: datetime, dialect:Any):
+    def process_result_value(self, value: datetime, dialect: Any):
         return value.replace(tzinfo=timezone.utc)
 
-def UTCTimestampField(index:bool=False, **kwargs:Any):
+def UTCTimestampField(index: bool = False, **kwargs: Any):
     return Field(
         sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
-
-
 
 class SerializedLMPBase(SQLModel):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
@@ -86,7 +72,6 @@ class SerializedLMPBase(SQLModel):
     num_invocations: Optional[int] = Field(default=0)
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
-
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
@@ -160,9 +145,3 @@ class Invocation(InvocationBase, table=True):
     )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
     uses: List["Invocation"] = Relationship(back_populates="used_by")
-
-    __table_args__ = (
-        Index('ix_invocation_lmp_id_created_at', 'lmp_id', 'created_at'),
-        Index('ix_invocation_created_at_latency_ms', 'created_at', 'latency_ms'),
-        Index('ix_invocation_created_at_tokens', 'created_at', 'prompt_tokens', 'completion_tokens'),
-    )
