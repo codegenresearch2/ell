@@ -1,15 +1,10 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Dict, Union, Callable
+from typing import Any, List, Optional, Dict, Union, Callable, TypeVar
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import func
 import sqlalchemy.types as types
 from dataclasses import dataclass
-
-# Import lstr from the appropriate module
 from ell.lstr import lstr
-
-# Import Callable from the typing module
-from typing import Callable
 
 # Define type aliases
 _lstr_generic = Union[lstr, str]
@@ -30,6 +25,10 @@ class Message:
 # Define MessageOrDict as a type alias
 MessageOrDict = Union[Message, Dict[str, str]]
 
+# Define a utility function to get the current UTC timestamp
+def utc_now() -> datetime:
+    return datetime.now(tz=timezone.utc)
+
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
     impl = types.TIMESTAMP
@@ -41,6 +40,10 @@ def UTCTimestampField(index:bool=False, **kwargs:Any):
         sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
 class SerializedLMPUses(SQLModel, table=True):
+    """
+    Represents the many-to-many relationship between SerializedLMPs.
+    This class is used to track which LMPs use or are used by other LMPs.
+    """
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
