@@ -1,4 +1,4 @@
-from typing import Optional, List, Dict, Set, Union, Callable, Any
+from typing import Optional, List, Dict, Set, Union, Callable, Any, TypeVar
 from datetime import datetime
 from sqlmodel import Field, SQLModel, Relationship, JSON
 from ell.lstr import lstr
@@ -14,6 +14,9 @@ MultiTurnLMP = Callable[..., Chat]
 ChatLMP = Callable[[Chat, Any], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
+
+# Type variable for flexible typing
+T = TypeVar('T')
 
 @dataclass
 class Message(dict, metaclass=DictSyncMeta):
