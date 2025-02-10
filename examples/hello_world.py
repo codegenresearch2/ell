@@ -17,10 +17,10 @@ def hello(world: str):
     name = world.capitalize()
     number_of_chars_in_name = get_random_length()
 
-    return f"Hello {name}! This is a greeting that is at least {number_of_chars_in_name} characters long."
+    return f"Hello {name}! I hope this greeting is at least {number_of_chars_in_name} characters long to show my kindness."
 
 if __name__ == "__main__":
-    greeting = hello("sam altman")  # Expected output: "Hello Sam! This is a greeting that is at least ..."
+    greeting = hello("sam altman")  # Expected output: "Hello Sam! I hope this greeting is at least ..."
 
     # Print the last word of the greeting
     print(greeting.split(" ")[-1])
