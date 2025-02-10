@@ -48,6 +48,7 @@ class ContentBlock(BaseModel):
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
+    parsed: Optional[Union[Type[BaseModel], BaseModel]] = Field(default=None)
     tool_result: Optional[ToolResult] = Field(default=None)
 
     @model_validator(mode='after')
@@ -69,6 +70,8 @@ class ContentBlock(BaseModel):
             return "tool_call"
         if self.tool_result is not None:
             return "tool_result"
+        if self.parsed is not None:
+            return "parsed"
         return None
 
     @classmethod
@@ -96,9 +99,12 @@ class ContentBlock(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                base64.b64decode(v)
-                return v
-            except base64.binascii.Error:
+                img_data = base64.b64decode(v)
+                img = PILImage.open(BytesIO(img_data))
+                if img.mode not in ('L', 'RGB', 'RGBA'):
+                    img = img.convert('RGB')
+                return img
+            except:
                 raise ValueError("Invalid base64 string for image")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
@@ -128,6 +134,11 @@ class ContentBlock(BaseModel):
             return {
                 "type": "text",
                 "text": self.text
+            }
+        elif self.parsed:
+            return {
+                "type": "parsed",
+                "parsed": self.parsed.model_dump_json()
             }
         elif self.tool_call:
             return {
