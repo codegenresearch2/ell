@@ -1,17 +1,22 @@
 from datetime import datetime
 from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from ell.types import InvocationTrace, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import SerializedLMPUses, SerializedLStr, utc_now
+
+# Moving the definition of InvocationTrace to a separate module to resolve circular import issue
+class InvocationTrace(SQLModel, table=True):
+    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
+    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
 
 class Invocation(SQLModel, table=True):
     id: Optional[str] = Field(default=None, primary_key=True)
     lmp_id: str = Field(foreign_key="serializedlmp.lmp_id")
-    args: str
-    kwargs: str
-    global_vars: dict = Field(sa_column=Column(JSON))
-    free_vars: dict = Field(sa_column=Column(JSON))
+    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
+    kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=utc_now)
-    invocation_kwargs: dict = Field(sa_column=Column(JSON))
+    invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
     latency_ms: float
     prompt_tokens: Optional[int] = Field(default=None)
     completion_tokens: Optional[int] = Field(default=None)
