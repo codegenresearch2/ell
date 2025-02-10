@@ -70,6 +70,8 @@ def create_app(config: Config):
     @app.get("/api/lmp/{lmp_id}", response_model=SerializedLMP)
     def get_lmp_by_id(lmp_id: str, session: Session = Depends(get_session)):
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
+        if not lmp:
+            raise HTTPException(status_code=404, detail="LMP not found")
         return lmp
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
@@ -97,6 +99,8 @@ def create_app(config: Config):
         session: Session = Depends(get_session)
     ):
         invocation = serializer.get_invocations(session, lmp_filters={}, filters={"id": invocation_id})[0]
+        if not invocation:
+            raise HTTPException(status_code=404, detail="Invocation not found")
         return invocation
 
     @app.get("/api/invocations", response_model=list[InvocationPublicWithConsumes])
@@ -127,6 +131,8 @@ def create_app(config: Config):
             limit=limit,
             hierarchical=hierarchical
         )
+        if not invocations:
+            raise HTTPException(status_code=404, detail="Invocations not found")
         return invocations
 
     @app.get("/api/traces", response_model=list)
@@ -157,6 +163,8 @@ def create_app(config: Config):
             .order_by(SerializedLMP.created_at)
         )
         results = session.exec(query).all()
+        if not results:
+            raise HTTPException(status_code=404, detail="LMP history not found")
         history = [{"date": str(row), "count": 1} for row in results]
         return history
 
@@ -180,6 +188,8 @@ def create_app(config: Config):
             lmp_filters["lmp_id"] = lmp_id
 
         aggregate_data = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
+        if not aggregate_data:
+            raise HTTPException(status_code=404, detail="Aggregate data not found")
         return InvocationsAggregate(**aggregate_data)
 
     return app
