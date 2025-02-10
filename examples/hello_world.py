@@ -5,16 +5,17 @@ from ell.stores.sql import SQLiteStore
 
 # Configure verbosity and store settings
 ell.config.verbose = True
+# Set the store to use SQLite and specify the database file path
 ell.set_store('./logdir', autocommit=True)
 
-def get_random_length():
+def get_random_length() -> int:
     """
     Generate a random length between 0 and 3000.
     """
     return int(np.random.beta(2, 6) * 3000)
 
 @ell.simple(model="gpt-4o-mini")
-def hello(world):
+def hello(world: str) -> str:
     """
     Generate a friendly greeting to the given name with a random length.
     """
@@ -28,4 +29,5 @@ def hello(world):
 
 if __name__ == "__main__":
     greeting = hello("sam altman")
+    # Print the last word of the greeting
     print(greeting.split(" ")[-1])
