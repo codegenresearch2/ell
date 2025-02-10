@@ -223,11 +223,8 @@ def prepare_invocation_params(fn_args, fn_kwargs):
     jstr = json.dumps(cleaned_invocation_params, sort_keys=True, default=repr)
     return json.loads(jstr), jstr, consumes
 
-
-# Testing the code
-
 # Creating a sample function to test the track decorator
-def sample_function(x, y):
+def sample_function(x, y, **kwargs):
     return x + y
 
 # Applying the track decorator to the sample function
