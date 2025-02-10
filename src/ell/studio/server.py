@@ -59,11 +59,7 @@ def create_app(config: Config):
             manager.disconnect(websocket)
 
     @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
-    def get_latest_lmps(
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100),
-        session: Session = Depends(get_session)
-    ):
+    def get_latest_lmps(skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100), session: Session = Depends(get_session)):
         """
         Endpoint to get the latest LMPs.
         """
@@ -77,17 +73,11 @@ def create_app(config: Config):
         return serializer.get_lmps(session, lmp_id=lmp_id)[0]
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
-    def get_lmp(
-        lmp_id: Optional[str] = Query(None),
-        name: Optional[str] = Query(None),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100),
-        session: Session = Depends(get_session)
-    ):
+    def get_lmp(lmp_id: Optional[str] = Query(None), name: Optional[str] = Query(None), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100), session: Session = Depends(get_session)):
         """
         Endpoint to get LMPs based on filters.
         """
-        filters = {k: v for k, v in {'name': name, 'lmp_id': lmp_id}.items() if v is not None}
+        filters: Dict[str, Any] = {k: v for k, v in {'name': name, 'lmp_id': lmp_id}.items() if v is not None}
         lmps = serializer.get_lmps(session, skip=skip, limit=limit, **filters)
         if not lmps:
             raise HTTPException(status_code=404, detail="LMP not found")
@@ -101,20 +91,12 @@ def create_app(config: Config):
         return serializer.get_invocations(session, lmp_filters={}, filters={"id": invocation_id})[0]
 
     @app.get("/api/invocations", response_model=list[InvocationPublicWithConsumes])
-    def get_invocations(
-        id: Optional[str] = Query(None),
-        hierarchical: Optional[bool] = Query(False),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100),
-        lmp_name: Optional[str] = Query(None),
-        lmp_id: Optional[str] = Query(None),
-        session: Session = Depends(get_session)
-    ):
+    def get_invocations(id: Optional[str] = Query(None), hierarchical: Optional[bool] = Query(False), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100), lmp_name: Optional[str] = Query(None), lmp_id: Optional[str] = Query(None), session: Session = Depends(get_session)):
         """
         Endpoint to get invocations based on filters.
         """
-        lmp_filters = {k: v for k, v in {'name': lmp_name, 'lmp_id': lmp_id}.items() if v is not None}
-        invocation_filters = {'id': id} if id else {}
+        lmp_filters: Dict[str, Any] = {k: v for k, v in {'name': lmp_name, 'lmp_id': lmp_id}.items() if v is not None}
+        invocation_filters: Dict[str, Any] = {'id': id} if id else {}
         return serializer.get_invocations(session, lmp_filters=lmp_filters, filters=invocation_filters, skip=skip, limit=limit, hierarchical=hierarchical)
 
     @app.get("/api/traces")
@@ -160,16 +142,11 @@ def create_app(config: Config):
     app.notify_clients = notify_clients
 
     @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
-    def get_invocations_aggregate(
-        lmp_name: Optional[str] = Query(None),
-        lmp_id: Optional[str] = Query(None),
-        days: int = Query(30, ge=1, le=365),
-        session: Session = Depends(get_session)
-    ):
+    def get_invocations_aggregate(lmp_name: Optional[str] = Query(None), lmp_id: Optional[str] = Query(None), days: int = Query(30, ge=1, le=365), session: Session = Depends(get_session)):
         """
         Endpoint to get aggregated invocation data.
         """
-        lmp_filters = {k: v for k, v in {'name': lmp_name, 'lmp_id': lmp_id}.items() if v is not None}
+        lmp_filters: Dict[str, Any] = {k: v for k, v in {'name': lmp_name, 'lmp_id': lmp_id}.items() if v is not None}
         aggregate_data = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
         return InvocationsAggregate(**aggregate_data)
 
