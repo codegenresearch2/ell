@@ -42,15 +42,21 @@ def register_openai_models(client: openai.Client):
     for model_id, owned_by in model_data:
         config.register_model(model_id, client)
 
-def get_openai_client():
+def get_openai_client(api_key):
     try:
-        return openai.Client()
+        return openai.Client(api_key=api_key)
     except openai.OpenAIError as e:
-        raise RuntimeError(f"Failed to create OpenAI client: {e}")
+        logger.error(f"Failed to create OpenAI client: {e}")
+        return None
 
-default_client = get_openai_client()
-register_openai_models(default_client)
-config._default_openai_client = default_client
+api_key = os.environ.get("OPENAI_API_KEY", "")
+if not api_key:
+    raise ValueError("OPENAI_API_KEY environment variable is not set.")
+
+default_client = get_openai_client(api_key)
+if default_client is not None:
+    register_openai_models(default_client)
+    config._default_openai_client = default_client
 
 # Use the client for chat completions
 try:
