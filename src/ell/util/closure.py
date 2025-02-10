@@ -51,6 +51,26 @@ def should_import(module: types.ModuleType):
 
     return True
 
+def get_referenced_names(code: str, module_name: str):
+    """
+    Extract all referenced names of a module from the given code.
+
+    Args:
+        code: The source code to analyze.
+        module_name: The name of the module to extract referenced names from.
+
+    Returns:
+        A set of all referenced names of the module in the code.
+    """
+    tree = ast.parse(code)
+    referenced_names = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == module_name:
+            referenced_names.add(node.attr)
+
+    return referenced_names
+
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
 CLOSURE_SOURCE: Dict[str, str] = {}
