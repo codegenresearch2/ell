@@ -1,5 +1,5 @@
 import logging
-from ell.types import SerializedLStr
+from ell.types import SerializedLStr, utc_now
 import ell.util.closure
 from ell.configurator import config
 from ell.lstr import lstr
@@ -14,84 +14,80 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, OrderedDict, Tuple
 
-# Utility function for getting the current UTC timestamp
-def utc_now() -> datetime:
-    return datetime.now(tz=timezone.utc)
+# Define a logger
+logger = logging.getLogger(__name__)
 
-# Function to check if a variable should be excluded
 def exclude_var(v):
     return inspect.ismodule(v)
 
-# Decorator function to track LMPs and invocations
-def track(func_to_track: Callable) -> Callable:
-    lm_kwargs = func_to_track.__ell_lm_kwargs__ if hasattr(func_to_track, "__ell_lm_kwargs__") else None
+def track(fn: Callable) -> Callable:
+    lm_kwargs = fn.__ell_lm_kwargs__ if hasattr(fn, "__ell_lm_kwargs__") else None
     lmp = lm_kwargs is not None
-    _name = func_to_track.__qualname__
+    _name = fn.__qualname__
     _has_serialized_lmp = False
 
-    if not hasattr(func_to_track, "__ell_hash__") and not config.lazy_versioning:
-        fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
+    if not hasattr(fn, "__ell_hash__") and not config.lazy_versioning:
+        fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
 
-    @wraps(func_to_track)
+    @wraps(fn)
     def wrapper(*fn_args, **fn_kwargs) -> str:
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
         invocation_id = "invocation-" + secrets.token_hex(16)
-        state_cache_key = None
+        state_cache_key: str = None
 
         if not config._store:
-            return func_to_track(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
+            return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
 
         cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
-        try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
+        try_use_cache = hasattr(fn.__wrapper__, "__ell_use_cache__")
 
         if try_use_cache:
-            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
+            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
 
             state_cache_key = compute_state_cache_key(ipstr, fn_closure)
-            cache_store = func_to_track.__wrapper__.__ell_use_cache__
-            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=func_to_track.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
+            cache_store = fn.__wrapper__.__ell_use_cache__
+            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=fn.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
 
             if len(cached_invocations) > 0:
                 results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0]['results']]
-                logging.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
+                logger.info(f"Using cached result for {fn.__qualname__} with state cache key: {state_cache_key}")
                 return results[0] if len(results) == 1 else results
             else:
-                logging.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
+                logger.info(f"Attempted to use cache on {fn.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
 
         _start_time = utc_now()
-        result, invocation_kwargs, metadata = (func_to_track(*fn_args, **fn_kwargs), None) if not lmp else func_to_track(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
+        result, invocation_kwargs, metadata = (fn(*fn_args, **fn_kwargs), None) if not lmp else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
         latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
 
         if not _has_serialized_lmp:
-            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
-            _serialize_lmp(func_to_track, _name, fn_closure, lmp, lm_kwargs)
+            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
+            _serialize_lmp(fn, _name, fn_closure, lmp, lm_kwargs)
             _has_serialized_lmp = True
 
         if not state_cache_key:
             state_cache_key = compute_state_cache_key(ipstr, fn_closure)
 
-        _write_invocation(func_to_track, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
+        _write_invocation(fn, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
 
         return result
 
-    func_to_track.__wrapper__ = wrapper
+    fn.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
-    wrapper.__ell_func__ = func_to_track
+    wrapper.__ell_func__ = fn
     wrapper.__ell_track = True
 
     return wrapper
 
-# Function to serialize LMPs
-def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: dict):
+def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: dict):
     lmps = config._store.get_lmps(name=name)
     version = 0
-    already_in_store = any(lmp['lmp_id'] == func.__ell_hash__ for lmp in lmps)
+    already_in_store = any(lmp['lmp_id'] == fn.__ell_hash__ for lmp in lmps)
 
     if not already_in_store:
         if lmps:
@@ -104,7 +100,7 @@ def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, Ordere
             commit = None
 
         config._store.write_lmp(
-            lmp_id=func.__ell_hash__,
+            lmp_id=fn.__ell_hash__,
             name=name,
             created_at=utc_now(),
             source=fn_closure[0],
@@ -115,17 +111,16 @@ def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, Ordere
             is_lmp=is_lmp,
             lm_kwargs=lm_kwargs if lm_kwargs else None,
             version_number=version,
-            uses=func.__ell_uses__,
+            uses=fn.__ell_uses__,
         )
 
-# Function to write invocations
-def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: dict, cleaned_invocation_params: dict, consumes: set, result: Any):
+def _write_invocation(fn: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: dict, cleaned_invocation_params: dict, consumes: set, result: Any):
     config._store.write_invocation(
         id=invocation_id,
-        lmp_id=func.__ell_hash__,
+        lmp_id=fn.__ell_hash__,
         created_at=utc_now(),
-        global_vars=get_immutable_vars(func.__ell_closure__[2]),
-        free_vars=get_immutable_vars(func.__ell_closure__[3]),
+        global_vars=get_immutable_vars(fn.__ell_closure__[2]),
+        free_vars=get_immutable_vars(fn.__ell_closure__[3]),
         latency_ms=latency_ms,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
@@ -136,14 +131,12 @@ def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, pro
         result=result
     )
 
-# Function to compute the state cache key
 def compute_state_cache_key(ipstr: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]) -> str:
     _global_free_vars_str = json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)
     _free_vars_str = json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)
     state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
     return state_cache_key
 
-# Function to get immutable variables
 def get_immutable_vars(vars_dict: dict) -> dict:
     converter = cattrs.Converter()
 
@@ -164,7 +157,6 @@ def get_immutable_vars(vars_dict: dict) -> dict:
     converter.register_unstructure_hook(object, handle_complex_types)
     return converter.unstructure(vars_dict)
 
-# Function to prepare invocation parameters
 def prepare_invocation_params(fn_args: Tuple[Any], fn_kwargs: dict) -> Tuple[dict, str, set]:
     invocation_params = dict(args=fn_args, kwargs=fn_kwargs)
     invocation_converter = cattrs.Converter()
