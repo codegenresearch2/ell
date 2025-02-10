@@ -23,8 +23,8 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        print(f"Broadcasting message to {len(self.active_connections)} connections: {message}")
         for connection in self.active_connections:
+            print(f"Broadcasting message to connection {connection}: {message}")
             await connection.send_text(message)
 
 def create_app(storage_dir: Optional[str] = None):
@@ -61,6 +61,8 @@ def create_app(storage_dir: Optional[str] = None):
         json_message = json.dumps({"message": message})
         await manager.broadcast(json_message)
 
+    app.notify_clients = notify_clients
+
     @app.get("/api/lmps")
     def get_lmps(
         skip: int = Query(0, ge=0),
@@ -91,7 +93,12 @@ def create_app(storage_dir: Optional[str] = None):
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=100)
     ):
-        filters = {k: v for k, v in {"name": name, "lmp_id": lmp_id}.items() if v is not None}
+        filters = {}
+        if name:
+            filters['name'] = name
+        if lmp_id:
+            filters['lmp_id'] = lmp_id
+
         lmps = serializer.get_lmps(skip=skip, limit=limit, **filters)
         if not lmps:
             raise HTTPException(status_code=404, detail="LMP not found")
@@ -99,7 +106,7 @@ def create_app(storage_dir: Optional[str] = None):
 
     @app.get("/api/invocation/{invocation_id}")
     def get_invocation(invocation_id: str):
-        invocation = serializer.get_invocations(id=invocation_id)
+        invocation = serializer.get_invocations(filters={'id': invocation_id})
         if not invocation:
             raise HTTPException(status_code=404, detail="Invocation not found")
         return invocation[0]
@@ -112,8 +119,16 @@ def create_app(storage_dir: Optional[str] = None):
         lmp_name: Optional[str] = Query(None),
         lmp_id: Optional[str] = Query(None),
     ):
-        lmp_filters = {k: v for k, v in {"name": lmp_name, "lmp_id": lmp_id}.items() if v is not None}
-        invocation_filters = {"id": id} if id is not None else {}
+        lmp_filters = {}
+        if lmp_name:
+            lmp_filters["name"] = lmp_name
+        if lmp_id:
+            lmp_filters["lmp_id"] = lmp_id
+
+        invocation_filters = {}
+        if id:
+            invocation_filters["id"] = id
+
         invocations = serializer.get_invocations(
             lmp_filters=lmp_filters,
             filters=invocation_filters,
