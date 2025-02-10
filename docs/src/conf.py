@@ -13,7 +13,6 @@ author = 'William Guss'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
 # Include the templates path
@@ -24,6 +23,12 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
+
+# Configure syntax highlighting
+pygments_style = "default"
+pygments_style_dark = "dracula"
+
+# Additional theme configuration
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
@@ -43,7 +48,3 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
-
-# Pygments style configuration
-pygments_style = "default"
-pygments_style_dark = "dracula"
