@@ -3,7 +3,7 @@ import enum
 from functools import cached_property
 import sqlalchemy.types as types
 from ell.types.message import Any, Field, Message, Optional
-from sqlmodel import Column, Field, SQLModel, Relationship, JSON
+from sqlmodel import Column, Field, SQLModel, Relationship, JSON, func
 from typing import Optional, Dict, List, Any, Union
 from dataclasses import dataclass
 
@@ -54,8 +54,25 @@ class SerializedLMPBase(SQLModel):
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses", link_model=SerializedLMPUses)
-    uses: List["SerializedLMP"] = Relationship(back_populates="used_by", link_model=SerializedLMPUses)
+    used_by: Optional[List["SerializedLMP"]] = Relationship(
+        back_populates="uses",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            extend_existing=True
+        )
+    )
+    uses: List["SerializedLMP"] = Relationship(
+        back_populates="used_by",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            extend_existing=True
+        )
+    )
+
     class Config:
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
@@ -77,7 +94,7 @@ class InvocationBase(SQLModel):
 class InvocationContentsBase(SQLModel):
     invocation_id: str = Field(foreign_key="invocation.id", index=True, primary_key=True)
     params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    results: Optional[List[Message]] = Field(default=None, sa_column=Column(JSON))
+    results: Optional[Union[List[Message], Any]] = Field(default=None, sa_column=Column(JSON))
     invocation_api_params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     global_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     free_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
@@ -101,8 +118,22 @@ class InvocationContents(InvocationContentsBase, table=True):
 
 class Invocation(InvocationBase, table=True):
     lmp: "SerializedLMP" = Relationship(back_populates="invocations")
-    consumed_by: List["Invocation"] = Relationship(back_populates="consumes", link_model=InvocationTrace)
-    consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace)
+    consumed_by: List["Invocation"] = Relationship(
+        back_populates="consumes",
+        link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id"
+        )
+    )
+    consumes: List["Invocation"] = Relationship(
+        back_populates="consumed_by",
+        link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id"
+        )
+    )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
     uses: List["Invocation"] = Relationship(back_populates="used_by")
     contents: InvocationContents = Relationship(back_populates="invocation")
