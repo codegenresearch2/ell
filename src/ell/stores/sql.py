@@ -19,10 +19,27 @@ class SQLStore(ell.store.Store):
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
-        # Implement the logic to write LMP data to the database
-        # This may involve creating a new SerializedLMP object and adding it to the session
-        # Don't forget to handle relationships and commit the transaction
-        pass
+        with Session(self.engine) as session:
+            lmp = SerializedLMP(
+                lmp_id=lmp_id,
+                name=name,
+                version_number=version_number,
+                source=source,
+                dependencies=dependencies,
+                initial_global_vars=global_vars,
+                initial_free_vars=free_vars,
+                created_at=created_at or utc_now(),
+                is_lm=is_lmp,
+                lm_kwargs=lm_kwargs,
+                commit_message=commit_message
+            )
+            session.add(lmp)
+            for use_id in uses:
+                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                if used_lmp:
+                    lmp.uses.append(used_lmp)
+            session.commit()
+            return lmp
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
                          global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[datetime.datetime], consumes: Set[str],
