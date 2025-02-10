@@ -53,21 +53,25 @@ def create_app(config: Config):
         try:
             while True:
                 data = await websocket.receive_text()
+                # Handle incoming WebSocket messages if needed
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
     @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
     def get_latest_lmps(session: Session = Depends(get_session), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
+        # Retrieve the latest LMPs
         lmps = serializer.get_latest_lmps(session, skip=skip, limit=limit)
         return lmps
 
     @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str, session: Session = Depends(get_session)):
+        # Retrieve an LMP by its ID
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
         return lmp
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
     def get_lmp(session: Session = Depends(get_session), lmp_id: Optional[str] = Query(None), name: Optional[str] = Query(None), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
+        # Retrieve LMPs based on filters
         filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
@@ -83,11 +87,13 @@ def create_app(config: Config):
 
     @app.get("/api/invocation/{invocation_id}", response_model=InvocationPublicWithConsumes)
     def get_invocation(invocation_id: str, session: Session = Depends(get_session)):
+        # Retrieve an invocation by its ID
         invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})[0]
         return invocation
 
     @app.get("/api/invocations", response_model=list[InvocationPublicWithConsumes])
     def get_invocations(session: Session = Depends(get_session), id: Optional[str] = Query(None), hierarchical: Optional[bool] = Query(False), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100), lmp_name: Optional[str] = Query(None), lmp_id: Optional[str] = Query(None)):
+        # Retrieve invocations based on filters
         lmp_filters = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
@@ -103,21 +109,25 @@ def create_app(config: Config):
 
     @app.get("/api/traces")
     def get_consumption_graph(session: Session = Depends(get_session)):
+        # Retrieve consumption graph data
         traces = serializer.get_traces(session)
         return traces
 
     @app.get("/api/traces/{invocation_id}")
     def get_all_traces_leading_to(invocation_id: str, session: Session = Depends(get_session)):
+        # Retrieve traces leading to a specific invocation
         traces = serializer.get_all_traces_leading_to(session, invocation_id)
         return traces
 
     @app.get("/api/blob/{blob_id}", response_class=Response)
     def get_blob(blob_id: str, session: Session = Depends(get_session)):
+        # Retrieve a blob by its ID
         blob = serializer.read_external_blob(blob_id)
         return Response(content=blob, media_type="application/json")
 
     @app.get("/api/lmp-history")
     def get_lmp_history(session: Session = Depends(get_session), days: int = Query(365, ge=1, le=3650)):
+        # Retrieve LMP history data
         start_date = datetime.utcnow() - timedelta(days=days)
         query = select(SerializedLMP.created_at).where(SerializedLMP.created_at >= start_date).order_by(SerializedLMP.created_at)
         results = session.exec(query).all()
@@ -125,6 +135,7 @@ def create_app(config: Config):
         return history
 
     async def notify_clients(entity: str, id: Optional[str] = None):
+        # Notify clients about changes
         message = json.dumps({"entity": entity, "id": id})
         await manager.broadcast(message)
 
@@ -132,6 +143,7 @@ def create_app(config: Config):
 
     @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
     def get_invocations_aggregate(session: Session = Depends(get_session), lmp_name: Optional[str] = Query(None), lmp_id: Optional[str] = Query(None), days: int = Query(30, ge=1, le=365)):
+        # Retrieve aggregated invocation data
         lmp_filters = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
