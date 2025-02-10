@@ -4,6 +4,9 @@ from ell.models.openai import OpenAIModelClient
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
+    # Set a fake OpenAI API key for all tests
+    os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'
+    
     # Mock the OpenAI client
     with patch("ell.models.openai.OpenAIModelClient") as mock_client:
         # Configure the mock client to return a predefined response
