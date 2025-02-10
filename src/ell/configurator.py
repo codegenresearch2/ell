@@ -1,10 +1,11 @@
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Union
 from dataclasses import dataclass, field
 import openai
 import logging
 from contextlib import contextmanager
 import threading
 from ell.store import Store
+from functools import wraps
 
 _config_logger = logging.getLogger(__name__)
 
@@ -49,18 +50,19 @@ class _Config:
         finally:
             self._local.stack.pop()
 
-    def get_client_for(self, model_name: str) -> Optional[openai.Client]:
+    def get_client_for(self, model_name: str) -> Tuple[Optional[openai.Client], bool]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
-        if model_name not in current_registry:
+        client = current_registry.get(model_name)
+        if client is None:
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
                 from colorama import Fore, Style
                 _config_logger.warning(f"{Fore.LIGHTYELLOW_EX}{warning_message}{Style.RESET_ALL}")
             else:
                 _config_logger.debug(warning_message)
-            return self._default_openai_client
+            return self._default_openai_client, True
 
-        return current_registry[model_name]
+        return client, False
 
     def reset(self) -> None:
         with self._lock:
