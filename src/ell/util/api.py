@@ -15,6 +15,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 def get_client(client: Optional[openai.Client] = None, model: Optional[str] = None) -> openai.Client:
+    """
+    Obtain the client for the given model.
+
+    Args:
+        client (Optional[openai.Client]): The client to use. If not provided, the client will be obtained from the config.
+        model (Optional[str]): The model for which to obtain the client.
+
+    Returns:
+        openai.Client: The client to use for the model.
+
+    Raises:
+        ValueError: If no client is found for the model.
+        RuntimeError: If the client does not have an API key.
+    """
     client = client or config.get_client_for(model)
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered or specify a client directly.")
@@ -23,12 +37,42 @@ def get_client(client: Optional[openai.Client] = None, model: Optional[str] = No
     return client
 
 def process_messages_for_client(messages: list[Message], client: openai.Client) -> list[Dict[str, Any]]:
+    """
+    Process the messages for the given client.
+
+    Args:
+        messages (list[Message]): The messages to process.
+        client (openai.Client): The client for which to process the messages.
+
+    Returns:
+        list[Dict[str, Any]]: The processed messages.
+
+    Raises:
+        ValueError: If the client type is not supported.
+    """
     if isinstance(client, openai.Client):
         return [message.to_openai_message() for message in messages]
     else:
         raise ValueError(f"Unsupported client type: {type(client)}")
 
 def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], tools: Optional[list[LMP]] = None, client: Optional[openai.Client] = None, _invocation_origin: str, _exempt_from_tracking: bool, _logging_color=None, _name: str = None) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
+    """
+    Run the language model with the provided messages and parameters.
+
+    Args:
+        model (str): The model to use.
+        messages (list[Message]): The messages to use for the model.
+        api_params (Dict[str, Any]): The API parameters to use for the model.
+        tools (Optional[list[LMP]]): The tools to use for the model.
+        client (Optional[openai.Client]): The client to use for the model.
+        _invocation_origin (str): The origin of the invocation.
+        _exempt_from_tracking (bool): Whether to exempt the invocation from tracking.
+        _logging_color (Any): The color to use for logging.
+        _name (str): The name of the model.
+
+    Returns:
+        Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]: The results of the model and the API parameters used.
+    """
     client = get_client(client, model)
     metadata = {}
 
