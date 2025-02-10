@@ -16,9 +16,7 @@ class SQLStore(ell.store.Store):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
-
         self.open_files: Dict[str, Dict[str, Any]] = {}
-
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, 
                   version_number: int,
@@ -210,7 +208,6 @@ class SQLStore(ell.store.Store):
             
             return traces
         
-
     def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
             traces = []
@@ -251,7 +248,6 @@ class SQLStore(ell.store.Store):
             
             # Convert the dictionary values back to a list
             return list(unique_traces.values())
-
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
