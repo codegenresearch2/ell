@@ -15,6 +15,7 @@ author = 'William Guss'
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ['_templates']
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -43,5 +44,3 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
-
-templates_path = ['_templates']
