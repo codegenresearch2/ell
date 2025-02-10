@@ -18,6 +18,7 @@ class _Config:
     _store: Optional[Store] = None
     autocommit: bool = False
     lazy_versioning: bool = True  # Optimizes computation of versioning to the initial invocation
+    # XXX: This might lead to incorrect serialization of globals/
     default_lm_params: Dict[str, Any] = field(default_factory=dict)
     default_system_prompt: str = "You are a helpful AI assistant."
     _default_openai_client: Optional[openai.Client] = None
@@ -53,6 +54,7 @@ class _Config:
     def get_client_for(self, model_name: str) -> Optional[openai.Client]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
         client = current_registry.get(model_name)
+        fallback_client_used = False
         if client is None:
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
@@ -61,8 +63,9 @@ class _Config:
             else:
                 _config_logger.debug(warning_message)
             client = self._default_openai_client
+            fallback_client_used = True
 
-        return client
+        return client, fallback_client_used
 
     def reset(self) -> None:
         with self._lock:
