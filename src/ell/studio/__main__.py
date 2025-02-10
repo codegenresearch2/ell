@@ -1,12 +1,19 @@
-import asyncio
 import os
 import uvicorn
+import logging
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import awatch
+from watchfiles import run_process
+from fastapi import WebSocket, WebSocketDisconnect
+from collections import defaultdict
 
+# Create a logger
+logger = logging.getLogger(__name__)
+
+# Create a dictionary to store connected WebSocket clients
+connected_clients = defaultdict(set)
 
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
@@ -28,23 +35,22 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    db_path = os.path.join(args.storage_dir, "ell.db")
+    @app.websocket("/ws/{client_id}")
+    async def websocket_endpoint(websocket: WebSocket, client_id: str):
+        await websocket.accept()
+        connected_clients[client_id].add(websocket)
+        try:
+            while True:
+                data = await websocket.receive_text()
+                logger.debug(f"Received message from client {client_id}: {data}")
+                # Broadcast the message to all connected clients
+                for client in connected_clients[client_id]:
+                    await client.send_text(f"Message from client {client_id}: {data}")
+        except WebSocketDisconnect:
+            connected_clients[client_id].remove(websocket)
 
-    async def db_watcher():
-        async for changes in awatch(db_path):
-            print(f"Database changed: {changes}")
-            await app.notify_clients("database_updated")
-
-    # Start the database watcher
-
-
-    loop = asyncio.new_event_loop()
-
-    config = uvicorn.Config(app=app, port=args.port, loop=loop)
-    server = uvicorn.Server(config)
-    loop.create_task(server.serve())
-    loop.create_task(db_watcher())
-    loop.run_forever()
+    # In production mode, run without auto-reloading
+    uvicorn.run(app, host=args.host, port=args.port)
 
 if __name__ == "__main__":
     main()
