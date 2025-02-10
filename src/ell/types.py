@@ -1,6 +1,6 @@
 # Import necessary modules
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Union, Any
+from typing import Callable, Dict, List, Optional, Union, TypeVar, Any
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
