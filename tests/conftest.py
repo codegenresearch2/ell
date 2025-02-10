@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import os
 
 @pytest.fixture(autouse=True)
@@ -8,13 +8,12 @@ def setup_test_env():
     os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'
 
     # Mock the OpenAI client
-    with patch('openai.ChatCompletion.create') as mock_create:
-        # Configure the mock client to return None
-        mock_create.return_value = None
+    with patch('openai.OpenAI') as MockOpenAI:
+        # Create a mock client that returns a mock object for chat.completions.create
+        mock_client = MockOpenAI.return_value
+        mock_client.chat.completions.create.return_value = Mock()
 
         # Yield the mock client for use in tests
-        yield mock_create
+        yield mock_client
 
     # Clean up after tests if necessary
-
-In the updated code, I have addressed the syntax error by properly formatting the comments. I have also used `patch()` to mock the OpenAI client and set up the mock client to return `None` for the `chat.completions.create` method. The cleanup section is left with a comment indicating that cleanup may be necessary, even if no specific actions are implemented.
