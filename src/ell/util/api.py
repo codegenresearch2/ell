@@ -15,7 +15,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 def get_client(client: Optional[openai.Client] = None, model: Optional[str] = None) -> openai.Client:
-    return client or config.get_client_for(model)
+    client = client or config.get_client_for(model)
+    if client is None:
+        raise ValueError(f"No client found for model '{model}'. Ensure the model is registered or specify a client directly.")
+    if not client.api_key:
+        raise RuntimeError(_no_api_key_warning(model, None, client, long=True, error=True))
+    return client
 
 def process_messages_for_client(messages: list[Message], client: openai.Client) -> list[Dict[str, Any]]:
     if isinstance(client, openai.Client):
@@ -26,12 +31,6 @@ def process_messages_for_client(messages: list[Message], client: openai.Client) 
 def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], tools: Optional[list[LMP]] = None, client: Optional[openai.Client] = None, _invocation_origin: str, _exempt_from_tracking: bool, _logging_color=None, _name: str = None) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
     client = get_client(client, model)
     metadata = {}
-
-    if client is None:
-        raise ValueError(f"No client found for model '{model}'. Ensure the model is registered or specify a client directly.")
-
-    if not client.api_key:
-        raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
