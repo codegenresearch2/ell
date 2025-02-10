@@ -27,24 +27,6 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     :type client: Optional[openai.Client]
     :param tools: A list of tool functions that can be used by the LLM. Only available for certain models.
     :type tools: Optional[List[Callable]]
-    :param response_format: The response format for the LLM. Only available for certain models.
-    :type response_format: Optional[Dict[str, Any]]
-    :param n: The number of responses to generate for the LLM. Only available for certain models.
-    :type n: Optional[int]
-    :param temperature: The temperature parameter for controlling the randomness of the LLM.
-    :type temperature: Optional[float]
-    :param max_tokens: The maximum number of tokens to generate for the LLM.
-    :type max_tokens: Optional[int]
-    :param top_p: The top-p sampling parameter for controlling the diversity of the LLM.
-    :type top_p: Optional[float]
-    :param frequency_penalty: The frequency penalty parameter for controlling the LLM's repetition.
-    :type frequency_penalty: Optional[float]
-    :param presence_penalty: The presence penalty parameter for controlling the LLM's relevance.
-    :type presence_penalty: Optional[float]
-    :param stop: The stop sequence for the LLM.
-    :type stop: Optional[List[str]]
-    :param exempt_from_tracking: If True, the LMP usage won't be tracked. Default is False.
-    :type exempt_from_tracking: bool
     :param post_callback: An optional function to process the LLM's output before returning.
     :type post_callback: Optional[Callable]
     :param api_params: Additional keyword arguments to pass to the underlying API call.
@@ -66,7 +48,6 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 
     3. Comprehensive Integration:
        - Integrates with ell's tracking system for monitoring LMP versions, usage, and performance.
-       - Supports various language models and API configurations.
 
     4. Output Processing:
        - Can return raw LLM outputs or process them through a post-callback function.
