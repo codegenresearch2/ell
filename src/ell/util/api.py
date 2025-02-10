@@ -45,7 +45,7 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     client = client or config.get_client_for(model)
-    metadata = {}  # Initialize metadata dictionary
+    metadata = dict()  # Initialize metadata dictionary as a function call
 
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
@@ -53,7 +53,7 @@ def call(
     if not client.api_key:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
-    # todo: add support for streaming APIs that don't give a final usage in the API
+    # Todo: Decide if the client specified via the context manager default registry is the shit or if the client specified via lmp invocation args are the hing.
     # print(api_params)
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
@@ -159,5 +159,7 @@ def call(
             role=choice.role if not streaming else choice_deltas[0].delta.role,
             content=content
         ))
+    
+    api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)  # Reassign api_params before returning
     
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
