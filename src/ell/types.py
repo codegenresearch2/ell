@@ -4,8 +4,8 @@ from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import func
 import sqlalchemy.types as types
 
-# Import Union from typing
-from typing import Union
+# Import lstr from the appropriate module
+from ell.lstr import lstr
 
 # Define type aliases
 _lstr_generic = Union[lstr, str]
@@ -65,8 +65,5 @@ class InvocationBase(SQLModel):
     created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
     invocation_kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
-
-# Added import for func from sqlalchemy
-from sqlalchemy import func
 
 # Rest of the code...
