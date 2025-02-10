@@ -2,6 +2,7 @@ from colorama import Fore, Style
 
 from ell.configurator import config
 import logging
+
 logger = logging.getLogger(__name__)
 
 def _no_api_key_warning(model, name, client_to_use, long=False, error=False):
