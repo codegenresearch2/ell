@@ -8,7 +8,7 @@ import cattrs
 import numpy as np
 from sqlalchemy.sql import text
 from sqlalchemy import or_, func, and_
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, LMP, OneTurn, MultiTurnLMP, ChatLMP, Chat, Message, LMPParams, utc_now
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
@@ -56,19 +56,19 @@ class SQLStore(ell.store.Store):
             session.commit()
         return None
 
-    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[SerializedLStr, List[SerializedLStr]], invocation_kwargs: Dict[str, Any],  
                          global_vars: Dict[str, Any],
                          free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
-            if isinstance(result, lstr):
+            if isinstance(result, SerializedLStr):
                 results = [result]
             elif isinstance(result, list):
-                results = result
+                results = [res if isinstance(res, SerializedLStr) else SerializedLStr(content=str(res)) for res in result]
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")
+                raise TypeError("Result must be either SerializedLStr or List[SerializedLStr]")
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
@@ -81,10 +81,10 @@ class SQLStore(ell.store.Store):
             invocation = Invocation(
                 id=id,
                 lmp_id=lmp.lmp_id,
-                args=args,
-                kwargs=kwargs,
-                global_vars=json.loads(json.dumps(global_vars, default=str)),
-                free_vars=json.loads(json.dumps(free_vars, default=str)),
+                args=json.loads(args),
+                kwargs=json.loads(kwargs),
+                global_vars=global_vars,
+                free_vars=free_vars,
                 created_at=created_at,
                 invocation_kwargs=invocation_kwargs,
                 prompt_tokens=prompt_tokens,
@@ -94,9 +94,8 @@ class SQLStore(ell.store.Store):
             )
 
             for res in results:
-                serialized_lstr = SerializedLStr(content=str(res), logits=res.logits)
-                session.add(serialized_lstr)
-                invocation.results.append(serialized_lstr)
+                session.add(res)
+                invocation.results.append(res)
             
             session.add(invocation)
 
@@ -152,7 +151,7 @@ class SQLStore(ell.store.Store):
                     invocations[inv.id] = inv_dict
                     invocations[inv.id]['results'] = []
                 if lstr:
-                    invocations[inv.id]['results'].append(dict(**lstr.model_dump(), __lstr=True))
+                    invocations[inv.id]['results'].append(lstr.model_dump())
             
             return list(invocations.values())
 
