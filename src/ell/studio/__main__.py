@@ -30,10 +30,11 @@ def main():
     db_path = os.path.join(args.storage_dir, "ell.db")
 
     async def db_watcher():
+        # Start of database watcher
         async for changes in awatch(db_path):
             print(f"Database changes detected: {changes}")
             # Implement a notification mechanism for clients here
-            # Notify clients or handle changes as needed
+            await app.notify_clients("database_updated")
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -41,9 +42,9 @@ def main():
     try:
         config = uvicorn.Config(app, host=args.host, port=args.port)
         server = uvicorn.Server(config)
-        db_watcher_task = loop.create_task(db_watcher())
-        server_task = loop.create_task(server.serve())
-        loop.run_until_complete(asyncio.gather(server_task, db_watcher_task))
+        loop.create_task(db_watcher())
+        loop.create_task(server.serve())
+        loop.run_forever()
     finally:
         loop.close()
 
