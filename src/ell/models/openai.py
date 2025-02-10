@@ -42,8 +42,8 @@ def register_openai_models(client: openai.Client):
 default_client = None
 try:
     default_client = openai.Client()
-except openai.OpenAIError:
-    pass
+except openai.OpenAIError as e:
+    logger.error(f"Failed to create default client: {e}")
 
 register_openai_models(default_client)
 config._default_openai_client = default_client
