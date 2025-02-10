@@ -32,7 +32,7 @@ class Store(ABC):
         Write an invocation of an LMP to the storage.
 
         :param invocation: Invocation object containing all invocation details.
-        :param results: List of results from the invocation.
+        :param results: List of SerializedLStr objects representing the results.
         :param consumes: Set of invocation IDs consumed by this invocation.
         :return: Optional return value.
         """
