@@ -3,6 +3,7 @@ from typing import Any, List, Optional, Dict, Union, Callable
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import func
 import sqlalchemy.types as types
+from dataclasses import dataclass
 
 # Import lstr from the appropriate module
 from ell.lstr import lstr
@@ -13,15 +14,21 @@ from typing import Callable
 # Define type aliases
 _lstr_generic = Union[lstr, str]
 OneTurn = Callable[..., _lstr_generic]
-MessageOrDict = Union[Message, Dict[str, str]]
-Chat = List[MessageOrDict]
+LMPParams = Dict[str, Any]
+Chat = List[Dict[str, str]]
 T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
-# Define LMPParams as a type alias
-LMPParams = Dict[str, Any]
+# Define the Message class using dataclass
+@dataclass
+class Message:
+    role: str
+    content: _lstr_generic
+
+# Define MessageOrDict as a type alias
+MessageOrDict = Union[Message, Dict[str, str]]
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
