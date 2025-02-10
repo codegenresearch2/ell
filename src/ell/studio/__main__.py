@@ -5,8 +5,9 @@ from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import watchfiles
 
-async def main():
+def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
     parser.add_argument("--storage-dir", default=os.getcwd(),
                         help="Directory for filesystem serializer storage (default: current directory)")
@@ -24,31 +25,27 @@ async def main():
 
         @app.get("/{full_path:path}")
         async def serve_react_app(full_path: str):
-            try:
-                return FileResponse(os.path.join(static_dir, "index.html"))
-            except FileNotFoundError:
-                return {"error": "File not found"}, 404
+            return FileResponse(os.path.join(static_dir, "index.html"))
 
     # Define the database path
     database_path = os.path.join(args.storage_dir, "ell.db")
 
-    # Implement the database watcher using asyncio.
+    # Implement the database watcher using watchfiles.awatch
     async def watch_database():
-        # Placeholder for actual database watching logic
-        while True:
-            await asyncio.sleep(1)
-            print("Database changed!")
+        async for changes in watchfiles.awatch(database_path, recursive=True):
+            print(f"Database changed: {changes}")
+            await app.notify_clients("database_updated")
 
-    # Create tasks for the server and the database watcher
-    server = uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port))
-    loop = asyncio.get_event_loop()
-    loop.create_task(server.serve())
+    # Create a new event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Start the server and the database watcher
+    loop.create_task(app.serve())
     loop.create_task(watch_database())
 
-    try:
-        await asyncio.gather(server.serve(), watch_database())
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # Run the event loop
+    loop.run_forever()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
