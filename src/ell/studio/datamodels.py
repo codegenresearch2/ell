@@ -1,16 +1,17 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from sqlmodel import SQLModel, select, func
+from pydantic import BaseModel
+from sqlmodel import select, func
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
-class GraphDataPoint(SQLModel):
+class GraphDataPoint(BaseModel):
     date: datetime
     count: int
     avg_latency: float
     tokens: int
     # cost: Optional[float] = None  # Uncomment if relevant
 
-class InvocationsAggregate(SQLModel):
+class InvocationsAggregate(BaseModel):
     total_invocations: int
     total_tokens: int
     avg_latency: float
@@ -40,7 +41,7 @@ class SerializedLMPWithUses(SerializedLMPPublic):
 class SerializedLMPCreate(SerializedLMPBase):
     pass
 
-class SerializedLMPUpdate(SQLModel):
+class SerializedLMPUpdate(BaseModel):
     name: Optional[str] = None
     source: Optional[str] = None
     dependencies: Optional[str] = None
@@ -61,7 +62,7 @@ class InvocationPublic(InvocationBase):
 class InvocationCreate(InvocationBase):
     pass
 
-class InvocationUpdate(SQLModel):
+class InvocationUpdate(BaseModel):
     args: Optional[List[Any]] = None
     kwargs: Optional[Dict[str, Any]] = None
     global_vars: Optional[Dict[str, Any]] = None
@@ -78,6 +79,6 @@ class SerializedLStrPublic(SerializedLStrBase):
 class SerializedLStrCreate(SerializedLStrBase):
     pass
 
-class SerializedLStrUpdate(SQLModel):
+class SerializedLStrUpdate(BaseModel):
     content: Optional[str] = None
     logits: Optional[List[float]] = None
