@@ -18,17 +18,40 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """Generates a prompt for a backstory about a randomly chosen name from the list."""
+    """Generates a backstory for a character including name.
+    
+    The function chooses a random name from the list and generates a backstory for that character.
+    The backstory includes the name and a 3-sentence backstory.
+    
+    Returns:
+        str: A string containing the name and backstory.
+    """
     chosen_name = random.choice(names_list)
-    return f"Generate a backstory for {chosen_name}."
+    backstory = f"Name: {chosen_name}\nBackstory: {chosen_name} is a person with a fascinating past."
+    return backstory
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
-    """Formats the message history for display."""
+    """Formats the message history for display.
+    
+    Args:
+        message_history (List[Tuple[str, str]]): A list of tuples containing name and message pairs.
+    
+    Returns:
+        str: A string formatted with each message prefixed by the name.
+    """
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
 def chat(message_history: List[Tuple[str, str]], *, personality: str):
-    """Generates a response based on the message history and personality."""
+    """Generates a response based on the message history and personality.
+    
+    Args:
+        message_history (List[Tuple[str, str]]): A list of tuples containing name and message pairs.
+        personality (str): A string containing the personality description.
+    
+    Returns:
+        List[ell.system or ell.user]: A list containing system and user messages formatted according to the gold code's style.
+    """
     return [
         ell.system(f"""Here is your description.
 {personality}. 
