@@ -19,7 +19,7 @@ def main():
     app = create_app(args.storage_dir)
 
     if not args.dev:
-        # Serve the built React app in production mode
+        # In production mode, serve the built React app
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
@@ -27,17 +27,23 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    database_file = os.path.join(args.storage_dir, "ell.db")
+    db_path = os.path.join(args.storage_dir, "ell.db")
 
     async def db_watcher():
-        async for changes in awatch(database_file):
+        async for changes in awatch(db_path):
             print(f"Database changes detected: {changes}")
-            # Notify clients or handle changes here
+            # Implement a notification mechanism for clients here
 
-    server = uvicorn.Server(config=uvicorn.Config(app, host=args.host, port=args.port))
-    db_watcher_task = asyncio.create_task(db_watcher())
-    server_task = asyncio.create_task(server.serve())
-    await asyncio.gather(server_task, db_watcher_task)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    try:
+        server = uvicorn.Server(config=uvicorn.Config(app, host=args.host, port=args.port))
+        db_watcher_task = loop.create_task(db_watcher())
+        server_task = loop.create_task(server.serve())
+        loop.run_forever()
+    finally:
+        loop.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
