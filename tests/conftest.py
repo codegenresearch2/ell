@@ -4,7 +4,7 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
-    # Set a fake OpenAI API key for all tests to use
+    # Set a fake OpenAI API key for all tests
     os.environ['OPENAI_API_KEY'] = 'fake-api-key'
 
     # Mock the OpenAI client
