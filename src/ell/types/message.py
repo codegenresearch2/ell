@@ -82,26 +82,24 @@ class ContentBlock(BaseModel):
     @field_validator('image')
     @classmethod
     def validate_image(cls, v):
-        if v is None:
-            return v
-        if isinstance(v, PILImage.Image):
-            return v
-        if isinstance(v, str):
-            try:
+        try:
+            if v is None:
+                return v
+            if isinstance(v, PILImage.Image):
+                return v
+            if isinstance(v, str):
                 img_data = base64.b64decode(v)
                 img = PILImage.open(BytesIO(img_data))
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except Exception as e:
-                raise ValueError("Invalid base64 string for image") from e
-        if isinstance(v, np.ndarray):
-            if v.ndim == 3 and v.shape[2] in (3, 4):
-                mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
-                return PILImage.fromarray(v, mode=mode)
-            else:
-                raise ValueError(f"Invalid numpy array shape for image: {v.shape}. Expected 3D array with 3 or 4 channels.")
-        raise ValueError(f"Invalid image type: {type(v)}")
+            if isinstance(v, np.ndarray):
+                if v.ndim == 3 and v.shape[2] in (3, 4):
+                    mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
+                    return PILImage.fromarray(v, mode=mode)
+            raise ValueError("Invalid image content")
+        except Exception as e:
+            raise ValueError("Invalid image content") from e
 
     @field_validator('parsed')
     @classmethod
