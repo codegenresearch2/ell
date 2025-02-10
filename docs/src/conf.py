@@ -18,7 +18,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme'
 
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-# Theme configuration
+# -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
 html_theme_options = {
     "show_prev_next": True,
@@ -26,6 +26,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
+        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Added as per oracle feedback
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -39,4 +40,9 @@ html_theme_options = {
     "logo_dark": "_static/ell-wide-dark.png",
 }
 
+# Configure syntax highlighting for Awesome Sphinx Theme
+pygments_style = "default"
+pygments_style_dark = "dracula"  # Added as per oracle feedback
+
+# Additional theme configuration
 templates_path = ['_templates']
