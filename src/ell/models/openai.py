@@ -42,7 +42,7 @@ def register_openai_models(client: openai.Client):
 default_client = None
 try:
     default_client = openai.Client()
-except openai.OpenAIError as e:
+except openai.OpenAIError:
     import os
     default_client = openai.Client(api_key=os.environ.get("OPENAI_API_KEY", ""))
 
@@ -53,13 +53,3 @@ try:
     response = openai.ChatCompletion.create(model="gpt-4o-2024-08-06", messages=[{"role": "system", "content": "You are a helpful assistant."}])
 except openai.OpenAIError as e:
     logger.error(f"Failed to create chat completion: {e}")
-
-# Mocking external dependencies for tests
-class MockClient:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def chat_completions_create(self, model, messages):
-        return {"choices": [{"message": {"content": "Mocked response"}}]}
-
-openai.Client = MockClient
