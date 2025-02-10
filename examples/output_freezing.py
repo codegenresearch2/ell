@@ -11,10 +11,10 @@ def create_a_python_class(user_spec : str):
     """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nCreate a Python class according to the user's specific requirements: {user_spec}."
+            f"{BASE_PROMPT}\n\nCreate a Python class according to the following user specification: {user_spec}."
         ),
         ell.user(
-            f"User's specific requirements: {user_spec}"
+            f"User specification: {user_spec}"
         )
     ]
 
@@ -29,7 +29,7 @@ def write_unit_for_a_class(class_def : str):
             f"{BASE_PROMPT}\n\nWrite a unit test for the given class definition: {class_def}."
         ),
         ell.user(
-            f"Class definition to be tested: {class_def}"
+            f"Class definition: {class_def}"
         )
     ]
 
