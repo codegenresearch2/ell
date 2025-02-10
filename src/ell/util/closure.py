@@ -12,6 +12,7 @@ import re
 from collections import deque
 import black
 
+# Constants
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
 
@@ -44,12 +45,12 @@ def _format_source(source: str) -> str:
         source (str): The source code to format.
 
     Returns:
-        str: The formatted source code.
+        str: The formatted source code. If formatting fails, return the original source.
     """
     try:
         return black.format_str(source, mode=black.Mode())
     except Exception as e:
-        raise Exception(f"Failed to format source code. Error: {str(e)}")
+        return source
 
 # ... (rest of the functions remain the same)
 
