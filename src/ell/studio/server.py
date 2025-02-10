@@ -1,5 +1,4 @@
 from typing import Optional, Dict, Any
-
 from sqlmodel import Session
 from ell.stores.sql import PostgresStore, SQLiteStore
 from ell import __version__
@@ -10,17 +9,12 @@ import json
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
 from ell.studio.datamodels import SerializedLMPWithUses
-
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
-
+import os
 
 logger = logging.getLogger(__name__)
-
-
-from ell.studio.datamodels import InvocationsAggregate
-
 
 def get_serializer(config: Config):
     if config.pg_connection_string:
@@ -30,9 +24,7 @@ def get_serializer(config: Config):
     else:
         raise ValueError("No storage configuration found")
 
-
-
-def create_app(config:Config):
+def create_app(config: Config):
     serializer = get_serializer(config)
 
     def get_session():
@@ -62,7 +54,6 @@ def create_app(config:Config):
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
-    
     @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
     def get_latest_lmps(
         skip: int = Query(0, ge=0),
@@ -72,16 +63,13 @@ def create_app(config:Config):
         lmps = serializer.get_latest_lmps(
             session,
             skip=skip, limit=limit,
-            )
+        )
         return lmps
 
-    # TOOD: Create a get endpoint to efficient get on the index with /api/lmp/<lmp_id>
     @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str, session: Session = Depends(get_session)):
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
         return lmp
-
-
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
     def get_lmp(
@@ -91,8 +79,7 @@ def create_app(config:Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        
-        filters : Dict[str, Any] = {}
+        filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
@@ -103,10 +90,7 @@ def create_app(config:Config):
         if not lmps:
             raise HTTPException(status_code=404, detail="LMP not found")
         
-        print(lmps[0])
         return lmps
-
-
 
     @app.get("/api/invocation/{invocation_id}")
     def get_invocation(
@@ -146,7 +130,6 @@ def create_app(config:Config):
         )
         return invocations
 
-
     @app.get("/api/traces")
     def get_consumption_graph(
         session: Session = Depends(get_session)
@@ -167,47 +150,20 @@ def create_app(config:Config):
         days: int = Query(365, ge=1, le=3650),  # Default to 1 year, max 10 years
         session: Session = Depends(get_session)
     ):
-        # Calculate the start date
         start_date = datetime.utcnow() - timedelta(days=days)
-
-        # Query to get all LMP creation times within the date range
         query = (
             select(SerializedLMP.created_at)
             .where(SerializedLMP.created_at >= start_date)
             .order_by(SerializedLMP.created_at)
         )
-
         results = session.exec(query).all()
-
-        # Convert results to a list of dictionaries
         history = [{"date": str(row), "count": 1} for row in results]
-
         return history
 
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = json.dumps({"entity": entity, "id": id})
         await manager.broadcast(message)
 
-    # Add this method to the app object
     app.notify_clients = notify_clients
 
- 
-    @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
-    def get_invocations_aggregate(
-        lmp_name: Optional[str] = Query(None),
-        lmp_id: Optional[str] = Query(None),
-        days: int = Query(30, ge=1, le=365),
-        session: Session = Depends(get_session)
-    ):
-        lmp_filters = {}
-        if lmp_name:
-            lmp_filters["name"] = lmp_name
-        if lmp_id:
-            lmp_filters["lmp_id"] = lmp_id
-
-        aggregate_data = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
-        return InvocationsAggregate(**aggregate_data)
-    
-    
-    
     return app
