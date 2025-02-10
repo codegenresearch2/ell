@@ -71,12 +71,15 @@ class InvocationBase(SQLModel):
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
     created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
+    used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
 
 class InvocationContentsBase(SQLModel):
     invocation_id: str = Field(foreign_key="invocation.id", index=True, primary_key=True)
     params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     results: Optional[Union[List[Message], Any]] = Field(default=None, sa_column=Column(JSON))
     invocation_api_params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    global_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    free_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     is_external: bool = Field(default=False)
 
     @cached_property
@@ -85,7 +88,9 @@ class InvocationContentsBase(SQLModel):
         json_fields = [
             self.params,
             self.results,
-            self.invocation_api_params
+            self.invocation_api_params,
+            self.global_vars,
+            self.free_vars
         ]
         total_size = sum(len(json.dumps(field).encode('utf-8')) for field in json_fields if field is not None)
         return total_size > 102400
