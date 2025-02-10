@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
 from typing import Any, Optional, Dict, List, Set, Union, Callable
 from datetime import datetime
 from ell.lstr import lstr
@@ -12,8 +11,8 @@ class Store(ABC):
 
     @abstractmethod
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
-                  version_number: int, uses: Dict[str, Any], commit_message: Optional[str] = None,
-                  created_at: Optional[datetime] = None) -> Optional[Any]:
+                  version_number: int, uses: Dict[str, Any], created_at: Optional[datetime] = None,
+                  commit_message: Optional[str] = None) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
 
@@ -26,8 +25,8 @@ class Store(ABC):
             lm_kwargs (str): Additional keyword arguments for the LMP.
             version_number (int): Version number of the LMP.
             uses (Dict[str, Any]): Dictionary of LMPs used by this LMP.
-            commit_message (Optional[str], optional): Optional commit message for the LMP. Defaults to None.
             created_at (Optional[datetime], optional): Optional timestamp of when the LMP was created. Defaults to None.
+            commit_message (Optional[str], optional): Optional commit message for the LMP. Defaults to None.
 
         Returns:
             Optional[Any]: Optional return value.
