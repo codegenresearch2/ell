@@ -73,7 +73,7 @@ def create_app(config: Config):
         return lmp
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
-    def get_lmp(
+    def get_lmps(
         lmp_id: Optional[str] = Query(None),
         name: Optional[str] = Query(None),
         skip: int = Query(0, ge=0),
