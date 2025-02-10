@@ -13,12 +13,10 @@ author = 'William Guss'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
-
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-# Theme configuration
+# -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
 html_theme_options = {
     "show_prev_next": True,
@@ -26,6 +24,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
+        "AI Jobs Board": "jobs"  # Added navigation link for AI Jobs Board
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -39,5 +38,5 @@ html_theme_options = {
     "logo_dark": "_static/ell-wide-dark.png",
 }
 
-# Path setup
+# Remove redundant templates_path definition
 templates_path = ['_templates']
