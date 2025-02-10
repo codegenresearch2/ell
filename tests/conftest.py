@@ -1,6 +1,6 @@
+import os
 import pytest
 from unittest.mock import patch
-import os
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
@@ -16,4 +16,5 @@ def setup_test_env():
         # Yield the mock client for use in tests
         yield mock_client
 
-    # No cleanup needed in this case
+    # Clean up after tests if necessary
+    # TODO: Add cleanup logic if needed
