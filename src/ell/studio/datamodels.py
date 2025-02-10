@@ -1,14 +1,14 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import JSON, Column
 
 class SerializedLMPBase(SQLModel):
-    lmp_id: Optional[str] = Field(default=None, primary_key=True)
+    lmp_id: str = Field(default=None, primary_key=True)
     name: str
     source: str
     dependencies: str
-    created_at: Optional[str] = Field(default_factory=str, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
     is_lm: bool
     lm_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
     initial_free_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
@@ -43,7 +43,7 @@ class SerializedLMPUpdate(SQLModel):
     version_number: Optional[int] = None
 
 class InvocationBase(SQLModel):
-    id: Optional[str] = Field(default=None, primary_key=True)
+    id: str = Field(default=None, primary_key=True)
     lmp_id: str
     args: List[Any] = Field(default_factory=list)
     kwargs: Dict[str, Any] = Field(default_factory=dict)
@@ -53,7 +53,7 @@ class InvocationBase(SQLModel):
     prompt_tokens: Optional[int] = Field(default=None)
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
-    created_at: Optional[str] = Field(default_factory=str, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
     invocation_kwargs: Dict[str, Any] = Field(default_factory=dict)
 
 class InvocationPublic(InvocationBase):
@@ -98,11 +98,11 @@ class InvocationTrace(SQLModel):
     invocation_consuming_id: str
 
 class GraphDataPoint(SQLModel):
-    timestamp: str
+    timestamp: datetime
     value: float
 
 class InvocationsAggregate(SQLModel):
-    date: str
+    date: datetime
     total_invocations: int
     average_latency_ms: float
     count: int
