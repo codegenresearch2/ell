@@ -5,7 +5,7 @@ ell.config.verbose = True
 
 BASE_PROMPT = """You are an adept python programmer. Only answer in python code. Avoid markdown formatting at all costs."""
 
-@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
+@ell.lm(model="gpt-4o", temperature=0.7)
 def create_a_python_class(user_spec: str):
     return [
         ell.system(
@@ -16,14 +16,14 @@ def create_a_python_class(user_spec: str):
         )
     ]
 
-@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
-def write_unit_test(class_def: str):
+@ell.lm(model="gpt-4o", temperature=0.7)
+def write_unit_test(class_definition: str):
     return [
         ell.system(
             f"{BASE_PROMPT}\n\nYour goal is to write a single unit test for a specific class definition. Do not use the `unittest` package."
         ),
         ell.user(
-            f"Here is the class definition: {class_def}"
+            f"Here is the class definition: {class_definition}"
         )
     ]
 
