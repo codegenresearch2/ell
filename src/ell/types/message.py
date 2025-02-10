@@ -1,26 +1,22 @@
-import json
+from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 from ell.types._lstr import _lstr
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
+from sqlmodel import Field
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import cached_property
 from PIL.Image import Image
 import numpy as np
 import base64
 from io import BytesIO
 from PIL import Image as PILImage
-
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
-from sqlmodel import Field
-
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
-
 from ell.util.serialization import serialize_image
 
-# Define InvocableTool type
-InvocableTool = Callable[..., Union["ToolResult", _lstr, List["ContentBlock"]]]
+# Define type aliases for better readability and consistency
+_lstr_generic = Union[_lstr, str]
+InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"]]]
 
 class ToolResult(BaseModel):
-    tool_call_id: _lstr
+    tool_call_id: _lstr_generic
     result: List["ContentBlock"]
 
     def custom_json_serializer(self):
@@ -31,7 +27,7 @@ class ToolResult(BaseModel):
 
 class ToolCall(BaseModel):
     tool: InvocableTool
-    tool_call_id: Optional[_lstr] = Field(default=None)
+    tool_call_id: Optional[_lstr_generic] = Field(default=None)
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
@@ -55,7 +51,7 @@ class ToolCall(BaseModel):
 class ContentBlock(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    text: Optional[_lstr] = Field(default=None)
+    text: Optional[_lstr_generic] = Field(default=None)
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
@@ -144,6 +140,11 @@ class ContentBlock(BaseModel):
             return {
                 "type": "text",
                 "text": self.text
+            }
+        elif self.parsed:
+            return {
+                "type": "parsed",
+                "parsed": self.parsed.custom_json_serializer() if hasattr(self.parsed, 'custom_json_serializer') else self.parsed.model_dump()
             }
         else:
             return None
