@@ -123,18 +123,23 @@ class ContentBlock(BaseModel):
     
 
     def to_openai_content_block(self):
-        if self.image:
+        if self.parsed:
+            return {
+                "type": "json",
+                "json": json.dumps(self.parsed.model_dump())
+            }
+        elif self.text:
+            return {
+                "type": "text",
+                "text": self.text
+            }
+        elif self.image:
             base64_image = self.serialize_image(self.image, None)
             return {
                 "type": "image_url",
                 "image_url": {
                     "url": base64_image
                 }
-            }
-        elif self.text:
-            return {
-                "type": "text",
-                "text": self.text
             }
         else:
             return None 
