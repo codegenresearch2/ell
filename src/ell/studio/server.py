@@ -8,17 +8,12 @@ import logging
 import json
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
-from ell.studio.datamodels import SerializedLMPWithUses
+from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate, LMPHistoryEntry
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
-
-class LMPHistoryEntry(BaseModel):
-    date: str
-    count: int
 
 def get_serializer(config: Config):
     if config.pg_connection_string:
