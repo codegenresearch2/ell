@@ -41,7 +41,7 @@ default_client = None
 try:
     default_client = openai.Client()
 except openai.OpenAIError as e:
-    logger.error(f"Failed to create default OpenAI client: {e}")
+    pass  # Do not log the error as per the gold code's approach
 
 if default_client:
     register_openai_models(default_client)
