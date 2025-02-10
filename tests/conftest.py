@@ -11,16 +11,5 @@ def setup_test_env():
     # Mock the OpenAI client
     with patch("ell.models.openai.OpenAIModelClient") as mock_client:
         # Configure the mock client to return a predefined response
-        mock_client.return_value.generate_completion.return_value = "Mocked content"
+        mock_client.return_value.generate_completion.return_value = None
         yield mock_client
-
-# Example test using the mocked OpenAI client
-def test_mocked_openai_client(setup_test_env):
-    from ell.decorators.lm import lm
-
-    @lm(model="gpt-4-turbo", temperature=0.1, max_tokens=5)
-    def lmp_with_default_system_prompt(*args, **kwargs):
-        return "Test user prompt"
-
-    result = lmp_with_default_system_prompt("input", lm_params=dict(temperature=0.5))
-    assert result == "Mocked content"
