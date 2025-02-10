@@ -1,6 +1,7 @@
 from ell.configurator import config
 import openai
 import logging
+import colorama
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,11 @@ def register_openai_models(client: openai.Client):
     for model_id, owned_by in model_data:
         config.register_model(model_id, client)
 
+default_client = None
 try:
     default_client = openai.Client()
 except openai.OpenAIError as e:
     logger.error(f"Failed to create default OpenAI client: {e}")
-    default_client = None
 
 if default_client:
     register_openai_models(default_client)
