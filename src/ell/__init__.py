@@ -1,8 +1,3 @@
-"""
-ell is a Python library for language model programming (LMP). It provides a simple
-and intuitive interface for working with large language models.
-"""
-
 from ell.lmp.simple import simple
 from ell.lmp.tool import tool
 from ell.lmp.complex import complex
