@@ -53,17 +53,17 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
 
-    messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(2)]
+    conversation_history: List[Tuple[str, str]] = []
+    characters = [create_personality() for _ in range(2)]
 
-    names = [personality.split("\n")[0].split(": ")[1] for personality in personalities]
-    backstories = [personality.split("\n")[1].split(": ")[1] for personality in personalities]
-    print("Names:", names)
+    character_names = [character.split("\n")[0].split(": ")[1] for character in characters]
+    character_backstories = [character.split("\n")[1].split(": ")[1] for character in characters]
+    print("Character Names:", character_names)
 
-    whos_turn = 0
+    current_character_index = 0
     for _ in range(10):
-        personality_talking = personalities[whos_turn]
-        response = chat(messages, personality=personality_talking)
-        messages.append((names[whos_turn], response))
-        whos_turn = (whos_turn + 1) % len(personalities)
-    print("Messages:", messages)
+        current_character = characters[current_character_index]
+        response = chat(conversation_history, personality=current_character)
+        conversation_history.append((character_names[current_character_index], response))
+        current_character_index = (current_character_index + 1) % len(characters)
+    print("Conversation History:", conversation_history)
