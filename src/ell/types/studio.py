@@ -3,8 +3,7 @@ import enum
 from functools import cached_property
 import sqlalchemy.types as types
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
-from typing import Optional, Dict, List, Any
-from dataclasses import dataclass
+from typing import Optional, Dict, List, Any, Union
 from sqlalchemy import Index, func
 
 def utc_now() -> datetime:
@@ -76,7 +75,7 @@ class InvocationBase(SQLModel):
 class InvocationContentsBase(SQLModel):
     invocation_id: str = Field(foreign_key="invocation.id", index=True, primary_key=True)
     params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    results: Optional[List[Message]] = Field(default=None, sa_column=Column(JSON))
+    results: Optional[List[Any]] = Field(default=None, sa_column=Column(JSON))
     invocation_api_params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     global_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     free_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
