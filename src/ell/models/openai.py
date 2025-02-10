@@ -1,14 +1,10 @@
 from ell.configurator import config
 import openai
-import os
 import logging
 
 logger = logging.getLogger(__name__)
 
 def register_openai_models(client: openai.Client):
-    if client is None:
-        raise ValueError("No client provided for model registration.")
-
     model_data = [
         ('gpt-4-1106-preview', 'system'),
         ('gpt-4-32k-0314', 'openai'),
@@ -42,21 +38,9 @@ def register_openai_models(client: openai.Client):
     for model_id, owned_by in model_data:
         config.register_model(model_id, client)
 
-def get_openai_client(api_key):
-    try:
-        return openai.Client(api_key=api_key)
-    except openai.OpenAIError as e:
-        logger.error(f"Failed to create OpenAI client: {e}")
-        return None
-
-api_key = os.environ.get("OPENAI_API_KEY", "")
-if not api_key:
-    raise ValueError("OPENAI_API_KEY environment variable is not set.")
-
-default_client = get_openai_client(api_key)
-if default_client is not None:
-    register_openai_models(default_client)
-    config._default_openai_client = default_client
+default_client = openai.Client()
+register_openai_models(default_client)
+config._default_openai_client = default_client
 
 # Use the client for chat completions
 try:
