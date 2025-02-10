@@ -76,14 +76,9 @@ def call(
     
     client_safe_messages_messages = process_messages_for_client(messages, client)
     # print(api_params)
-    try:
-        model_result = model_call(
-            model=model, messages=client_safe_messages_messages, **api_params
-        )
-    except Exception as e:
-        logger.error(f"Error calling the model: {e}")
-        raise
-
+    model_result = model_call(
+        model=model, messages=client_safe_messages_messages, **api_params
+    )
     streaming = api_params.get("stream", False)
     if not streaming:
         model_result = [model_result]
@@ -91,13 +86,14 @@ def call(
     choices_progress = defaultdict(list)
     n = api_params.get("n", 1)
 
+    metadata = {}  # Initialize metadata
+
     if config.verbose and not _exempt_from_tracking:
         model_usage_logger_post_start(_logging_color, n)
 
     with model_usage_logger_post_intermediate(_logging_color, n) as _logger:
         for chunk in model_result:
             if hasattr(chunk, "usage") and chunk.usage:
-                # Todo: is this a good decision.
                 metadata = chunk.to_dict()
                 
                 if streaming:
@@ -106,7 +102,6 @@ def call(
             for choice in chunk.choices:
                 choices_progress[choice.index].append(choice)
                 if config.verbose and choice.index == 0 and not _exempt_from_tracking:
-                    # print(choice, streaming)
                     _logger(choice.delta.content if streaming else 
                         choice.message.content or getattr(choice.message, "refusal", ""), is_refusal=getattr(choice.message, "refusal", False) if not streaming else False)
 
@@ -130,7 +125,6 @@ def call(
             choice = choice_deltas[0].message
             if choice.refusal:
                 raise ValueError(choice.refusal)
-                # XXX: is this the best practice? try catch a parser?
             if api_params.get("response_format", False):
                 content.append(ContentBlock(
                     parsed=choice.parsed
