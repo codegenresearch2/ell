@@ -36,7 +36,7 @@ def create_personality() -> str:
     name = random.choice(names_list)
 
     # Return the formatted backstory
-    return f"Name: {name}\nBackstory: Come up with a backstory about {name}."
+    return f"Name: {name}\nBackstory: {name} is a character with a unique background."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -51,7 +51,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
     """
     Generate a chat response based on the message history and personality.
 
@@ -60,7 +60,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     personality (str): The personality of the character.
 
     Returns:
-    str: A chat response.
+    List[str]: A list containing the system and user prompts.
     """
     # Format the system prompt
     system_prompt = f"""
@@ -75,7 +75,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     user_prompt = format_message_history(message_history)
 
     # Return the chat response
-    return ell.system(system_prompt) + ell.user(user_prompt)
+    return [ell.system(system_prompt), ell.user(user_prompt)]
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -95,10 +95,9 @@ if __name__ == "__main__":
     print(names)
 
     # Simulate a chat between the characters
-    whos_turn = 0
-    for _ in range(10):
+    for _ in range(100):
+        whos_turn = _ % len(personalities)
         personality_talking = personalities[whos_turn]
         messages.append(
             (names[whos_turn], chat(messages, personality=personality_talking)))
-        whos_turn = (whos_turn + 1) % len(personalities)
     print(messages)
