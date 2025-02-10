@@ -7,7 +7,7 @@ import ell.store
 import cattrs
 import numpy as np
 from sqlalchemy.sql import text
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
 
@@ -26,7 +26,7 @@ class SQLStore(ell.store.Store):
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
-                  created_at: Optional[float]=None) -> Optional[Any]:
+                  created_at: Optional[datetime.datetime]=None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
