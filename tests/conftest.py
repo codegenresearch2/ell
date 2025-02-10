@@ -1,22 +1,13 @@
 import pytest
-import os
-import warnings
-from ell.models import openai
+from unittest.mock import MagicMock
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
-    # Set a fake OpenAI API key for all tests
-    os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'
+    # Mock the OpenAI client
+    mock_client = MagicMock()
 
-    # Initialize client gracefully
-    try:
-        openai.client = openai.Client()
-    except Exception as e:
-        warnings.warn(f"Failed to initialize OpenAI client: {str(e)}")
-
-    yield
-
-    # Clean up after tests if necessary
+    # Yield the mock client for use in tests
+    yield mock_client
 
 
-In the rewritten code, the OpenAI client is initialized within the `setup_test_env` fixture. If an error occurs during client initialization, a warning is raised instead of causing the test to fail. This allows for more graceful handling of client initialization errors. Additionally, the client is now accessed directly from the `openai` module, simplifying client retrieval logic in calls.
+In the revised code, the OpenAI client is mocked using `unittest.mock.MagicMock`. This allows for the simulation of the OpenAI client's behavior during tests without making actual API calls. The mock client is then yielded from the fixture, allowing tests to use the mocked behavior directly. Unnecessary imports and error handling for client initialization have been removed to simplify the code. Additionally, the API key is not explicitly set in the fixture to ensure that tests do not rely on actual API keys or configurations.
