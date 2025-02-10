@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Optional, Dict, List, Set, Union
+from typing import Any, Optional, Dict, List, Set, Union, Callable
 from datetime import datetime
 from ell.lstr import lstr
 from ell.types import InvocableLM
