@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Union, Callable, ClassVar
+from typing import Any, List, Optional, Union, Callable
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
@@ -7,7 +7,6 @@ from ell.lstr import lstr
 from dataclasses import dataclass
 from ell.util.dict_sync_meta import DictSyncMeta
 from typing import TypeVar, Dict
-from pydantic import ConfigDict
 
 # Define type aliases
 LMPParams = Dict[str, Any]
@@ -77,8 +76,10 @@ class SerializedLMP(SQLModel, table=True):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
-    # Use ConfigDict for configuration
-    config: ClassVar[ConfigDict] = ConfigDict(table_name="serializedlmp", unique_together=[("version_number", "name")])
+    # Use Config class for configuration
+    class Config:
+        table_name = "serializedlmp"
+        unique_together = [("version_number", "name")]
 
 # Define the InvocationTrace class
 class InvocationTrace(SQLModel, table=True):
