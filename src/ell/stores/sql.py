@@ -28,28 +28,30 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
-            if lmp is None:
-                lmp = SerializedLMP(
-                    lmp_id=lmp_id,
-                    name=name,
-                    version_number=version_number,
-                    source=source,
-                    dependencies=dependencies,
-                    initial_global_vars=global_vars,
-                    initial_free_vars=free_vars,
-                    created_at= utc_now() if created_at is None else created_at,
-                    is_lm=is_lmp,
-                    lm_kwargs=lm_kwargs,
-                    commit_message=commit_message
-                )
-                session.add(lmp)
-                
-                for use_id in uses:
-                    used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
-                    if used_lmp:
-                        lmp.uses.append(used_lmp)
-                
-                session.commit()
+            if lmp is not None:
+                return lmp
+            
+            lmp = SerializedLMP(
+                lmp_id=lmp_id,
+                name=name,
+                version_number=version_number,
+                source=source,
+                dependencies=dependencies,
+                initial_global_vars=global_vars,
+                initial_free_vars=free_vars,
+                created_at= utc_now() if created_at is None else created_at,
+                is_lm=is_lmp,
+                lm_kwargs=lm_kwargs,
+                commit_message=commit_message
+            )
+            session.add(lmp)
+            
+            for use_id in uses:
+                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                if used_lmp:
+                    lmp.uses.append(used_lmp)
+            
+            session.commit()
         return None
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
@@ -122,7 +124,12 @@ class SQLStore(ell.store.Store):
                 for key, value in filters.items():
                     query = query.where(getattr(Invocation, key) == value)
             results = session.exec(query).all()
-            return [inv.model_dump() for inv in results]
+            invocations = []
+            for inv in results:
+                inv_dict = inv.model_dump()
+                inv_dict['lmp'] = inv.lmp.model_dump()
+                invocations.append(inv_dict)
+            return invocations
 
     def get_traces(self):
         with Session(self.engine) as session:
@@ -194,3 +201,9 @@ class SQLStore(ell.store.Store):
             query = select(SerializedLMP).order_by(SerializedLMP.created_at.desc())
             results = session.exec(query).all()
             return [lmp.model_dump() for lmp in results]
+
+class SQLiteStore(SQLStore):
+    def __init__(self, storage_dir: str):
+        os.makedirs(storage_dir, exist_ok=True)
+        db_path = os.path.join(storage_dir, 'ell.db')
+        super().__init__(f'sqlite:///{db_path}')
