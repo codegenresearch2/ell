@@ -143,6 +143,10 @@ class Message(BaseModel):
     role: str
     content: List[ContentBlock]
 
+    def __init__(self, role: str, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
+        content = coerce_content_list(content, **content_block_kwargs)
+        super().__init__(content=content, role=role)
+
     @property
     def text(self) -> str:
         return "\n".join(c.text or f"<{c.type}>" for c in self.content)
@@ -234,3 +238,12 @@ def assistant(content: Union[str, List[ContentBlock]]) -> Message:
     Message: A Message object with role set to 'assistant' and the provided content.
     """
     return Message(role="assistant", content=content)
+
+def coerce_content_list(content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs) -> List[ContentBlock]:
+    if not content:
+        content = [ContentBlock(**content_block_kwargs)]
+
+    if not isinstance(content, list):
+        content = [content]
+    
+    return [ContentBlock.model_validate(ContentBlock.coerce(c)) for c in content]
