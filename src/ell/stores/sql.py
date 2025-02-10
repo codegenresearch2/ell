@@ -23,6 +23,7 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
 
+            # If the LMP already exists in the database, return it
             if lmp:
                 return lmp
             else:
@@ -49,7 +50,7 @@ class SQLStore(ell.store.Store):
             session.commit()
         return None
 
-    # Rest of the code remains the same as it follows the rules provided
+    # Implement the write_invocation method with similar logic and structure
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
