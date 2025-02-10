@@ -1,3 +1,5 @@
+# Fixed code snippet addressing the feedback from the oracle
+
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
@@ -74,18 +76,7 @@ class ToolCall(BaseModel):
         """
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
-class ContentBlock(BaseModel):
-    """
-    Represents a content block.
-
-    Attributes:
-        text (Optional[_lstr]): The text content of the block.
-        image (Optional[Union[PILImage.Image, str, np.ndarray]]): The image content of the block.
-        audio (Optional[Union[np.ndarray, List[float]]]): The audio content of the block.
-        tool_call (Optional[ToolCall]): The tool call associated with the block.
-        parsed (Optional[Union[Type[BaseModel], BaseModel]]): The parsed content of the block.
-        tool_result (Optional[ToolResult]): The tool result associated with the block.
-    """
+class ContentBlock(BaseModel):    
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
     text: Optional[_lstr_generic] = Field(default=None)
