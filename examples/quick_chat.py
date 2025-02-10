@@ -19,7 +19,7 @@ names_list = [
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0, max_tokens=50)
 def create_personality() -> str:
     """
-    Create a backstory for a character with a random name from the provided list.
+    Generate a backstory for a character with a random name from the provided list.
     The output should be formatted as follows:
 
     Name: <name>
@@ -44,12 +44,12 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
         Here is your description:
         {personality}
 
-        Your goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis.
+        Your goal is to come up with a response to a chat. Only respond in one sentence, using informal language similar to a text message. Never use Emojis.
 
         Chat History:
         {formatted_history}
         """),
-        ell.user("")  # Placeholder for user input, can be replaced with actual user input
+        ell.user(formatted_history)  # Include the chat history in the user prompt
     ]
 
 if __name__ == "__main__":
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         parts = personality.split("\n")
         names.append(parts[0].split(": ")[1])
         backstories.append(parts[1].split(": ")[1])
-    print(names)
+    print(f"Character names: {names}")
 
     whos_turn = 0
     for _ in range(10):
