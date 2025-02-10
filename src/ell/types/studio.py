@@ -5,6 +5,7 @@ from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from sqlalchemy import Index, func
 from typing import Optional, Dict, List, Union, Any
 import enum
+from functools import cached_property
 
 def utc_now() -> datetime:
     """
@@ -50,6 +51,7 @@ class SerializedLMP(SerializedLMPBase, table=True):
     class Config:
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
+        extend_existing = True
 
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
