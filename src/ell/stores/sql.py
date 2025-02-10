@@ -79,6 +79,18 @@ class SQLStore(ell.store.Store):
             query = query.where(getattr(SerializedLMP, key) == value)
         return session.exec(query).all()
 
+    def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        subquery = (
+            select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
+            .group_by(SerializedLMP.name)
+            .subquery()
+        )
+        filters = {
+            "name": subquery.c.name,
+            "created_at": subquery.c.max_created_at
+        }
+        return self._query_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
+
     # ... (rest of the methods remain the same)
 
 class SQLiteStore(SQLStore):
