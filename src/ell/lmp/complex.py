@@ -5,9 +5,7 @@ from ell.types import Message, ContentBlock
 from ell.types.message import LMP, InvocableLM, LMPParams, MessageOrDict, _lstr_generic
 from ell.types.studio import LMPType
 from ell.util._warnings import _warnings
-from ell.util.api import  call
-from ell.util.verbosity import compute_color, model_usage_logger_pre
-
+from ell.util.api import call
 
 import openai
 
@@ -154,7 +152,7 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 
        text = "John Doe is a 30-year-old software engineer."
        result : ell.Message = extract_person_info(text)
-       person_info = result.structured[0]
+       person_info = result.parsed_content[0]
        print(f"Name: {person_info.name}, Age: {person_info.age}")
 
     5. Multimodal Input:
@@ -196,7 +194,7 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     - response.text_only: Get only the text content, excluding non-text elements.
     - response.tool_calls: Access the list of tool calls in the message.
     - response.tool_results: Access the list of tool results in the message.
-    - response.structured: Access structured data outputs.
+    - response.parsed_content: Access structured data outputs.
     - response.call_tools_and_collect_as_message(): Execute tool calls and collect results.
     - Message(role="user", content=[...]).to_openai_message(): Convert to OpenAI API format.
 
@@ -216,18 +214,16 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     """
     default_client_from_decorator = client
 
-
     def parameterized_lm_decorator(
         prompt: LMP,
     ) -> Callable[..., Union[List[Message], Message]]:
         color = compute_color(prompt)
         _warnings(model, prompt, default_client_from_decorator)
 
-            
         @wraps(prompt)
         def model_call(
             *fn_args,
-            _invocation_origin : str = None,
+            _invocation_origin: str = None,
             client: Optional[openai.Client] = None,
             lm_params: Optional[LMPParams] = {},
             invocation_api_params=False,
@@ -244,18 +240,12 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
         
             result = post_callback(result) if post_callback else result
             
-
             return result, api_params, metadata
 
-
-  
-        # TODO: # we'll deal with type safety here later
         model_call.__ell_api_params__ = api_params
         model_call.__ell_func__ = prompt
         model_call.__ell_type__ = LMPType.LM
         model_call.__ell_exempt_from_tracking = exempt_from_tracking
-        # model_call.__ell_uses__ = prompt.__ell_uses__
-        # model_call.__ell_hash__ = prompt.__ell_hash__
 
         if exempt_from_tracking:
             return model_call
