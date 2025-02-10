@@ -6,17 +6,17 @@ BASE_PROMPT = "You are an adept Python programmer. Your goal is to generate Pyth
 
 # Improve function naming and parameter naming
 @ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
-def create_a_python_class(user_spec: str):
+def create_a_python_class(specification: str):
     return [
-        ell.system(f"{BASE_PROMPT}\n\nCreate a Python class based on the provided user specification."),
-        ell.user(f"User specification: {user_spec}")
+        ell.system(f"{BASE_PROMPT}\n\nCreate a Python class based on the provided specification."),
+        ell.user(f"Specification: {specification}")
     ]
 
 @ell.lm(model="gpt-4o", temperature=0.7, max_tokens=100)
-def write_unit_for_a_class(class_def: str):
+def write_unit_for_a_class(class_definition: str):
     return [
         ell.system(f"{BASE_PROMPT}\n\nWrite a single unit test for the provided class definition. Avoid using the `unittest` package."),
-        ell.user(f"Class definition: {class_def}")
+        ell.user(f"Class definition: {class_definition}")
     ]
 
 if __name__ == "__main__":
