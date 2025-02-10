@@ -45,10 +45,12 @@ def main():
 
     # Start the event loop
     async def start_server():
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         server_task = loop.create_task(server.serve())
         db_watcher_task = loop.create_task(db_watcher())
         await asyncio.gather(server_task, db_watcher_task)
+        loop.run_forever()
 
     asyncio.run(start_server())
 
