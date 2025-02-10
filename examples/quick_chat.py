@@ -19,10 +19,11 @@ names_list = [
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0, max_tokens=50)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character. Format as follows.
+    """You are backstoryGPT. Your task is to create a backstory for a character.
+    Choose a completely random name from the provided list and format the output as follows:
 
-Name: <name>
-Backstory: <3 sentence backstory>"""
+    Name: <name>
+    Backstory: <3 sentence backstory>"""
 
     name = random.choice(names_list)
     return f"Name: {name}\nBackstory: "
@@ -40,7 +41,7 @@ Your goal is to come up with a response to a chat. Only respond in one sentence 
 
 Chat History:
 {format_message_history(message_history)}"""),
-        ell.user("")
+        ell.user(format_message_history(message_history))
     ]
 
 if __name__ == "__main__":
