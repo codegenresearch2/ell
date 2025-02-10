@@ -64,12 +64,10 @@ class SQLStore(ell.store.Store):
                          state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
-            if isinstance(result, lstr):
-                results = [result]
-            elif isinstance(result, list):
-                results = [res if isinstance(res, lstr) else lstr(content=str(res)) for res in result]
+            if isinstance(result, list):
+                results = result
             else:
-                raise TypeError("Result must be either lstr or List[lstr]")
+                results = [result]
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
