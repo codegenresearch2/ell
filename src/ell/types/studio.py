@@ -29,6 +29,15 @@ class LMPType(enum.Enum):
     MULTIMODAL = "MULTIMODAL"
     OTHER = "OTHER"
 
+class SerializedLMPUses(SQLModel, table=True):
+    """
+    Represents the many-to-many relationship between SerializedLMPs.
+
+    This class is used to track which LMPs use or are used by other LMPs.
+    """
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
+
 class SerializedLMPBase(SQLModel):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
@@ -45,14 +54,13 @@ class SerializedLMPBase(SQLModel):
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: List["SerializedLMP"] = Relationship(
+    used_by: Optional[List["SerializedLMP"]] = Relationship(
         back_populates="uses",
         link_model=SerializedLMPUses,
         sa_relationship_kwargs=dict(
             primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
             secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            foreign_keys="[SerializedLMPUses.lmp_user_id, SerializedLMPUses.lmp_using_id]"
-        )
+        ),
     )
     uses: List["SerializedLMP"] = Relationship(
         back_populates="used_by",
@@ -60,18 +68,13 @@ class SerializedLMP(SerializedLMPBase, table=True):
         sa_relationship_kwargs=dict(
             primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
             secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            foreign_keys="[SerializedLMPUses.lmp_using_id, SerializedLMPUses.lmp_user_id]"
-        )
+        ),
     )
 
     class Config:
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
         extend_existing = True
-
-class SerializedLMPUses(SQLModel, table=True):
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
@@ -106,7 +109,7 @@ class InvocationContentsBase(SQLModel):
             self.global_vars,
             self.free_vars
         ]
-        total_size = sum(len(json.dumps(field).encode('utf-8')) for field in json_fields if field is not None)
+        total_size = sum(len(json.dumps(field, default=repr).encode('utf-8')) for field in json_fields if field is not None)
         return total_size > 102400
 
 class InvocationContents(InvocationContentsBase, table=True):
@@ -120,7 +123,7 @@ class Invocation(InvocationBase, table=True):
         sa_relationship_kwargs=dict(
             primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
             secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
-            foreign_keys="[InvocationTrace.invocation_consumer_id, InvocationTrace.invocation_consuming_id]"
+            foreign_keys=[InvocationTrace.invocation_consumer_id, InvocationTrace.invocation_consuming_id]
         )
     )
     consumes: List["Invocation"] = Relationship(
@@ -129,7 +132,7 @@ class Invocation(InvocationBase, table=True):
         sa_relationship_kwargs=dict(
             primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
             secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
-            foreign_keys="[InvocationTrace.invocation_consuming_id, InvocationTrace.invocation_consumer_id]"
+            foreign_keys=[InvocationTrace.invocation_consuming_id, InvocationTrace.invocation_consumer_id]
         )
     )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
