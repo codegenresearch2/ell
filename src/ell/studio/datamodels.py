@@ -9,7 +9,7 @@ class SerializedLMPPublic(SerializedLMPBase):
 class SerializedLMPWithUses(SerializedLMPPublic):
     lmp_id: str
 
-class SerializedLMPCreate(SQLModel):
+class SerializedLMPCreate(SerializedLMPBase):
     pass
 
 class SerializedLMPUpdate(SQLModel):
@@ -56,8 +56,8 @@ class SerializedLStrUpdate(SQLModel):
 
 # Additional classes as per the oracle feedback
 class GraphDataPoint(SQLModel):
-    timestamp: datetime
-    value: float
+    date: datetime
+    count: float
     comment: Optional[str] = None
 
 class InvocationsAggregate(SQLModel):
