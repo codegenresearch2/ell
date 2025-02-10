@@ -26,6 +26,61 @@ class UTCTimestamp(types.TypeDecorator[datetime]):
 def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
+# Define the SerializedLMPUses class
+class SerializedLMPUses(SQLModel, table=True):
+    """
+    Represents the many-to-many relationship between SerializedLMPs.
+    """
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+
+# Define the SerializedLMP class
+class SerializedLMP(SQLModel, table=True):
+    """
+    Represents a serialized Language Model Program (LMP).
+    """
+    lmp_id: Optional[str] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    source: str
+    dependencies: str
+    created_at: datetime = UTCTimestampField(index=True, default=func.now(), nullable=False)
+    is_lm: bool
+    lm_kwargs: dict = Field(sa_column=Column(JSON))
+    invocations: List["Invocation"] = Relationship(back_populates="lmp")
+    used_by: Optional[List["SerializedLMP"]] = Relationship(
+        back_populates="uses",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+        ),
+    )
+    uses: List["SerializedLMP"] = Relationship(
+        back_populates="used_by",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+        ),
+    )
+    initial_free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    initial_global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    num_invocations: Optional[int] = Field(default=0)
+    commit_message: Optional[str] = Field(default=None)
+    version_number: Optional[int] = Field(default=None)
+
+    class Config:
+        table_name = "serializedlmp"
+        unique_together = [("version_number", "name")]
+
+# Define the InvocationTrace class
+class InvocationTrace(SQLModel, table=True):
+    """
+    Represents a many-to-many relationship between Invocations and other Invocations.
+    """
+    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
+    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
+
 # Define the Invocation class
 class Invocation(SQLModel, table=True):
     """
@@ -60,17 +115,6 @@ class Invocation(SQLModel, table=True):
         ),
     )
 
-# Define the SerializedLMPUses, SerializedLMP, InvocationTrace, and SerializedLStr classes
-# ... (The rest of the code remains the same)
-
-# Define the utility function to return the current UTC timestamp
-def utc_now() -> datetime:
-    """
-    Returns the current UTC timestamp.
-    Serializes to ISO-8601.
-    """
-    return datetime.now(tz=timezone.utc)
-
 # Define the SerializedLStr class
 class SerializedLStr(SQLModel, table=True):
     """
@@ -84,3 +128,11 @@ class SerializedLStr(SQLModel, table=True):
 
     def deserialize(self) -> lstr:
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
+
+# Define the utility function to return the current UTC timestamp
+def utc_now() -> datetime:
+    """
+    Returns the current UTC timestamp.
+    Serializes to ISO-8601.
+    """
+    return datetime.now(tz=timezone.utc)
