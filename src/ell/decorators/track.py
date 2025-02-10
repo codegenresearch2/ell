@@ -103,7 +103,7 @@ def track(fn: Callable) -> Callable:
 
     return wrapper
 
-def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
+def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: Optional[dict]) -> None:
     lmps = config._store.get_versions_by_fqn(fqn=name)
     version = 0
     already_in_store = any(lmp['lmp_id'] == func.__ell_hash__ for lmp in lmps)
@@ -134,7 +134,7 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
 
         config._store.write_lmp(serialized_lmp, func.__ell_uses__)
 
-def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result, parent_invocation_id):
+def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: Optional[dict], cleaned_invocation_params: dict, consumes: set, result: Any, parent_invocation_id: Optional[str]) -> None:
     invocation = Invocation(
         id=invocation_id,
         lmp_id=func.__ell_hash__,
@@ -162,18 +162,18 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
 
     config._store.write_invocation(invocation, serialized_results, consumes)
 
-def compute_state_cache_key(ipstr, fn_closure):
+def compute_state_cache_key(ipstr: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]) -> str:
     _global_free_vars_str = json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)
     _free_vars_str = json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)
     state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
     return state_cache_key
 
-def get_immutable_vars(vars_dict):
+def get_immutable_vars(vars_dict: dict) -> dict:
     converter = cattrs.Converter()
     converter.register_unstructure_hook(object, handle_complex_types)
     return converter.unstructure(vars_dict)
 
-def prepare_invocation_params(fn_args, fn_kwargs):
+def prepare_invocation_params(fn_args: tuple, fn_kwargs: dict) -> Tuple[dict, str, set]:
     invocation_params = dict(args=fn_args, kwargs=fn_kwargs)
     invocation_converter = cattrs.Converter()
     consumes = set()
@@ -293,7 +293,7 @@ def track(fn: Callable) -> Callable:
 
     return wrapper
 
-def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
+def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: Optional[dict]) -> None:
     lmps = config._store.get_versions_by_fqn(fqn=name)
     version = 0
     already_in_store = any(lmp['lmp_id'] == func.__ell_hash__ for lmp in lmps)
@@ -324,7 +324,7 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
 
         config._store.write_lmp(serialized_lmp, func.__ell_uses__)
 
-def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result, parent_invocation_id):
+def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: Optional[dict], cleaned_invocation_params: dict, consumes: set, result: Any, parent_invocation_id: Optional[str]) -> None:
     invocation = Invocation(
         id=invocation_id,
         lmp_id=func.__ell_hash__,
@@ -352,21 +352,7 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
 
     config._store.write_invocation(invocation, serialized_results, consumes)
 
-def compute_state_cache_key(ipstr, fn_closure):
+def compute_state_cache_key(ipstr: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]) -> str:
     _global_free_vars_str = json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)
     _free_vars_str = json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)
-    state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
-    return state_cache_key
-
-def get_immutable_vars(vars_dict):
-    converter = cattrs.Converter()
-    converter.register_unstructure_hook(object, handle_complex_types)
-    return converter.unstructure(vars_dict)
-
-def prepare_invocation_params(fn_args, fn_kwargs):
-    invocation_params = dict(args=fn_args, kwargs=fn_kwargs)
-    invocation_converter = cattrs.Converter()
-    consumes = set()
-    invocation_converter.register_unstructure_hook(np.ndarray, lambda arr: arr.tolist())
-    invocation_converter.register_unstructure_hook(lstr, process_lstr)
-    invocation_converter.register_unstructure_hook(set, lambda s
+    state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_
