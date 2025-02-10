@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, BaseModel
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
 class SerializedLMPPublic(SerializedLMPBase):
-    uses: List["SerializedLMPPublic"]
+    pass
 
 class SerializedLMPWithUses(SerializedLMPPublic):
-    lmp_id: str
+    uses: List["SerializedLMPPublic"]
 
 class SerializedLMPCreate(SerializedLMPBase):
     pass
@@ -30,7 +30,7 @@ class InvocationPublic(InvocationBase):
     consumed_by: List[str]
     uses: List[str]
 
-class InvocationCreate(SQLModel):
+class InvocationCreate(InvocationBase):
     pass
 
 class InvocationUpdate(SQLModel):
@@ -55,7 +55,7 @@ class SerializedLStrUpdate(SQLModel):
     logits: Optional[List[float]] = None
 
 # Additional classes as per the oracle feedback
-class GraphDataPoint(SQLModel):
+class GraphDataPoint(BaseModel):
     date: datetime
     count: float
     comment: Optional[str] = None
