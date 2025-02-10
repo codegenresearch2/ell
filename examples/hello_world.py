@@ -18,6 +18,7 @@ def hello(world: str):
 if __name__ == "__main__":
     ell.config.verbose = True
     ell.set_store('./logdir', autocommit=True)
+    # Set the store for ELL and enable autocommit
 
-    greeting = hello("sam altman")  # > "hello sama! ... "
+    greeting = hello("sam altman")  # Print the last word of the greeting
     print(greeting.split(" ")[-1])
