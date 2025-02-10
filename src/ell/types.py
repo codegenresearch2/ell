@@ -6,7 +6,7 @@ from typing import Any
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, ARRAY, Column, Float
 
@@ -25,10 +25,10 @@ class Message(dict, metaclass=DictSyncMeta):
     content: _lstr_generic
 
 
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta.
+# Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta.
 MessageOrDict = Union[Message, Dict[str, str]]
 
-# Can support iamge prompts later.
+# Can support image prompts later.
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
@@ -43,14 +43,6 @@ LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
 
-def utc_now() -> datetime:
-    """
-    Returns the current UTC timestamp.
-    Serializes to ISO-8601.
-    """
-    return datetime.now(tz=timezone.utc)
-
-
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
@@ -60,7 +52,6 @@ class SerializedLMPUses(SQLModel, table=True):
 
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)  # ID of the LMP that is being used
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)  # ID of the LMP that is using the other LMP
-
 
 
 class SerializedLMP(SQLModel, table=True):
@@ -73,7 +64,7 @@ class SerializedLMP(SQLModel, table=True):
     name: str  # Name of the LMP
     source: str  # Source code or reference for the LMP
     dependencies: str  # List of dependencies for the LMP, stored as a string
-    created_at: datetime = Field(default_factory=utc_now)  # Timestamp of when the LMP was created
+    created_at: datetime = Field(default_factory=datetime.utcnow)  # Timestamp of when the LMP was created
     is_lm: bool  # Boolean indicating if it is an LM (Language Model) or an LMP
     lm_kwargs: dict  = Field(sa_column=Column(JSON)) # Additional keyword arguments for the LMP
 
@@ -99,7 +90,7 @@ class SerializedLMP(SQLModel, table=True):
     initial_free_vars : dict = Field(default_factory=dict, sa_column=Column(JSON))
     initial_global_vars : dict = Field(default_factory=dict, sa_column=Column(JSON))
     
-    # Cached INfo
+    # Cached Info
     num_invocations : Optional[int] = Field(default=0)
     commit_message : Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
@@ -107,7 +98,6 @@ class SerializedLMP(SQLModel, table=True):
     class Config:
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
-
 
 
 class InvocationTrace(SQLModel, table=True):
@@ -140,12 +130,12 @@ class Invocation(SQLModel, table=True):
     state_cache_key: Optional[str] = Field(default=None)
 
     
-    created_at: datetime = Field(default_factory=utc_now)  # Timestamp of when the invocation was created
+    created_at: datetime = Field(default_factory=datetime.utcnow)  # Timestamp of when the invocation was created
     invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))  # Additional keyword arguments for the invocation
 
     # Relationships
     lmp: SerializedLMP = Relationship(back_populates="invocations")  # Relationship to the LMP that was invoked
-    # Todo: Rename the result shcema to be consistent
+    # Todo: Rename the result schema to be consistent
     results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")  # Relationship to the LStr results of the invocation
     
 
@@ -164,8 +154,6 @@ class Invocation(SQLModel, table=True):
             secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
         ),
     )
-
-
 
 
 class SerializedLStr(SQLModel, table=True):
