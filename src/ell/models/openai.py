@@ -1,4 +1,5 @@
 import openai
+import os
 import logging
 from ell.configurator import config
 
@@ -38,12 +39,21 @@ def register_openai_models(client: openai.Client):
     for model_id, owned_by in model_data:
         config.register_model(model_id, client)
 
-default_client = openai.Client()
-register_openai_models(default_client)
-config._default_openai_client = default_client
+api_key = os.environ.get("OPENAI_API_KEY")
+if not api_key:
+    logger.error("OPENAI_API_KEY environment variable is not set.")
+    return
+
+default_client = None
+try:
+    default_client = openai.Client(api_key=api_key)
+    register_openai_models(default_client)
+    config._default_openai_client = default_client
+except openai.OpenAIError as e:
+    logger.error(f"Failed to create OpenAI client: {e}")
 
 # Use the client for chat completions
 try:
     openai.chat.completions.create(model="gpt-4o-2024-08-06", messages=[{"role": "system", "content": "You are a helpful assistant."}], client=default_client)
 except openai.OpenAIError as e:
-    pass
+    logger.error(f"Failed to create chat completion: {e}")
