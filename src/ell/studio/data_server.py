@@ -63,7 +63,7 @@ def create_app(storage_dir: Optional[str] = None):
         try:
             while True:
                 data = await websocket.receive_text()
-                # TODO: Handle incoming WebSocket messages here
+                # TODO: Implement logic to handle incoming WebSocket messages
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -83,7 +83,7 @@ def create_app(storage_dir: Optional[str] = None):
         lmps = serializer.get_lmps(skip=skip, limit=limit, **filters)
 
         if not lmps:
-            raise HTTPException(status_code=404, detail="LMPs not found")
+            raise HTTPException(status_code=404, detail="No LMPs found with the provided filters")
 
         return lmps
 
@@ -101,7 +101,7 @@ def create_app(storage_dir: Optional[str] = None):
     def get_lmp_by_id(lmp_id: str):
         lmp = serializer.get_lmps(lmp_id=lmp_id)
         if not lmp:
-            raise HTTPException(status_code=404, detail="LMP not found")
+            raise HTTPException(status_code=404, detail=f"LMP with ID {lmp_id} not found")
         return lmp[0]
 
     @app.get("/api/invocation/{invocation_id}")
@@ -110,7 +110,7 @@ def create_app(storage_dir: Optional[str] = None):
     ):
         invocations = serializer.get_invocations(filters={'id': invocation_id})
         if not invocations:
-            raise HTTPException(status_code=404, detail="Invocation not found")
+            raise HTTPException(status_code=404, detail=f"Invocation with ID {invocation_id} not found")
         return invocations[0]
 
     @app.get("/api/invocations")
@@ -161,18 +161,17 @@ def create_app(storage_dir: Optional[str] = None):
         traces = serializer.get_all_traces_leading_to(invocation_id)
         return traces
 
-    # Add notify_clients function to the app object
+    async def notify_clients(message: str, data: Dict[str, Any]):
+        logger.info(f"Broadcasting message: {message}")
+        notification = {
+            "message": message,
+            "data": data
+        }
+        await manager.broadcast(json.dumps(notification))
+
     app.notify_clients = notify_clients
 
     return app
-
-async def notify_clients(message: str, data: Dict[str, Any]):
-    logger.info(f"Broadcasting message: {message}")
-    notification = {
-        "message": message,
-        "data": data
-    }
-    await manager.broadcast(json.dumps(notification))
 
 if __name__ == "__main__":
     uvicorn.run(create_app(), host="0.0.0.0", port=8000, log_level="debug")
