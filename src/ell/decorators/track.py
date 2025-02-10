@@ -68,12 +68,7 @@ def track(fn: Callable) -> Callable:
                     results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0].results]
 
                     logger.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
-                    if len(results) == 1:
-                        return results[0].content
-                    else:
-                        return [result.content for result in results]
-                else:
-                    logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
+                    return results[0] if len(results) == 1 else results
 
         _start_time = utc_now()
 
@@ -100,7 +95,7 @@ def track(fn: Callable) -> Callable:
         _write_invocation(func_to_track, invocation_id, latency_ms, prompt_tokens, completion_tokens,
                           state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
 
-        return result[0].content if isinstance(result, (list, tuple)) else result.content
+        return result[0] if isinstance(result, (list, tuple)) else result
 
     fn.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
