@@ -7,15 +7,20 @@ from ell.lstr import lstr
 from dataclasses import dataclass
 from ell.util.dict_sync_meta import DictSyncMeta
 from typing import TypeVar, Dict
+from pydantic import ConfigDict
+
+# Define type aliases
+_lstr_generic = Union[lstr, str]
+LMPParams = Dict[str, Any]
 
 # Define the InvocableLM type
-InvocableLM = Callable[..., Union[lstr, str]]
+InvocableLM = Callable[..., _lstr_generic]
 
 # Define the Message dataclass
 @dataclass
 class Message(dict, metaclass=DictSyncMeta):
     role: str
-    content: Union[lstr, str]
+    content: _lstr_generic
 
 # Define the UTCTimestamp class and UTCTimestampField function
 class UTCTimestamp(types.TypeDecorator[datetime]):
@@ -69,9 +74,8 @@ class SerializedLMP(SQLModel, table=True):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
-    class Config:
-        table_name = "serializedlmp"
-        unique_together = [("version_number", "name")]
+    # Use ConfigDict for configuration
+    config = ConfigDict(table_name="serializedlmp", unique_together=[("version_number", "name")])
 
 # Define the InvocationTrace class
 class InvocationTrace(SQLModel, table=True):
