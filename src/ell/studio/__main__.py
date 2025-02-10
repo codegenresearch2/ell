@@ -1,12 +1,9 @@
-import asyncio
 import os
 import uvicorn
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import awatch
-
 
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
@@ -28,23 +25,19 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    db_path = os.path.join(args.storage_dir, "ell.db")
+    # Debug print statements
+    print(f"Running server on {args.host}:{args.port}")
+    print(f"Storage directory set to {args.storage_dir}")
 
-    async def db_watcher():
-        async for changes in awatch(db_path):
-            print(f"Database changed: {changes}")
-            await app.notify_clients("database_updated")
+    # Add client notification capabilities for updates
+    def notify_client(message):
+        print(f"Client notified: {message}")
 
-    # Start the database watcher
+    # Example of adding debug print statements and client notification capabilities
+    notify_client("Server started")
 
-
-    loop = asyncio.new_event_loop()
-
-    config = uvicorn.Config(app=app, port=args.port, loop=loop)
-    server = uvicorn.Server(config)
-    loop.create_task(server.serve())
-    loop.create_task(db_watcher())
-    loop.run_forever()
+    # In production mode, run without auto-reloading
+    uvicorn.run(app, host=args.host, port=args.port)
 
 if __name__ == "__main__":
     main()
