@@ -1,14 +1,10 @@
 from typing import Optional, Union, List, Callable, Dict, Type
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_config
 from PIL import Image
 import numpy as np
 import base64
 from io import BytesIO
 from ell.util.serialization import serialize_image
-
-# Define BaseModel if not already defined in another module
-class BaseModel:
-    pass
 
 class ToolResult(BaseModel):
     tool_call_id: str
@@ -38,12 +34,9 @@ class ContentBlock(BaseModel):
     parsed: Optional[Union[Type[BaseModel], BaseModel]] = None
     tool_result: Optional[ToolResult] = None
 
-    @model_validator(mode='after')
-    def check_single_non_null(self):
-        non_null_fields = [field for field, value in self.__dict__.items() if value is not None]
-        if len(non_null_fields) > 1:
-            raise ValueError(f"Only one field can be non-null. Found: {', '.join(non_null_fields)}")
-        return self
+    @model_config(arbitrary_types_allowed=True)
+    def __init__(self, **data):
+        super().__init__(**data)
 
     @property
     def type(self):
@@ -132,10 +125,6 @@ class ContentBlock(BaseModel):
 class Message(BaseModel):
     role: str
     content: List['ContentBlock']
-
-    def __init__(self, role, content: Union[str, List[ContentBlock]] = None, **content_block_kwargs):
-        content = coerce_content_list(content, **content_block_kwargs)
-        super().__init__(content=content, role=role)
 
     @property
     def text(self) -> str:
