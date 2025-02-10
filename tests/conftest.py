@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 from ell.models.openai import OpenAIModelClient
+import os
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
