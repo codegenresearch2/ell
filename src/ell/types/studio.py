@@ -2,10 +2,10 @@ from datetime import datetime, timezone
 import enum
 from functools import cached_property
 import sqlalchemy.types as types
-from ell.types.message import Any, Field, Message, Optional
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass
+from sqlalchemy import Index, func
 
 def utc_now() -> datetime:
     """
@@ -17,7 +17,6 @@ def utc_now() -> datetime:
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
-
     This class is used to track which LMPs use or are used by other LMPs.
     """
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
@@ -71,7 +70,7 @@ class InvocationBase(SQLModel):
     prompt_tokens: Optional[int] = Field(default=None)
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
-    created_at: datetime = UTCTimestampField(default=utc_now(), nullable=False)
+    created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
     used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
 
 class InvocationContentsBase(SQLModel):
