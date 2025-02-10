@@ -20,10 +20,25 @@ class SQLStore(ell.store.Store):
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None, created_at: Optional[float] = None) -> Optional[Any]:
+        """
+        Write an LMP (Language Model Package) to the storage.
+
+        :param lmp_id: Unique identifier for the LMP.
+        :param name: Name of the LMP.
+        :param source: Source code or reference for the LMP.
+        :param dependencies: List of dependencies for the LMP.
+        :param is_lmp: Boolean indicating if it is an LMP.
+        :param lm_kwargs: Additional keyword arguments for the LMP.
+        :param uses: Dictionary of LMPs used by this LMP.
+        :param global_vars: Dictionary of global variables used by this LMP.
+        :param free_vars: Dictionary of free variables used by this LMP.
+        :param commit_message: Optional commit message for the LMP.
+        :param created_at: Optional timestamp of when the LMP was created.
+        :return: Optional return value.
+        """
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
-                # Already added to the DB.
                 return lmp
             else:
                 lmp = SerializedLMP(
@@ -51,6 +66,26 @@ class SQLStore(ell.store.Store):
                          global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
+        """
+        Write an invocation of an LMP to the storage.
+
+        :param id: Unique identifier for the invocation.
+        :param lmp_id: Unique identifier for the LMP.
+        :param args: Arguments used in the invocation.
+        :param kwargs: Keyword arguments used in the invocation.
+        :param result: Result of the invocation.
+        :param invocation_kwargs: Additional keyword arguments for the invocation.
+        :param global_vars: Dictionary of global variables used in the invocation.
+        :param free_vars: Dictionary of free variables used in the invocation.
+        :param created_at: Optional timestamp of when the invocation was created.
+        :param consumes: Set of invocation IDs consumed by this invocation.
+        :param prompt_tokens: Optional number of prompt tokens used.
+        :param completion_tokens: Optional number of completion tokens used.
+        :param latency_ms: Optional latency in milliseconds.
+        :param state_cache_key: Optional state cache key.
+        :param cost_estimate: Optional estimated cost of the invocation.
+        :return: Optional return value.
+        """
         with Session(self.engine) as session:
             if isinstance(result, lstr):
                 results = [result]
@@ -69,8 +104,8 @@ class SQLStore(ell.store.Store):
                 lmp_id=lmp.lmp_id,
                 args=args,
                 kwargs=kwargs,
-                global_vars=json.dumps(global_vars, default=str),
-                free_vars=json.dumps(free_vars, default=str),
+                global_vars=json.loads(json.dumps(global_vars, default=str)),
+                free_vars=json.loads(json.dumps(free_vars, default=str)),
                 created_at=created_at,
                 invocation_kwargs=invocation_kwargs,
                 prompt_tokens=prompt_tokens,
@@ -83,12 +118,18 @@ class SQLStore(ell.store.Store):
                 session.add(serialized_lstr)
                 invocation.results.append(serialized_lstr)
             session.add(invocation)
-            # Now create traces.
             for consumed_id in consumes:
                 session.add(InvocationTrace(invocation_consumer_id=id, invocation_consuming_id=consumed_id))
             session.commit()
 
     def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Retrieve the latest versions of all LMPs from the storage.
+
+        :param skip: Number of LMPs to skip.
+        :param limit: Maximum number of LMPs to retrieve.
+        :return: List of the latest LMPs.
+        """
         subquery = (
             select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
             .group_by(SerializedLMP.name)
@@ -98,6 +139,15 @@ class SQLStore(ell.store.Store):
         return self.get_lmps(skip=skip, limit=limit, subquery=subquery, **filters)
 
     def get_lmps(self, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Retrieve LMPs from the storage.
+
+        :param skip: Number of LMPs to skip.
+        :param limit: Maximum number of LMPs to retrieve.
+        :param subquery: Optional subquery to apply.
+        :param filters: Optional dictionary of filters to apply.
+        :return: List of LMPs.
+        """
         with Session(self.engine) as session:
             query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
                 SerializedLMPUses, SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id
@@ -119,6 +169,15 @@ class SQLStore(ell.store.Store):
             return list(lmp_dict.values())
 
     def get_invocations(self, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve invocations of an LMP from the storage.
+
+        :param lmp_filters: Dictionary of filters to apply to LMPs.
+        :param skip: Number of invocations to skip.
+        :param limit: Maximum number of invocations to retrieve.
+        :param filters: Optional dictionary of filters to apply to invocations.
+        :return: List of invocations.
+        """
         with Session(self.engine) as session:
             query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
             for key, value in lmp_filters.items():
@@ -139,7 +198,12 @@ class SQLStore(ell.store.Store):
                     invocations[inv.id]['results'].append(dict(**lstr.model_dump(), __lstr=True))
             return list(invocations.values())
 
-    def get_traces(self):
+    def get_traces(self) -> List[Dict[str, Any]]:
+        """
+        Retrieve traces of invocations from the storage.
+
+        :return: List of traces.
+        """
         with Session(self.engine) as session:
             query = text("""
             SELECT consumer.lmp_id, trace.*, consumed.lmp_id
@@ -154,6 +218,12 @@ class SQLStore(ell.store.Store):
             return traces
 
     def get_all_traces_leading_to(self, invocation_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve all traces leading to a specific invocation from the storage.
+
+        :param invocation_id: Unique identifier for the invocation.
+        :return: List of traces leading to the invocation.
+        """
         with Session(self.engine) as session:
             traces = []
             visited = set()
@@ -188,6 +258,11 @@ class SQLStore(ell.store.Store):
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
+        """
+        Initialize the SQLiteStore.
+
+        :param storage_dir: Directory to store the SQLite database.
+        """
         os.makedirs(storage_dir, exist_ok=True)
         db_path = os.path.join(storage_dir, 'ell.db')
         super().__init__(f'sqlite:///{db_path}')
