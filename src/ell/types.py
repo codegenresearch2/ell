@@ -6,6 +6,7 @@ import sqlalchemy.types as types
 from ell.lstr import lstr
 from dataclasses import dataclass
 from ell.util.dict_sync_meta import DictSyncMeta
+from typing import TypeVar
 
 # Define the InvocableLM type
 InvocableLM = Callable[..., Union[lstr, str]]
@@ -35,3 +36,17 @@ def utc_now() -> datetime:
     Serializes to ISO-8601.
     """
     return datetime.now(tz=timezone.utc)
+
+# Define the SerializedLStr class
+class SerializedLStr(SQLModel, table=True):
+    """
+    Represents a Language String (LStr) result from an LMP invocation.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    content: str
+    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
+    producer_invocation_id: Optional[int] = Field(default=None, foreign_key="invocation.id", index=True)
+    producer_invocation: Optional[Invocation] = Relationship(back_populates="results")
+
+    def deserialize(self) -> lstr:
+        return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
