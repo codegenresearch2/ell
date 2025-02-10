@@ -14,6 +14,21 @@ from datetime import datetime, timedelta
 from sqlmodel import select
 import os
 
+# Standard library imports
+from typing import List
+
+# Third-party imports
+from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+import json
+
+# Custom imports
+from ell.stores.sql import PostgresStore, SQLiteStore
+from ell.studio.config import Config
+from ell.studio.connection_manager import ConnectionManager
+from ell.studio.datamodels import SerializedLMPWithUses
+from ell.types import SerializedLMP, InvocationsAggregate, GraphDataPoint
+
 logger = logging.getLogger(__name__)
 
 def get_serializer(config: Config):
@@ -54,7 +69,7 @@ def create_app(config: Config):
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
-    @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
+    @app.get("/api/latest/lmps", response_model=List[SerializedLMPWithUses])
     def get_latest_lmps(
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=100),
@@ -71,7 +86,7 @@ def create_app(config: Config):
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
         return lmp
 
-    @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
+    @app.get("/api/lmps", response_model=List[SerializedLMPWithUses])
     def get_lmp(
         lmp_id: Optional[str] = Query(None),
         name: Optional[str] = Query(None),
