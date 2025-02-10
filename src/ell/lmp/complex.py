@@ -17,6 +17,10 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
+    This decorator transforms a function into a Language Model Program (LMP) capable of handling
+    multi-turn conversations, tool usage, and various output formats. It is designed for advanced
+    use cases where full control over the LLM's capabilities is required.
+
     :param model: The name or identifier of the language model to use.
     :type model: str
     :param client: An optional OpenAI client instance. If not provided, a default client will be used.
@@ -29,6 +33,82 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     :type api_params: Any
     :return: A decorator that can be applied to a function, transforming it into a complex LMP.
     :rtype: Callable[..., Union[List[Message], Message]]
+
+    Usage Modes:
+    ------------
+    The decorator supports multi-turn conversations, tool usage, structured outputs, and multimodal inputs.
+    Below are some examples to illustrate how to use the decorator:
+
+    Basic Prompt:
+    -------------
+    @ell.complex(model="gpt-4")
+    def generate_story(prompt: str) -> List[Message]:
+        '''You are a creative story writer'''
+        return [
+            ell.user(f"Write a short story based on this prompt: {prompt}")
+        ]
+
+    Multi-turn Conversation:
+    ------------------------
+    @ell.complex(model="gpt-4")
+    def chat_bot(message_history: List[Message]) -> List[Message]:
+        return [
+            ell.system("You are a helpful assistant."),
+        ] + message_history
+
+    Tool Usage:
+    -----------
+    @ell.tool()
+    def get_weather(location: str) -> str:
+        # Implementation to fetch weather
+        return f"The weather in {location} is sunny."
+
+    @ell.complex(model="gpt-4", tools=[get_weather])
+    def weather_assistant(message_history: List[Message]) -> List[Message]:
+        return [
+            ell.system("You are a weather assistant. Use the get_weather tool when needed."),
+        ] + message_history
+
+    Structured Output:
+    ------------------
+    from pydantic import BaseModel
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    @ell.complex(model="gpt-4", response_format=PersonInfo)
+    def extract_person_info(text: str) -> List[Message]:
+        return [
+            ell.system("Extract person information from the given text."),
+            ell.user(text)
+        ]
+
+    Multimodal Input:
+    -----------------
+    @ell.complex(model="gpt-4-vision-preview")
+    def describe_image(image: PIL.Image.Image) -> List[Message]:
+        return [
+            ell.system("Describe the contents of the image in detail."),
+            ell.user([
+                ContentBlock(text="What do you see in this image?"),
+                ContentBlock(image=image)
+            ])
+        ]
+
+    Notes:
+    ------
+    - The decorated function should return a list of Message objects.
+    - For tool usage, ensure that tools are properly decorated with @ell.tool().
+    - When using structured outputs, specify the response_format in the decorator.
+    - The complex decorator supports all features of simpler decorators like @ell.simple.
+    - Use helper functions and properties to easily access and process different types of outputs.
+
+    See Also:
+    ---------
+    - ell.simple: For simpler text-only LMP interactions.
+    - ell.tool: For defining tools that can be used within complex LMPs.
+    - ell.studio: For visualizing and analyzing LMP executions.
     """
     default_client_from_decorator = client
 
@@ -58,7 +138,7 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
         
             result = post_callback(result) if post_callback else result
             
-            return result
+            return result, api_params, metadata
 
         model_call.__ell_api_params__ = api_params
         model_call.__ell_func__ = prompt
