@@ -22,13 +22,13 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    You are backstoryGPT. Your task is to create a backstory for a character, including a name chosen randomly from the provided list.
+    Generate a backstory for a character with a name chosen randomly from the provided list.
     Format the output as follows:
 
     Name: <name>
     Backstory: <3-sentence backstory>
     """
-    return f"Generate a backstory for a character named {random.choice(names_list)}."
+    return f"Create a backstory for a character named {random.choice(names_list)}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -49,13 +49,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
     name = name.split(': ')[1]
     backstory = backstory.split(': ')[1]
 
-    system_prompt = f"""
-    You are {name}.
-    Your backstory: {backstory}
-
-    Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis.
-    """
-
+    system_prompt = f"You are {name}. Your backstory: {backstory}. Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis."
     user_prompt = format_message_history(message_history)
 
     return [
@@ -67,17 +61,13 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
 
-    names = []
-    backstories = []
-    for _ in range(100):
-        personality = create_personality()
-        name, backstory = personality.split('\n')
-        names.append(name.split(': ')[1])
-        backstories.append(backstory.split(': ')[1])
+    personalities = [create_personality() for _ in range(2)]
+    names = [personality.split('\n')[0].split(': ')[1] for personality in personalities]
+    backstories = [personality.split('\n')[1].split(': ')[1] for personality in personalities]
 
     messages: List[Tuple[str, str]] = []
     whos_turn = 0
-    for _ in range(100):
+    for _ in range(10):
         personality_talking = f"Name: {names[whos_turn]}\nBackstory: {backstories[whos_turn]}"
         response = chat(messages, personality=personality_talking)
         messages.append((names[whos_turn], response[1]))
