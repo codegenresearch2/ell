@@ -5,8 +5,12 @@ from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
+from typing import Any
 
-_lstr_generic = Union[str, 'lstr']
+from ell.lstr import lstr
+from ell.util.dict_sync_meta import DictSyncMeta
+
+_lstr_generic = Union[lstr, str]
 
 OneTurn = Callable[..., _lstr_generic]
 
@@ -15,10 +19,15 @@ OneTurn = Callable[..., _lstr_generic]
 LMPParams = Dict[str, Any]
 
 
-@dataclass
+@dataclass(init=False, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
 class Message(dict):
     role: str
     content: _lstr_generic
+
+    def __init__(self, role: str, content: _lstr_generic):
+        super().__init__()
+        self.role = role
+        self.content = content
 
 
 # Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta.
