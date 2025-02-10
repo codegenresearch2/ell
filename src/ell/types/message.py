@@ -95,13 +95,17 @@ class ContentBlock(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                img_data = base64.b64decode(v)
-                img = Image.open(BytesIO(img_data))
-                if img.mode not in ('L', 'RGB', 'RGBA'):
-                    img = img.convert('RGB')
-                return img
-            except base64.binascii.Error:
-                raise ValueError("Invalid base64 string for image")
+                # Check if the string is a valid base64 encoded string
+                if base64.b64encode(base64.b64decode(v)).decode('utf-8') == v:
+                    img_data = base64.b64decode(v)
+                    img = Image.open(BytesIO(img_data))
+                    if img.mode not in ('L', 'RGB', 'RGBA'):
+                        img = img.convert('RGB')
+                    return img
+                else:
+                    raise ValueError("The provided string is not a valid base64 encoded image.")
+            except (base64.binascii.Error, ValueError) as e:
+                raise ValueError(f"The input string is not a valid image format: {e}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -133,7 +137,7 @@ class ContentBlock(BaseModel):
         elif self.parsed:
             return {
                 "type": "parsed",
-                "parsed": self.parsed
+                "parsed": json.dumps(self.parsed.model_dump())
             }
         else:
             return None
