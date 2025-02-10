@@ -1,32 +1,29 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import os
 from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
+from pydantic import BaseModel
 import cattrs
 import numpy as np
 from sqlalchemy.sql import text
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
-from sqlalchemy import or_, func, and_, extract, case
+from sqlalchemy import or_, func, and_
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
-
         self.open_files: Dict[str, Dict[str, Any]] = {}
-
 
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
         with Session(self.engine) as session:
-            # Bind the serialized_lmp to the session
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == serialized_lmp.lmp_id).first()
             
             if lmp:
-                # Already added to the DB.
                 return lmp
             else:
                 session.add(serialized_lmp)
@@ -44,7 +41,6 @@ class SQLStore(ell.store.Store):
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == invocation.lmp_id).first()
             assert lmp is not None, f"LMP with id {invocation.lmp_id} not found. Writing invocation erroneously"
             
-            # Increment num_invocations
             if lmp.num_invocations is None:
                 lmp.num_invocations = 1
             else:
@@ -56,7 +52,6 @@ class SQLStore(ell.store.Store):
                 result.producer_invocation = invocation
                 session.add(result)
 
-            # Now create traces.
             for consumed_id in consumes:
                 session.add(InvocationTrace(
                     invocation_consumer_id=invocation.id,
@@ -74,27 +69,22 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             return self.get_lmps(session, name=fqn)
         
-    ## HELPER METHODS FOR ELL STUDIO! :) 
-    def get_latest_lmps(self, session: Session, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
-        """
-        Gets all the lmps grouped by unique name with the highest created at
-        """
-        subquery = (
-            select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
-            .group_by(SerializedLMP.name)
-            .subquery()
-        )
-        
-        filters = {
-            "name": subquery.c.name,
-            "created_at": subquery.c.max_created_at
-        }
-        
-        return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
+    def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
+        with Session(self.engine) as session:
+            subquery = (
+                select(SerializedLMP.name, func.max(SerializedLMP.created_at).label("max_created_at"))
+                .group_by(SerializedLMP.name)
+                .subquery()
+            )
+            
+            filters = {
+                "name": subquery.c.name,
+                "created_at": subquery.c.max_created_at
+            }
+            
+            return self.get_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
-        
     def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-
         query = select(SerializedLMP)
         
         if subquery is not None:
@@ -107,11 +97,11 @@ class SQLStore(ell.store.Store):
             for key, value in filters.items():
                 query = query.where(getattr(SerializedLMP, key) == value)
         
-        query = query.order_by(SerializedLMP.created_at.desc())  # Sort by created_at in descending order
+        query = query.order_by(SerializedLMP.created_at.desc())
         query = query.offset(skip).limit(limit)
         results = session.exec(query).all()
         
-        return results
+        return [lmp.model_dump() for lmp in results]
 
     def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
         def fetch_invocation(inv_id):
@@ -131,7 +121,6 @@ class SQLStore(ell.store.Store):
             inv_dict['lmp'] = lmp.model_dump()
             inv_dict['results'] = [dict(**l.model_dump(), __lstr=True) for l in [r[1] for r in results if r[1]]]
 
-            # Fetch consumes and consumed_by invocation IDs
             consumes_query = select(InvocationTrace.invocation_consuming_id).where(InvocationTrace.invocation_consumer_id == inv_id)
             consumed_by_query = select(InvocationTrace.invocation_consumer_id).where(InvocationTrace.invocation_consuming_id == inv_id)
 
@@ -139,21 +128,17 @@ class SQLStore(ell.store.Store):
             inv_dict['consumed_by'] = [r for r in session.exec(consumed_by_query).all()]
             inv_dict['uses'] = list([d.id for d in inv.uses]) 
 
-
             return inv_dict
 
         query = select(Invocation.id).join(SerializedLMP)
 
-        # Apply LMP filters
         for key, value in lmp_filters.items():
             query = query.where(getattr(SerializedLMP, key) == value)
 
-        # Apply invocation filters
         if filters:
             for key, value in filters.items():
                 query = query.where(getattr(Invocation, key) == value)
 
-        # Sort from newest to oldest
         query = query.order_by(Invocation.created_at.desc()).offset(skip).limit(limit)
 
         invocation_ids = session.exec(query).all()
@@ -161,10 +146,8 @@ class SQLStore(ell.store.Store):
         invocations = [fetch_invocation(inv_id) for inv_id in invocation_ids if inv_id]
 
         if hierarchical:
-            # Fetch all related "uses" invocations
             used_ids = set()
             for inv in invocations:
-                
                 used_ids.update(inv['uses'])
 
             used_invocations = [fetch_invocation(inv_id) for inv_id in used_ids if inv_id not in invocation_ids]
@@ -198,7 +181,6 @@ class SQLStore(ell.store.Store):
         
 
     def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
-
         traces = []
         visited = set()
         queue = [(invocation_id, 0)]
@@ -228,59 +210,14 @@ class SQLStore(ell.store.Store):
                 traces.append(trace)
                 queue.append((row.Invocation.id, depth + 1))
                 
-        # Create a dictionary to store unique traces based on consumed.id
         unique_traces = {}
         for trace in traces:
             consumed_id = trace['consumed']['id']
             if consumed_id not in unique_traces:
                 unique_traces[consumed_id] = trace
         
-        # Convert the dictionary values back to a list
         return list(unique_traces.values())
-    
-    def get_invocations_aggregate(self, session: Session, lmp_filters: Dict[str, Any] = None, filters: Dict[str, Any] = None, days: int = 30) -> Dict[str, Any]:
-        # Calculate the start date for the graph data
-        start_date = datetime.utcnow() - timedelta(days=days)
 
-        # Base subquery
-        base_subquery = (
-            select(Invocation.created_at, Invocation.latency_ms, Invocation.prompt_tokens, Invocation.completion_tokens)
-            .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
-            .filter(Invocation.created_at >= start_date)
-        )
-
-        # Apply filters
-        if lmp_filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(SerializedLMP, k) == v for k, v in lmp_filters.items()]))
-        if filters:
-            base_subquery = base_subquery.filter(and_(*[getattr(Invocation, k) == v for k, v in filters.items()]))
-
-        
-        data = session.exec(base_subquery).all()
-
-        # Calculate aggregate metrics
-        total_invocations = len(data)
-        total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
-        avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
-        unique_lmps = len(set(row.name for row in data))
-
-        # Prepare graph data
-        graph_data = []
-        for row in data:
-            graph_data.append({
-                "date": row.created_at,
-                "avg_latency": row.latency_ms,
-                "tokens": row.prompt_tokens + row.completion_tokens,
-                "count": 1
-            })
-
-        return {
-            "total_invocations": total_invocations,
-            "total_tokens": total_tokens,
-            "avg_latency": avg_latency,
-            "unique_lmps": unique_lmps,
-            "graph_data": graph_data
-        }
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
@@ -291,4 +228,3 @@ class SQLiteStore(SQLStore):
 class PostgresStore(SQLStore):
     def __init__(self, db_uri: str):
         super().__init__(db_uri)
-    
