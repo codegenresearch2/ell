@@ -10,40 +10,31 @@ from sqlalchemy.sql import text
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
-import asyncio
-import websockets
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        self.open_files: Dict[str, Dict[str, Any]] = {}
-        self.websocket_clients = set()
-
-    def notify_clients(self, message: str):
-        if self.websocket_clients:
-            for client in self.websocket_clients:
-                client.send(message)
-
-    def handle_websocket(self, websocket, path):
-        self.websocket_clients.add(websocket)
-        try:
-            websocket.wait_closed()
-        finally:
-            self.websocket_clients.remove(websocket)
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
-                  commit_message: Optional[str] = None, created_at: Optional[float]=None) -> Optional[Any]:
+                  commit_message: Optional[str] = None, created_at: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
                 return lmp
             else:
                 lmp = SerializedLMP(
-                    lmp_id=lmp_id, name=name, version_number=version_number, source=source, dependencies=dependencies,
-                    initial_global_vars=global_vars, initial_free_vars=free_vars,
-                    created_at=created_at or datetime.datetime.utcnow(), is_lm=is_lmp, lm_kwargs=lm_kwargs,
+                    lmp_id=lmp_id,
+                    name=name,
+                    version_number=version_number,
+                    source=source,
+                    dependencies=dependencies,
+                    initial_global_vars=global_vars,
+                    initial_free_vars=free_vars,
+                    created_at=created_at or datetime.datetime.utcnow(),
+                    is_lm=is_lmp,
+                    lm_kwargs=lm_kwargs,
                     commit_message=commit_message
                 )
                 session.add(lmp)
@@ -52,7 +43,6 @@ class SQLStore(ell.store.Store):
                 if used_lmp:
                     lmp.uses.append(used_lmp)
             session.commit()
-            self.notify_clients(json.dumps({'action': 'lmp_updated', 'lmp_id': lmp_id}))
         return None
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
@@ -73,11 +63,18 @@ class SQLStore(ell.store.Store):
             else:
                 lmp.num_invocations += 1
             invocation = Invocation(
-                id=id, lmp_id=lmp.lmp_id, args=args, kwargs=kwargs,
-                global_vars=json.dumps(global_vars),
-                free_vars=json.dumps(free_vars), created_at=created_at,
-                invocation_kwargs=invocation_kwargs, prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
-                latency_ms=latency_ms, state_cache_key=state_cache_key,
+                id=id,
+                lmp_id=lmp.lmp_id,
+                args=args,
+                kwargs=kwargs,
+                global_vars=json.loads(json.dumps(global_vars)),
+                free_vars=json.loads(json.dumps(free_vars)),
+                created_at=created_at,
+                invocation_kwargs=invocation_kwargs,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                latency_ms=latency_ms,
+                state_cache_key=state_cache_key,
             )
             for res in results:
                 serialized_lstr = SerializedLStr(content=str(res), logits=res.logits)
@@ -87,7 +84,6 @@ class SQLStore(ell.store.Store):
             for consumed_id in consumes:
                 session.add(InvocationTrace(invocation_consumer_id=id, invocation_consuming_id=consumed_id))
             session.commit()
-            self.notify_clients(json.dumps({'action': 'invocation_updated', 'invocation_id': id}))
 
     def get_latest_lmps(self, skip: int = 0, limit: int = 10) -> List[Dict[str, Any]]:
         subquery = (
@@ -192,12 +188,3 @@ class SQLiteStore(SQLStore):
         os.makedirs(storage_dir, exist_ok=True)
         db_path = os.path.join(storage_dir, 'ell.db')
         super().__init__(f'sqlite:///{db_path}')
-
-def main():
-    store = SQLiteStore('/path/to/storage')
-    start_server = websockets.serve(store.handle_websocket, 'localhost', 8765)
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
-
-if __name__ == '__main__':
-    main()
