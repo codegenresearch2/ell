@@ -34,13 +34,12 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     :return: A decorator that can be applied to a function, transforming it into a complex LMP.
     :rtype: Callable[..., Union[List[Message], Message]]
 
-    Usage Modes:
-    ------------
-    The decorator supports multi-turn conversations, tool usage, structured outputs, and multimodal inputs.
-    Below are some examples to illustrate how to use the decorator:
+    Usage:
+    ------
+    The following examples illustrate how to use the `complex` decorator:
 
-    Basic Prompt:
-    -------------
+    Example 1: Basic Prompt
+    -----------------------
     @ell.complex(model="gpt-4")
     def generate_story(prompt: str) -> List[Message]:
         '''You are a creative story writer'''
@@ -48,16 +47,16 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
             ell.user(f"Write a short story based on this prompt: {prompt}")
         ]
 
-    Multi-turn Conversation:
-    ------------------------
+    Example 2: Multi-turn Conversation
+    ----------------------------------
     @ell.complex(model="gpt-4")
     def chat_bot(message_history: List[Message]) -> List[Message]:
         return [
             ell.system("You are a helpful assistant."),
         ] + message_history
 
-    Tool Usage:
-    -----------
+    Example 3: Tool Usage
+    ---------------------
     @ell.tool()
     def get_weather(location: str) -> str:
         # Implementation to fetch weather
@@ -69,8 +68,8 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
             ell.system("You are a weather assistant. Use the get_weather tool when needed."),
         ] + message_history
 
-    Structured Output:
-    ------------------
+    Example 4: Structured Output
+    ----------------------------
     from pydantic import BaseModel
 
     class PersonInfo(BaseModel):
@@ -84,8 +83,8 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
             ell.user(text)
         ]
 
-    Multimodal Input:
-    -----------------
+    Example 5: Multimodal Input
+    ---------------------------
     @ell.complex(model="gpt-4-vision-preview")
     def describe_image(image: PIL.Image.Image) -> List[Message]:
         return [
