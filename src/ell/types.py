@@ -1,5 +1,3 @@
-# Updated code to address the feedback regarding the syntax error and improve overall code alignment with the gold standard.
-
 from datetime import datetime
 from typing import Callable, Dict, List, Optional, Union
 from ell.lstr import lstr
@@ -109,7 +107,7 @@ class SerializedLStr(SQLModel, table=True):
 # Function to get the current UTC timestamp
 def utc_now() -> datetime:
     """
-    Returns the current UTC timestamp.
+    Returns the current UTC timestamp in ISO-8601 format.
 
     Returns:
         datetime: The current UTC timestamp.
