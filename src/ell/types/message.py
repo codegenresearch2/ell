@@ -48,7 +48,6 @@ class ContentBlock(BaseModel):
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
-    parsed: Optional[Union[Type[BaseModel], BaseModel]] = Field(default=None)
     tool_result: Optional[ToolResult] = Field(default=None)
 
     @model_validator(mode='after')
@@ -68,8 +67,6 @@ class ContentBlock(BaseModel):
             return "audio"
         if self.tool_call is not None:
             return "tool_call"
-        if self.parsed is not None:
-            return "parsed"
         if self.tool_result is not None:
             return "tool_result"
         return None
@@ -87,7 +84,6 @@ class ContentBlock(BaseModel):
         if isinstance(content, BaseModel):
             return cls(parsed=content)
         if isinstance(content, (PILImage.Image, np.ndarray)):
-
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
@@ -100,13 +96,10 @@ class ContentBlock(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                img_data = base64.b64decode(v)
-                img = PILImage.open(BytesIO(img_data))
-                if img.mode not in ('L', 'RGB', 'RGBA'):
-                    img = img.convert('RGB')
-                return img
-            except base64.binascii.Error as e:
-                raise ValueError(f"Invalid base64 string for image: {e}")
+                base64.b64decode(v)
+                return v
+            except base64.binascii.Error:
+                raise ValueError("Invalid base64 string for image")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -136,10 +129,25 @@ class ContentBlock(BaseModel):
                 "type": "text",
                 "text": self.text
             }
-        elif self.parsed:
+        elif self.tool_call:
             return {
-                "type": "text",
-                "json": self.parsed.model_dump_json()
+                "type": "tool_call",
+                "tool_call": {
+                    "id": self.tool_call.tool_call_id,
+                    "type": "function",
+                    "function": {
+                        "name": self.tool_call.tool.__name__,
+                        "arguments": json.dumps(self.tool_call.params.model_dump())
+                    }
+                }
+            }
+        elif self.tool_result:
+            return {
+                "type": "tool_result",
+                "tool_result": {
+                    "id": self.tool_result.tool_call_id,
+                    "result": self.tool_result.result[0].text
+                }
             }
         else:
             return None 
@@ -181,7 +189,7 @@ class Message(BaseModel):
         return [c.tool_result for c in self.content if c.tool_result is not None]
 
     @cached_property
-    def parsed_content(self) -> List[BaseModel]:
+    def structured(self) -> List[BaseModel]:
         return [c.parsed for c in self.content if c.parsed is not None]
     
     def call_tools_and_collect_as_message(self, parallel=False, max_workers=None):
