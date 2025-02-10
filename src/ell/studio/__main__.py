@@ -17,6 +17,7 @@ def main():
 
     app = create_app(args.storage_dir)
 
+    # Serve static files in production mode
     if not args.dev:
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
@@ -29,11 +30,11 @@ def main():
 
     async def db_watcher():
         async for changes in awatch(db_path):
-            print(f"Database changes detected: {changes}")
+            print(f"Detected changes in the database: {changes}")
             await app.notify_clients("database_updated")
 
     async def start_server_and_watch_database():
-        config = uvicorn.Config(app=app, host=args.host, port=args.port)
+        config = uvicorn.Config(app=app, host=args.host, port=args.port, loop=loop)
         server = uvicorn.Server(config)
 
         print(f"Starting server on {args.host}:{args.port}")
