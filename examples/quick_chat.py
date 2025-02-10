@@ -18,15 +18,35 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
+    """
+    Generates a backstory for a character including their name.
+    Chooses a random name from the provided list.
+    Returns:
+        str: A formatted string containing the name and a backstory.
+    """
     random_name = random.choice(names_list)
     return f"Name: {random_name}\nBackstory: {random_name} has a fascinating past that shapes their current personality."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
+    """
+    Formats a list of message tuples into a single string with each message separated by a newline.
+    Args:
+        message_history (List[Tuple[str, str]]): A list of tuples containing names and messages.
+    Returns:
+        str: A formatted string with each name and message pair on a new line.
+    """
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str):
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
+    """
+    Generates a response based on the provided personality and message history.
+    Args:
+        message_history (List[Tuple[str, str]]): A list of tuples containing names and messages.
+        personality (str): A string containing the personality description.
+    Returns:
+        List[str]: A list of strings containing the system and user prompts.
+    """
     return [
         ell.system(f"""Here is your description.
 {personality}. 
@@ -39,7 +59,7 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
         
-    for _ in range(100):  # Loop runs 100 times to generate messages
+    for iteration in range(100):  # Loop runs 100 times to generate messages
         messages: List[Tuple[str, str]] = []  # Initialize messages for each iteration
         personalities = [create_personality() for _ in range(2)]  # Generate two personalities
 
