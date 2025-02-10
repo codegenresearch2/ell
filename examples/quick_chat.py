@@ -44,15 +44,16 @@ if __name__ == "__main__":
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
         
     personalities = [create_personality() for _ in range(2)]
-    messages: List[Tuple[str, str]] = []
-
     names = []
+    backstories = []
     for personality in personalities:
         parts = personality.split("\n")
         names.append(parts[0].split(": ")[1])
+        backstories.append(parts[2].split(": ")[1])  # Correctly extract backstory
     
     print("Names:", names)  # Print the names for verification
     
+    messages: List[Tuple[str, str]] = []
     whos_turn = 0 
     for _ in range(10):
         personality_talking = personalities[whos_turn]
