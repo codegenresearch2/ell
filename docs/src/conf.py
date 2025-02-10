@@ -17,13 +17,12 @@ author = 'William Guss'
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
 # Path setup
-templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
 
-# Theme options are theme-specific and customize the look and feel.
+# Additional theme configuration
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
