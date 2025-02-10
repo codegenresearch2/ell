@@ -14,22 +14,59 @@ class Store(ABC):
 
     @abstractmethod
     def write_lmp(self, serialized_lmp: SerializedLMP, uses: Dict[str, Any]) -> Optional[Any]:
+        """
+        Write an LMP (Language Model Package) to the storage.
+
+        :param serialized_lmp: SerializedLMP object containing all LMP details.
+        :param uses: Dictionary of LMPs used by this LMP.
+        :return: Optional return value.
+        """
         pass
 
     @abstractmethod
-    def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
+    def write_invocation(self, invocation: Invocation, results: List[Any], consumes: Set[str]) -> Optional[Any]:
+        """
+        Write an invocation of an LMP to the storage.
+
+        :param invocation: Invocation object containing all invocation details.
+        :param results: List of results obtained from the invocation.
+        :param consumes: Set of invocation IDs consumed by this invocation.
+        :return: Optional return value.
+        """
         pass
 
     @abstractmethod
     def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
+        """
+        Get cached invocations for a given LMP and state cache key.
+
+        :param lmp_id: ID of the LMP.
+        :param state_cache_key: State cache key.
+        :return: List of cached invocations.
+        """
         pass
 
     @abstractmethod
     def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
+        """
+        Get all versions of an LMP by its fully qualified name.
+
+        :param fqn: Fully qualified name of the LMP.
+        :return: List of SerializedLMP objects representing all versions of the LMP.
+        """
         pass
 
     @contextmanager
     def freeze(self, *lmps: InvocableLM):
+        """
+        A context manager for caching operations using a particular store.
+
+        Args:
+            *lmps: InvocableLM objects to freeze.
+
+        Yields:
+            None
+        """
         old_cache_values = {}
         try:
             for lmp in lmps:
@@ -42,6 +79,3 @@ class Store(ABC):
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
                 else:
                     delattr(lmp, '__ell_use_cache__')
-
-
-The provided code snippet has been rewritten to follow the user's preferences for removing unused methods, simplifying the codebase for maintainability, and streamlining API endpoints for efficiency. The unused methods `get_lmps`, `get_invocations`, `get_latest_lmps`, `get_traces`, and `get_all_traces_leading_to` have been removed from the `Store` abstract base class to simplify the codebase and streamline the API endpoints. The `freeze` context manager has also been kept as it is a necessary part of the codebase.
