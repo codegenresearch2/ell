@@ -3,9 +3,57 @@ from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
 import json
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
-from ell.lstr import lstr
 from sqlalchemy import or_, func, and_
+from ell.lstr import lstr
+
+class InvocationTrace(SQLModel, table=True):
+    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
+    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
+
+class SerializedLMP(SQLModel, table=True):
+    lmp_id: Optional[str] = Field(default=None, primary_key=True)
+    name: str
+    source: str
+    dependencies: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_lm: bool
+    lm_kwargs: dict = Field(sa_column=Column(JSON))
+    initial_free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    initial_global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    num_invocations: Optional[int] = Field(default=0)
+    commit_message: Optional[str] = Field(default=None)
+    version_number: Optional[int] = Field(default=None)
+    invocations: List["Invocation"] = Relationship(back_populates="lmp")
+    used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses", link_model=SerializedLMPUses)
+    uses: List["SerializedLMP"] = Relationship(back_populates="used_by", link_model=SerializedLMPUses)
+
+class Invocation(SQLModel, table=True):
+    id: Optional[str] = Field(default=None, primary_key=True)
+    lmp_id: str = Field(foreign_key="serializedlmp.lmp_id")
+    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
+    kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    latency_ms: float
+    prompt_tokens: Optional[int] = Field(default=None)
+    completion_tokens: Optional[int] = Field(default=None)
+    state_cache_key: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    lmp: SerializedLMP = Relationship(back_populates="invocations")
+    results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")
+    consumed_by: List["Invocation"] = Relationship(back_populates="consumes", link_model=InvocationTrace)
+    consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace)
+
+class SerializedLStr(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    content: str
+    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
+    producer_invocation_id: Optional[int] = Field(default=None, foreign_key="invocation.id")
+    producer_invocation: Optional[Invocation] = Relationship(back_populates="results")
+
+    def deserialize(self) -> lstr:
+        return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
