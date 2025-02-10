@@ -4,14 +4,25 @@ from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 
 # Define utc_now function directly within the same file to avoid circular import issues
 def utc_now():
+    """
+    Returns the current UTC time.
+    """
     return datetime.utcnow()
 
 # Define the InvocationTrace class before using it in the Invocation class
 class InvocationTrace(SQLModel, table=True):
+    """
+    Represents a many-to-many relationship between Invocations and other Invocations (it's a 1st degree link in the trace graph).
+    This class is used to keep track of when an invocation consumes a result of another invocation.
+    """
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
 
 class Invocation(SQLModel, table=True):
+    """
+    Represents an invocation of an LMP.
+    This class is used to store information about each time an LMP is called.
+    """
     id: Optional[str] = Field(default=None, primary_key=True)
     lmp_id: str = Field(foreign_key="serializedlmp.lmp_id")
     args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
@@ -30,6 +41,10 @@ class Invocation(SQLModel, table=True):
     consumes: List['Invocation'] = Relationship(back_populates="consumed_by", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id"))
 
 class SerializedLMP(SQLModel, table=True):
+    """
+    Represents a serialized Language Model Program (LMP).
+    This class is used to store and retrieve LMP information in the database.
+    """
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str
     source: str
@@ -51,6 +66,10 @@ class SerializedLMP(SQLModel, table=True):
         unique_together = [("version_number", "name")]
 
 class SerializedLStr(SQLModel, table=True):
+    """
+    Represents a Language String (LStr) result from an LMP invocation.
+    This class is used to store the output of LMP invocations.
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
     logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
@@ -58,9 +77,16 @@ class SerializedLStr(SQLModel, table=True):
     producer_invocation: Optional[Invocation] = Relationship(back_populates="results")
 
     def deserialize(self) -> lstr:
+        """
+        Convert an SerializedLStr to an lstr.
+        """
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
 
 # Define the SerializedLMPUses class after the SerializedLMP class to avoid circular import issues
 class SerializedLMPUses(SQLModel, table=True):
+    """
+    Represents the many-to-many relationship between SerializedLMPs.
+    This class is used to track which LMPs use or are used by other LMPs.
+    """
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
