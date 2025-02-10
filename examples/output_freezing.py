@@ -6,14 +6,14 @@ BASE_PROMPT = "You are an adept Python programmer. Your goal is to generate Pyth
 
 # Improve function naming and parameter naming
 @ell.lm(model="gpt-4o", temperature=0.7, max_tokens=500)
-def create_python_class(user_spec: str):
+def generate_python_class(user_spec: str):
     return [
-        ell.system(f"{BASE_PROMPT}\nCreate a Python class based on the user's specification."),
+        ell.system(f"{BASE_PROMPT}\nCreate a Python class based on the provided user specification."),
         ell.user(f"User specification: {user_spec}")
     ]
 
 @ell.lm(model="gpt-4o", temperature=0.7, max_tokens=100)
-def write_unit_test(class_def: str):
+def create_unit_test(class_def: str):
     return [
         ell.system(f"{BASE_PROMPT}\nWrite a single unit test for the provided class definition. Avoid using the `unittest` package."),
         ell.user(f"Class definition: {class_def}")
@@ -25,6 +25,6 @@ if __name__ == "__main__":
 
     ell.config.verbose = True
 
-    with store.freeze(create_python_class):
-        class_definition = create_python_class("A class that represents a bank")
-        unit_test = write_unit_test(class_definition)
+    with store.freeze(generate_python_class):
+        class_definition = generate_python_class("A class that represents a bank")
+        unit_test = create_unit_test(class_definition)
