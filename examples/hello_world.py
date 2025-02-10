@@ -1,34 +1,27 @@
 import ell
 import numpy as np
 
-
-
-
-
 from ell.stores.sql import SQLiteStore
 
+def initialize_store():
+    ell.config.verbose = True
+    ell.set_store('./logdir', autocommit=True)
 
-ell.config.verbose = True
-ell.set_store('./logdir', autocommit=True)
-# equivalent to
-# ell.init(store='./logdir', autocommit=True, verbose=True)
-
-
-def get_random_length():
+def calculate_random_length():
     return int(np.random.beta(2, 6) * 3000)
 
 @ell.simple(model="gpt-4o-mini")
-def hello(world : str):
-    """Your goal is to be really meant to the other guy while sayi hello"""
-    name = world.capitalize()
-    number_of_chars_in_name = get_random_length()
+def generate_greeting(name: str):
+    """Your goal is to be really kind to the person while saying hello"""
+    capitalized_name = name.capitalize()
+    char_limit = calculate_random_length()
 
-    return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
-
-
+    return f"Say hello to {capitalized_name} in {char_limit} characters or more!"
 
 if __name__ == "__main__":
-    greeting = hello("sam altman") # > "hello sama! ... "
+    initialize_store()
+    greeting = generate_greeting("sam altman")
 
-    # List of strings
-    print(greeting.split(" ")[-1])
+    # Extract the last word from the greeting
+    last_word = greeting.split(" ")[-1]
+    print(last_word)
