@@ -14,13 +14,10 @@ def hello(world: str):
     number_of_chars_in_name = get_random_length()
     return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
 
-def run_conversations():
+
+if __name__ == "__main__":
     ell.config.verbose = True
     ell.set_store('./logdir', autocommit=True)
 
     greeting = hello("sam altman")  # > "hello sama! ... "
     print(greeting.split(" ")[-1])
-
-
-if __name__ == "__main__":
-    run_conversations()
