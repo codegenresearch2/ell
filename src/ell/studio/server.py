@@ -8,7 +8,7 @@ from ell.stores.sql import PostgresStore, SQLiteStore
 from ell import __version__
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
-from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate
+from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate, InvocationPublic
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
@@ -64,11 +64,13 @@ def create_app(config:Config):
 
     @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str, session: Session = Depends(get_session)):
-        lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
-        return lmp
+        lmp = serializer.get_lmps(session, lmp_id=lmp_id)
+        if not lmp:
+            raise HTTPException(status_code=404, detail="LMP not found")
+        return lmp[0]
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
-    def get_lmp(
+    def get_lmps(
         lmp_id: Optional[str] = Query(None),
         name: Optional[str] = Query(None),
         skip: int = Query(0, ge=0),
@@ -93,8 +95,10 @@ def create_app(config:Config):
         invocation_id: str,
         session: Session = Depends(get_session)
     ):
-        invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})[0]
-        return invocation
+        invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})
+        if not invocation:
+            raise HTTPException(status_code=404, detail="Invocation not found")
+        return invocation[0]
 
     @app.get("/api/invocations", response_model=list[InvocationPublic])
     def get_invocations(
