@@ -149,4 +149,6 @@ def call(
             content=content
         ))
     
+    api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)  # Reassign api_params before returning
+    
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
