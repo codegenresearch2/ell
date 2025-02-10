@@ -1,6 +1,6 @@
-# Let's define the core types.
+# Import necessary modules
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
@@ -10,6 +10,7 @@ from typing import Any
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 
+# Define core types
 _lstr_generic = Union[lstr, str]
 
 OneTurn = Callable[..., _lstr_generic]
@@ -18,31 +19,29 @@ OneTurn = Callable[..., _lstr_generic]
 # This is a placeholder will likely come back later for this
 LMPParams = Dict[str, Any]
 
-
+# Define the Message class using dataclass without metaclass arguments
 @dataclass
-class Message:
+class Message(dict):
     role: str
     content: _lstr_generic
 
-
-# Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta.
+# Define the type for MessageOrDict
 MessageOrDict = Union[Message, Dict[str, str]]
 
-# Can support image prompts later.
+# Define the type for Chat
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
 
 MultiTurnLMP = Callable[..., Chat]
-from typing import TypeVar, Any
 
-# This is the specific LMP that must accept history as an argument and can take any additional arguments
+# Define the type for InvocableLM
 T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
-
+# Function to get the current UTC timestamp
 def utc_now() -> datetime:
     """
     Returns the current UTC timestamp.
@@ -50,7 +49,7 @@ def utc_now() -> datetime:
     """
     return datetime.now(tz=timezone.utc)
 
-
+# Define the SerializedLMPUses class
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
@@ -61,18 +60,18 @@ class SerializedLMPUses(SQLModel, table=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
 
-
+# Define the UTCTimestamp class
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
     def process_result_value(self, value: datetime, dialect: Any):
         return value.replace(tzinfo=timezone.utc)
 
-
+# Function to define the UTCTimestampField
 def UTCTimestampField(index: bool = False, **kwargs: Any):
     return Field(
         sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
-
+# Define the SerializedLMP class
 class SerializedLMP(SQLModel, table=True):
     """
     Represents a serialized Language Model Program (LMP).
@@ -123,7 +122,7 @@ class SerializedLMP(SQLModel, table=True):
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
 
-
+# Define the InvocationTrace class
 class InvocationTrace(SQLModel, table=True):
     """
     Represents a many-to-many relationship between Invocations and other Invocations (it's a 1st degree link in the trace graph)
@@ -133,7 +132,7 @@ class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)  # ID of the Invocation that is consuming another Invocation
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)  # ID of the Invocation that is being consumed by another Invocation
 
-
+# Define the Invocation class
 class Invocation(SQLModel, table=True):
     """
     Represents an invocation of an LMP.
@@ -179,7 +178,7 @@ class Invocation(SQLModel, table=True):
         ),
     )
 
-
+# Define the SerializedLStr class
 class SerializedLStr(SQLModel, table=True):
     """
     Represents a Language String (LStr) result from an LMP invocation.
