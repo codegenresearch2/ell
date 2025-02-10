@@ -8,15 +8,14 @@ names_list = ["Alice", "Bob", "Charlie", "Diana", "Eve", "George", "Grace", "Han
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    You are backstoryGPT. Your task is to create a backstory for a character with a random name from the names_list.
-    The backstory should be a 3-sentence paragraph.
+    Generate a backstory for a character with a random name from the names_list.
 
     Returns:
         str: A formatted string containing the character's name and backstory.
               The format should be: "Name: <name>\nBackstory: <3-sentence backstory>"
     """
     name = random.choice(names_list)
-    backstory = f"You are backstoryGPT. Come up with a 3-sentence backstory for a character named {name}."
+    backstory = f"Create a 3-sentence backstory for a character named {name}."
     return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
@@ -32,7 +31,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     """
     Generate a response to a chat based on the message history and the character's personality.
 
@@ -41,11 +40,10 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
         personality (str): The character's personality and backstory.
 
     Returns:
-        List[str]: A list containing the system and user prompts for the chat.
+        str: A response to the chat in one sentence, using informal text message style.
     """
-    system_prompt = f"You are {personality}. Your goal is to respond to a chat in one sentence, using informal text message style. Never use Emojis."
-    user_prompt = format_message_history(message_history)
-    return [ell.system(system_prompt), ell.user(user_prompt)]
+    system_prompt = f"You are {personality}. Your goal is to respond to a chat in one sentence, using informal text message style. Never use Emojis. Here is the chat history:\n{format_message_history(message_history)}"
+    return system_prompt
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -62,6 +60,6 @@ if __name__ == "__main__":
     for _ in range(10):
         personality_talking = personalities[whos_turn]
         response = chat(messages, personality=personality_talking)
-        messages.append((names[whos_turn], response[1]))
+        messages.append((names[whos_turn], response))
         whos_turn = (whos_turn + 1) % len(personalities)
     print("Messages:", messages)
