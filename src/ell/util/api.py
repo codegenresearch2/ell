@@ -166,4 +166,4 @@ def call(
     
     api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
     
-    return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
+    return tracked_results, api_params, metadata
