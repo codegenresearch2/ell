@@ -28,16 +28,16 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3-sentence backstory>
     """
-    return f"Create a backstory for a character named {random.choice(names_list)}."
+    return f"Generate a backstory for a character named {random.choice(names_list)}."
 
-def format_message_history(messages: List[Tuple[str, str]]) -> str:
+def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
     Format the message history into a string for use in the chat function.
     """
-    return "\n".join([f"{name}: {message}" for name, message in messages])
+    return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(messages: List[Tuple[str, str]], *, personality: str) -> str:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
     """
     Generate a response to a chat based on the character's backstory.
 
@@ -56,29 +56,30 @@ def chat(messages: List[Tuple[str, str]], *, personality: str) -> str:
     Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis.
     """
 
-    user_prompt = format_message_history(messages)
+    user_prompt = format_message_history(message_history)
 
-    return ell.system(system_prompt) + ell.user(user_prompt)
+    return [
+        ell.system(system_prompt),
+        ell.user(user_prompt),
+    ]
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
 
-    messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(100)]
-
     names = []
     backstories = []
-    for personality in personalities:
+    for _ in range(100):
+        personality = create_personality()
         name, backstory = personality.split('\n')
         names.append(name.split(': ')[1])
         backstories.append(backstory.split(': ')[1])
-    print(names)
 
+    messages: List[Tuple[str, str]] = []
     whos_turn = 0
     for _ in range(100):
-        personality_talking = personalities[whos_turn]
+        personality_talking = f"Name: {names[whos_turn]}\nBackstory: {backstories[whos_turn]}"
         response = chat(messages, personality=personality_talking)
-        messages.append((names[whos_turn], response))
-        whos_turn = (whos_turn + 1) % len(personalities)
+        messages.append((names[whos_turn], response[1]))
+        whos_turn = (whos_turn + 1) % len(names)
     print(messages)
