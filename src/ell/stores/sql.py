@@ -34,7 +34,7 @@ class SQLStore(ell.store.Store):
                     if used_lmp:
                         serialized_lmp.uses.append(used_lmp)
                 session.commit()
-        return serialized_lmp
+        return None
 
     def write_invocation(self, invocation: Invocation, results: List[SerializedLStr], consumes: Set[str]) -> Optional[Any]:
         with Session(self.engine) as session:
@@ -54,20 +54,23 @@ class SQLStore(ell.store.Store):
                     invocation_consuming_id=consumed_id
                 ))
             session.commit()
-        return invocation
+        return None
 
     def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
         with Session(self.engine) as session:
-            return self._query_invocations(session, lmp_id=lmp_id, state_cache_key=state_cache_key)
+            return self._query_invocations(session, lmp_filters={'lmp_id': lmp_id}, filters={'state_cache_key': state_cache_key})
 
     def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
         with Session(self.engine) as session:
             return self._query_lmps(session, name=fqn)
 
-    def _query_invocations(self, session: Session, **filters: Any) -> List[Invocation]:
+    def _query_invocations(self, session: Session, lmp_filters: Dict[str, Any], filters: Optional[Dict[str, Any]] = None) -> List[Invocation]:
         query = select(Invocation).join(SerializedLMP)
-        for key, value in filters.items():
-            query = query.where(getattr(Invocation, key) == value)
+        for key, value in lmp_filters.items():
+            query = query.where(getattr(SerializedLMP, key) == value)
+        if filters:
+            for key, value in filters.items():
+                query = query.where(getattr(Invocation, key) == value)
         return session.exec(query).all()
 
     def _query_lmps(self, session: Session, **filters: Any) -> List[SerializedLMP]:
