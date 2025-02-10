@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from datetime import datetime  # Added missing import
 from typing import Any, Optional, Dict, List, Set
 from ell.types import SerializedLMP, Invocation
 from ell.types.message import InvocableLM
-from ell._lstr import _lstr  # Added missing import
+from ell._lstr import _lstr
 
 class Store(ABC):
     """
@@ -25,12 +26,11 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def write_invocation(self, invocation: Invocation, results: List[_lstr], consumes: Set[str]) -> Optional[Any]:
+    def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
 
         :param invocation: Invocation object containing all invocation details.
-        :param results: List of SerializedLStr objects representing the results.
         :param consumes: Set of invocation IDs consumed by this invocation.
         :return: Optional return value.
         """
@@ -67,8 +67,6 @@ class Store(ABC):
 
         Yields:
             None
-
-        TODO: Implement cache storage logic here
         """
         old_cache_values = {}
         try:
@@ -82,3 +80,4 @@ class Store(ABC):
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
                 else:
                     delattr(lmp, '__ell_use_cache__')
+            # TODO: Implement cache storage logic here
