@@ -1,185 +1,141 @@
-# Let's define the core types.
-from dataclasses import dataclass
-from typing import Callable, Dict, List, Union
-
-from typing import Any
+from datetime import datetime
+from typing import Any, Optional, Dict, List, Set, Union
+from sqlmodel import Session, SQLModel, create_engine, select
+import ell.store
+import json
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
-from ell.util.dict_sync_meta import DictSyncMeta
+from sqlalchemy import or_, func, and_
 
-from datetime import datetime, timezone
-from typing import Any, List, Optional
-from sqlmodel import Field, SQLModel, Relationship, JSON, ARRAY, Column, Float
+class SQLStore(ell.store.Store):
+    def __init__(self, db_uri: str):
+        self.engine = create_engine(db_uri)
+        SQLModel.metadata.create_all(self.engine)
 
-_lstr_generic = Union[lstr, str]
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
+                  version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
+                  commit_message: Optional[str] = None, created_at: Optional[float] = None) -> Optional[Any]:
+        with Session(self.engine) as session:
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
 
-OneTurn = Callable[..., _lstr_generic]
+            if lmp:
+                return lmp
+            else:
+                lmp = SerializedLMP(
+                    lmp_id=lmp_id,
+                    name=name,
+                    version_number=version_number,
+                    source=source,
+                    dependencies=json.dumps(dependencies),
+                    initial_global_vars=global_vars,
+                    initial_free_vars=free_vars,
+                    created_at=created_at or datetime.utcnow(),
+                    is_lm=is_lmp,
+                    lm_kwargs=json.loads(lm_kwargs),
+                    commit_message=commit_message
+                )
+                session.add(lmp)
 
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
-LMPParams = Dict[str, Any]
+            for use_id in uses:
+                used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
+                if used_lmp:
+                    lmp.uses.append(used_lmp)
 
+            session.commit()
+        return None
 
-@dataclass
-class Message(dict, metaclass=DictSyncMeta):
-    role: str
-    content: _lstr_generic
+    def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
+                         global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str],
+                         prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
+                         state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
+        with Session(self.engine) as session:
+            if isinstance(result, lstr):
+                results = [result]
+            elif isinstance(result, list):
+                results = result
+            else:
+                raise TypeError("Result must be either lstr or List[lstr]")
 
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+            assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
 
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta.
-MessageOrDict = Union[Message, Dict[str, str]]
+            lmp.num_invocations += 1
+            invocation = Invocation(
+                id=id,
+                lmp_id=lmp.lmp_id,
+                args=json.loads(args),
+                kwargs=json.loads(kwargs),
+                global_vars=global_vars,
+                free_vars=free_vars,
+                created_at=created_at or datetime.utcnow(),
+                invocation_kwargs=invocation_kwargs,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                latency_ms=latency_ms,
+                state_cache_key=state_cache_key,
+            )
 
-# Can support iamge prompts later.
-Chat = List[
-    Message
-]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
+            for res in results:
+                serialized_lstr = SerializedLStr(content=str(res), logits=res.logits)
+                session.add(serialized_lstr)
+                invocation.results.append(serialized_lstr)
 
-MultiTurnLMP = Callable[..., Chat]
-from typing import TypeVar, Any
+            session.add(invocation)
 
-# This is the specific LMP that must accept history as an argument and can take any additional arguments
-T = TypeVar("T", bound=Any)
-ChatLMP = Callable[[Chat, T], Chat]
-LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
-InvocableLM = Callable[..., _lstr_generic]
+            for consumed_id in consumes:
+                session.add(InvocationTrace(
+                    invocation_consumer_id=id,
+                    invocation_consuming_id=consumed_id
+                ))
 
+            session.commit()
+    def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        with Session(self.engine) as session:
+            query = select(SerializedLMP, SerializedLMPUses.lmp_user_id).outerjoin(
+                SerializedLMPUses,
+                SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id
+            ).order_by(SerializedLMP.created_at.desc())
 
-def utc_now() -> datetime:
-    """
-    Returns the current UTC timestamp.
-    Serializes to ISO-8601.
-    """
-    return datetime.now(tz=timezone.utc)
+            if filters:
+                for key, value in filters.items():
+                    query = query.where(getattr(SerializedLMP, key) == value)
+            results = session.exec(query).all()
 
+            lmp_dict = {lmp.lmp_id: {**lmp.model_dump(), 'uses': []} for lmp, _ in results}
+            for lmp, using_id in results:
+                if using_id:
+                    lmp_dict[lmp.lmp_id]['uses'].append(using_id)
+            return list(lmp_dict.values())
 
-class SerializedLMPUses(SQLModel, table=True):
-    """
-    Represents the many-to-many relationship between SerializedLMPs.
-    
-    This class is used to track which LMPs use or are used by other LMPs.
-    """
+    def get_invocations(self, lmp_filters: Dict[str, Any], filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        with Session(self.engine) as session:
+            query = select(Invocation, SerializedLStr, SerializedLMP).join(SerializedLMP).outerjoin(SerializedLStr)
 
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)  # ID of the LMP that is being used
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)  # ID of the LMP that is using the other LMP
+            for key, value in lmp_filters.items():
+                query = query.where(getattr(SerializedLMP, key) == value)
 
+            if filters:
+                for key, value in filters.items():
+                    query = query.where(getattr(Invocation, key) == value)
 
+            query = query.order_by(Invocation.created_at.desc())
 
-class SerializedLMP(SQLModel, table=True):
-    """
-    Represents a serialized Language Model Program (LMP).
-    
-    This class is used to store and retrieve LMP information in the database.
-    """
-    lmp_id: Optional[str] = Field(default=None, primary_key=True)  # Unique identifier for the LMP, now an index
-    name: str  # Name of the LMP
-    source: str  # Source code or reference for the LMP
-    dependencies: str  # List of dependencies for the LMP, stored as a string
-    created_at: datetime = Field(default_factory=utc_now)  # Timestamp of when the LMP was created
-    is_lm: bool  # Boolean indicating if it is an LM (Language Model) or an LMP
-    lm_kwargs: dict  = Field(sa_column=Column(JSON)) # Additional keyword arguments for the LMP
+            results = session.exec(query).all()
 
-    invocations: List["Invocation"] = Relationship(back_populates="lmp")  # Relationship to invocations of this LMP
-    used_by: Optional[List["SerializedLMP"]] = Relationship(
-        back_populates="uses",
-        link_model=SerializedLMPUses,
-        sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-        ),
-    )
-    uses: List["SerializedLMP"]  = Relationship(
-        back_populates="used_by",
-        link_model=SerializedLMPUses,
-        sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-        ),
-    )
+            invocations = {}
+            for inv, lstr, lmp in results:
+                if inv.id not in invocations:
+                    inv_dict = inv.model_dump()
+                    inv_dict['lmp'] = lmp.model_dump()
+                    invocations[inv.id] = inv_dict
+                    invocations[inv.id]['results'] = []
+                if lstr:
+                    invocations[inv.id]['results'].append(dict(**lstr.model_dump(), __lstr=True))
 
-    # Bound initial serialized free variables and globals
-    initial_free_vars : dict = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_global_vars : dict = Field(default_factory=dict, sa_column=Column(JSON))
-    
-    # Cached INfo
-    num_invocations : Optional[int] = Field(default=0)
-    commit_message : Optional[str] = Field(default=None)
-    version_number: Optional[int] = Field(default=None)
-    
-    class Config:
-        table_name = "serializedlmp"
-        unique_together = [("version_number", "name")]
+            return list(invocations.values())
 
+    def get_lmp_versions(self, name: str) -> List[Dict[str, Any]]:
+        return self.get_lmps(name=name)
 
-
-class InvocationTrace(SQLModel, table=True):
-    """
-    Represents a many-to-many relationship between Invocations and other Invocations (it's a 1st degree link in the trace graph)
-
-    This class is used to keep track of when an invocation consumes a in its kwargs or args a result of another invocation.
-    """
-    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)  # ID of the Invocation that is consuming another Invocation
-    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)  # ID of the Invocation that is being consumed by another Invocation
-
-
-class Invocation(SQLModel, table=True):
-    """
-    Represents an invocation of an LMP.
-    
-    This class is used to store information about each time an LMP is called.
-    """
-    id: Optional[str] = Field(default=None, primary_key=True)  # Unique identifier for the invocation
-    lmp_id: str = Field(foreign_key="serializedlmp.lmp_id")  # ID of the LMP that was invoked
-    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))  # Arguments used in the invocation
-    kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))  # Keyword arguments used in the invocation
-
-    global_vars : dict = Field(default_factory=dict, sa_column=Column(JSON))  # Global variables used in the invocation
-    free_vars : dict = Field(default_factory=dict, sa_column=Column(JSON))  # Free variables used in the invocation
-
-    latency_ms : float 
-    prompt_tokens: Optional[int] = Field(default=None)
-    completion_tokens: Optional[int] = Field(default=None)
-    state_cache_key: Optional[str] = Field(default=None)
-
-    
-    created_at: datetime = Field(default_factory=utc_now)  # Timestamp of when the invocation was created
-    invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))  # Additional keyword arguments for the invocation
-
-    # Relationships
-    lmp: SerializedLMP = Relationship(back_populates="invocations")  # Relationship to the LMP that was invoked
-    # Todo: Rename the result shcema to be consistent
-    results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")  # Relationship to the LStr results of the invocation
-    
-
-    consumed_by: List["Invocation"] = Relationship(
-        back_populates="consumes", link_model=InvocationTrace,
-        sa_relationship_kwargs=dict(
-            primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
-            secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
-        ),
-    )  # Relationship to the invocations that consumed this invocation
-
-    consumes: List["Invocation"] = Relationship(
-        back_populates="consumed_by", link_model=InvocationTrace,
-        sa_relationship_kwargs=dict(
-            primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
-            secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
-        ),
-    )
-
-
-
-
-class SerializedLStr(SQLModel, table=True):
-    """
-    Represents a Language String (LStr) result from an LMP invocation.
-    
-    This class is used to store the output of LMP invocations.
-    """
-    id: Optional[int] = Field(default=None, primary_key=True)  # Unique identifier for the LStr
-    content: str  # The actual content of the LStr
-    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))  # Logits associated with the LStr, if available
-    producer_invocation_id: Optional[int] = Field(default=None, foreign_key="invocation.id")  # ID of the Invocation that produced this LStr
-    producer_invocation: Optional[Invocation] = Relationship(back_populates="results")  # Relationship to the Invocation that produced this LStr
-
-    # Convert an SerializedLStr to an lstr
-    def deserialize(self) -> lstr:
-        return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
+    def get_latest_lmps(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError()
