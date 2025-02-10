@@ -137,13 +137,16 @@ def create_app(config: Config):
 
     @app.get("/api/traces", response_model=list)
     def get_consumption_graph(session: Session = Depends(get_session)):
-        # TODO: Implement the functionality to get consumption graph data
         traces = serializer.get_traces(session)
+        if not traces:
+            raise HTTPException(status_code=404, detail="Consumption graph data not found")
         return traces
 
     @app.get("/api/traces/{invocation_id}", response_model=list)
     def get_all_traces_leading_to(invocation_id: str, session: Session = Depends(get_session)):
         traces = serializer.get_all_traces_leading_to(session, invocation_id)
+        if not traces:
+            raise HTTPException(status_code=404, detail="Traces not found")
         return traces
 
     @app.get("/api/blob/{blob_id}", response_class=Response)
