@@ -1,7 +1,6 @@
-from dataclasses import dataclass
-from typing import Optional, List, Dict, Set, Union, Callable, Any, TypeVar
+from typing import Optional, List, Dict, Set, Union, Callable, Any
 from datetime import datetime
-from sqlmodel import Field, SQLModel, Relationship, JSON, Column
+from sqlmodel import Field, SQLModel, Relationship, JSON
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 
@@ -17,7 +16,7 @@ LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
 @dataclass
-class Message:
+class Message(dict, metaclass=DictSyncMeta):
     role: str
     content: _lstr_generic
 
