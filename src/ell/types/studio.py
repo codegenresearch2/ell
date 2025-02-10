@@ -4,52 +4,11 @@ from functools import cached_property
 
 import sqlalchemy.types as types
 
-from ell.types.message import Any, Any, Field, Message, Optional
-
-from sqlmodel import Column, Field, SQLModel
-from typing import Optional
-from dataclasses import dataclass
-from typing import Dict, List, Literal, Union, Any, Optional
-
-from pydantic import BaseModel, field_validator
-
-from datetime import datetime
-from typing import Any, List, Optional
-from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from sqlalchemy import Index, func
-
-from typing import TypeVar, Any
+from sqlmodel import Column, Field, SQLModel, Relationship, JSON
+from typing import Optional, Dict, List, Union, Any
 
 def utc_now() -> datetime:
-    """
-    Returns the current UTC timestamp.
-    Serializes to ISO-8601.
-    """
     return datetime.now(tz=timezone.utc)
-
-
-class SerializedLMPUses(SQLModel, table=True):
-    """
-    Represents the many-to-many relationship between SerializedLMPs.
-
-    This class is used to track which LMPs use or are used by other LMPs.
-    """
-
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
-
-
-class UTCTimestamp(types.TypeDecorator[datetime]):
-    cache_ok = True
-    impl = types.TIMESTAMP
-    def process_result_value(self, value: datetime, dialect:Any):
-        return value.replace(tzinfo=timezone.utc)
-
-
-def UTCTimestampField(index:bool=False, **kwargs:Any):
-    return Field(
-        sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
-
 
 class LMPType(str, enum.Enum):
     LM = "LM"
@@ -57,7 +16,14 @@ class LMPType(str, enum.Enum):
     MULTIMODAL = "MULTIMODAL"
     OTHER = "OTHER"
 
+class UTCTimestamp(types.TypeDecorator[datetime]):
+    cache_ok = True
+    impl = types.TIMESTAMP
+    def process_result_value(self, value: datetime, dialect:Any):
+        return value.replace(tzinfo=timezone.utc)
 
+def UTCTimestampField(index:bool=False, **kwargs:Any):
+    return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
 class SerializedLMPBase(SQLModel):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
@@ -65,7 +31,6 @@ class SerializedLMPBase(SQLModel):
     source: str
     dependencies: str
     created_at: datetime = UTCTimestampField(index=True, nullable=False)
-
     lmp_type: LMPType
     api_params: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
     initial_free_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
@@ -74,6 +39,9 @@ class SerializedLMPBase(SQLModel):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
+class SerializedLMPUses(SQLModel, table=True):
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
@@ -102,10 +70,6 @@ class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
 
-# Should be subtyped for differnet kidns of LMPS.
-# XXX: Move all ofh te binary data out to a different table.
-# XXX: Need a flag that says dont store images.
-# XXX: Deprecate the args columns
 class InvocationBase(SQLModel):
     id: Optional[str] = Field(default=None, primary_key=True)
     lmp_id: str = Field(foreign_key="serializedlmp.lmp_id", index=True)
@@ -115,7 +79,6 @@ class InvocationBase(SQLModel):
     state_cache_key: Optional[str] = Field(default=None)
     created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
     used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
-    # global_vars and free_vars removed from here
 
 class InvocationContentsBase(SQLModel):
     invocation_id: str = Field(foreign_key="invocation.id", index=True, primary_key=True)
@@ -129,21 +92,9 @@ class InvocationContentsBase(SQLModel):
     @cached_property
     def should_externalize(self) -> bool:
         import json
-        
-        json_fields = [
-            self.params,
-            self.results,
-            self.invocation_api_params,
-            self.global_vars,
-            self.free_vars
-        ]
-        
-        total_size = sum(
-            len(json.dumps(field, default=(lambda x: x.model_dump_json() if isinstance(x, BaseModel) else str(x))).encode('utf-8')) for field in json_fields if field is not None
-        )
-        # print("total_size", total_size)
-        
-        return total_size > 102400  # Precisely 100kb in bytes
+        json_fields = [self.params, self.results, self.invocation_api_params, self.global_vars, self.free_vars]
+        total_size = sum(len(json.dumps(field).encode('utf-8')) for field in json_fields if field is not None)
+        return total_size > 102400
 
 class InvocationContents(InvocationContentsBase, table=True):
     invocation: "Invocation" = Relationship(back_populates="contents")
