@@ -20,12 +20,13 @@ names_list = [
 def create_personality() -> str:
     """
     Generates a backstory for a character including their name.
-    Chooses a random name from the provided list.
+    Chooses a random name from the provided list and constructs a backstory.
     Returns:
         str: A formatted string containing the name and a backstory.
     """
     random_name = random.choice(names_list)
-    return f"Name: {random_name}\nBackstory: {random_name} has a fascinating past that shapes their current personality."
+    backstory = f"Name: {random_name}\nBackstory: {random_name} has a fascinating past that shapes their current personality."
+    return backstory
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
         
-    for iteration in range(100):  # Loop runs 100 times to generate messages
+    for _ in range(100):  # Loop runs 100 times to generate messages
         messages: List[Tuple[str, str]] = []  # Initialize messages for each iteration
         personalities = [create_personality() for _ in range(2)]  # Generate two personalities
 
