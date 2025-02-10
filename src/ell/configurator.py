@@ -51,7 +51,7 @@ class _Config:
         finally:
             self._local.stack.pop()
 
-    def get_client_for(self, model_name: str) -> Optional[openai.Client]:
+    def get_client_for(self, model_name: str) -> tuple[Optional[openai.Client], bool]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
         client = current_registry.get(model_name)
         fallback = False
@@ -65,7 +65,7 @@ class _Config:
             client = self._default_openai_client
             fallback = True
 
-        return client
+        return client, fallback
 
     def reset(self) -> None:
         with self._lock:
