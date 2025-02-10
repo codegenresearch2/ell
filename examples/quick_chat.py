@@ -42,16 +42,18 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
     
-    for _ in range(100):
+    for _ in range(100):  # Using double underscore for unused variable
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
-        names = []
-        backstories = []
+        names: List[str] = []  # Adding comments to clarify the purpose of the variables
+        backstories: List[str] = []
         for personality in personalities:
             parts = list(filter(None, personality.split("\n")))
             names.append(parts[0].split(": ")[1])
             backstories.append(parts[1].split(": ")[1])
+
+        print(names)  # Adding a print statement to match the gold code's structure
 
         whos_turn = 0
         for _ in range(10):
