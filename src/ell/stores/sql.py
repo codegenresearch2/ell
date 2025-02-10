@@ -12,13 +12,19 @@ import numpy as np
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
+        """
+        Initialize the SQLStore.
+
+        Args:
+            db_uri (str): URI of the database.
+        """
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
     def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], global_vars: Dict[str, Any], free_vars: Dict[str, Any],
-                  commit_message: Optional[str] = None, created_at: Optional[datetime.datetime] = None) -> Optional[SerializedLMP]:
+                  commit_message: Optional[str] = None, created_at: Optional[float] = None) -> Optional[Any]:
         """
         Write an LMP (Language Model Package) to the storage.
 
@@ -34,15 +40,15 @@ class SQLStore(ell.store.Store):
             global_vars (Dict[str, Any]): Global variables used in the LMP.
             free_vars (Dict[str, Any]): Free variables used in the LMP.
             commit_message (Optional[str], optional): Optional commit message. Defaults to None.
-            created_at (Optional[datetime.datetime], optional): Optional timestamp of when the LMP was created. Defaults to None.
+            created_at (Optional[float], optional): Optional timestamp of when the LMP was created. Defaults to None.
 
         Returns:
-            Optional[SerializedLMP]: The existing LMP if it already exists, otherwise None.
+            Optional[Any]: Optional return value.
         """
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             if lmp:
-                return lmp
+                return None
             else:
                 lmp = SerializedLMP(
                     lmp_id=lmp_id,
@@ -63,10 +69,10 @@ class SQLStore(ell.store.Store):
                     if used_lmp:
                         lmp.uses.append(used_lmp)
                 session.commit()
-                return lmp
+                return None
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],
-                         global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[datetime.datetime], consumes: Set[str],
+                         global_vars: Dict[str, Any], free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str],
                          prompt_tokens: Optional[int] = None, completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
         """
@@ -81,7 +87,7 @@ class SQLStore(ell.store.Store):
             invocation_kwargs (Dict[str, Any]): Additional keyword arguments for the invocation.
             global_vars (Dict[str, Any]): Global variables used in the invocation.
             free_vars (Dict[str, Any]): Free variables used in the invocation.
-            created_at (Optional[datetime.datetime]): Optional timestamp of when the invocation was created.
+            created_at (Optional[float]): Optional timestamp of when the invocation was created.
             consumes (Set[str]): Set of invocation IDs consumed by this invocation.
             prompt_tokens (Optional[int], optional): Optional number of prompt tokens used. Defaults to None.
             completion_tokens (Optional[int], optional): Optional number of completion tokens used. Defaults to None.
@@ -101,8 +107,7 @@ class SQLStore(ell.store.Store):
                 raise TypeError("Result must be either lstr or List[lstr]")
 
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
-            if lmp is None:
-                raise ValueError(f"LMP with id {lmp_id} not found. Writing invocation erroneously.")
+            assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously."
 
             # Increment num_invocations
             if lmp.num_invocations is None:
@@ -190,7 +195,6 @@ class SQLStore(ell.store.Store):
                 ))
 
             if filters:
-                print(f"Filters: {filters}")
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
 
