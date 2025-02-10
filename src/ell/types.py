@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from ell.types import utc_now
 
-# Forward declaration to resolve circular import issue
+# Define utc_now function directly within the same file to avoid circular import issues
+def utc_now():
+    return datetime.utcnow()
+
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
