@@ -1,12 +1,10 @@
 # Import necessary modules
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union, TypeVar
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
-from typing import Any
-
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 
