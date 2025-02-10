@@ -39,15 +39,17 @@ def call(
     _exempt_from_tracking: bool,
     _logging_color=None,
     _name: str = None,
-) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
+) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]], Dict[str, Any]]:
     """
     Helper function to run the language model with the provided messages and parameters.
     """
     if client is None:
-        raise ValueError("Client is not provided. Please specify a client.")
+        client = config.get_client_for(model)
+        if client is None:
+            raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
     
     if not client.api_key:
-        raise ValueError("API key is not set for the client.")
+        raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
     
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
