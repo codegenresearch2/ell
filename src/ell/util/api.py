@@ -33,10 +33,14 @@ def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], too
 
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
+        api_params.pop("stream", None)
+        api_params.pop("stream_options", None)
     elif tools:
         model_call = client.chat.completions.create
         api_params["tools"] = [{"type": "function", "function": {"name": tool.__name__, "description": tool.__doc__, "parameters": tool.__ell_params_model__.model_json_schema()}} for tool in tools]
         api_params["tool_choice"] = "auto"
+        api_params.pop("stream", None)
+        api_params.pop("stream_options", None)
     else:
         model_call = client.chat.completions.create
         api_params["stream"] = True
