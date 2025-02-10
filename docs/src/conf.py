@@ -16,6 +16,7 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
+# Remove redundancy
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # Theme configuration
@@ -26,6 +27,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
+        "AI Jobs Board": "https://example.com/ai-jobs-board"  # Added navigation link
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -39,5 +41,6 @@ html_theme_options = {
     "logo_dark": "_static/ell-wide-dark.png",
 }
 
-# Path setup
-templates_path = ['_templates']
+# Pygments style configuration
+pygments_style = "default"
+pygments_style_dark = "dracula"
