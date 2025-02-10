@@ -1,38 +1,21 @@
-# 1. Consistency in Comments
-# Ensure that comments are concise and directly related to the code they describe.
-
-# 2. Error Handling
-# Improve error handling in the `validate_image` method by using more specific exceptions.
-
-# 3. Return Types
-# Explicitly state the return types of methods where applicable.
-
-# 4. Field Serialization
-# Ensure that all content types are handled consistently, including the `parsed` content.
-
-# 5. Code Formatting
-# Pay attention to spacing and line breaks to enhance readability.
-
-# 6. Type Hinting
-# Make sure type hints are as specific as possible.
-
-# 7. Docstrings
-# Ensure that functions and classes have clear and concise docstrings.
-
+from typing import Callable, Optional, Union, List, Type
+from pydantic import BaseModel, Field, model_validator
+from PIL import Image as PILImage
+import numpy as np
 import base64
 from io import BytesIO
-from PIL import Image as PILImage
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional, Union, List, Type
-import numpy as np
+
+# Type Aliases
+InvocableTool = Callable[..., Union["ToolResult", str, List["ContentBlock"]]]
+_lstr_generic = Union[str, "_lstr"]
 
 class ToolResult(BaseModel):
-    tool_call_id: str
+    tool_call_id: _lstr_generic
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
-    tool: Callable[..., Union[ToolResult, str, List["ContentBlock"]]]
-    tool_call_id: Optional[str] = None
+    tool: InvocableTool
+    tool_call_id: Optional[_lstr_generic] = None
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
@@ -47,7 +30,7 @@ class ToolCall(BaseModel):
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
 class ContentBlock(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = {'arbitrary_types_allowed': True}
     
     text: Optional[str] = None
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = None
@@ -55,6 +38,13 @@ class ContentBlock(BaseModel):
     tool_call: Optional[ToolCall] = None
     parsed: Optional[Union[Type[BaseModel], BaseModel]] = None
     tool_result: Optional[ToolResult] = None
+
+    @model_validator(mode='after')
+    def check_single_non_null(self):
+        non_null_fields = [field for field, value in self.__dict__.items() if value is not None]
+        if len(non_null_fields) > 1:
+            raise ValueError(f"Only one field can be non-null. Found: {', '.join(non_null_fields)}")
+        return self
 
     @property
     def type(self):
@@ -210,10 +200,37 @@ class Message(BaseModel):
 
 # HELPERS 
 def system(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a system message with the given content.
+
+    Args:
+    content (Union[str, List[ContentBlock]]): The content of the system message.
+
+    Returns:
+    Message: A Message object with role set to 'system' and the provided content.
+    """
     return Message(role="system", content=content)
 
 def user(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a user message with the given content.
+
+    Args:
+    content (Union[str, List[ContentBlock]]): The content of the user message.
+
+    Returns:
+    Message: A Message object with role set to 'user' and the provided content.
+    """
     return Message(role="user", content=content)
 
 def assistant(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create an assistant message with the given content.
+
+    Args:
+    content (Union[str, List[ContentBlock]]): The content of the assistant message.
+
+    Returns:
+    Message: A Message object with role set to 'assistant' and the provided content.
+    """
     return Message(role="assistant", content=content)
