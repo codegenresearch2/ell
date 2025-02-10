@@ -15,30 +15,78 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 
 from ell.util.serialization import serialize_image
+
 _lstr_generic = Union[_lstr, str]
-InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"], ]]
+InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"]]]
 
 class ToolResult(BaseModel):
+    """
+    Represents the result of a tool call.
+
+    Attributes:
+        tool_call_id (str): The ID of the tool call.
+        result (List[ContentBlock]): The result of the tool call.
+    """
     tool_call_id: _lstr_generic
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
+    """
+    Represents a tool call.
+
+    Attributes:
+        tool (InvocableTool): The tool to be called.
+        tool_call_id (Optional[str]): The ID of the tool call.
+        params (Union[Type[BaseModel], BaseModel]): The parameters for the tool call.
+    """
     tool: InvocableTool
     tool_call_id: Optional[_lstr_generic] = Field(default=None)
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
+        """
+        Calls the tool with the provided parameters.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            The result of the tool call.
+        """
         assert not kwargs, "Unexpected arguments provided. Calling a tool uses the params provided in the ToolCall."
         return self.tool(**self.params.model_dump())
 
     def call_and_collect_as_message_block(self):
+        """
+        Calls the tool and collects the result as a message block.
+
+        Returns:
+            ContentBlock: The result of the tool call as a message block.
+        """
         res = self.tool(**self.params.model_dump(), _tool_call_id=self.tool_call_id)
         return ContentBlock(tool_result=res)
 
     def call_and_collect_as_message(self):
+        """
+        Calls the tool and collects the result as a message.
+
+        Returns:
+            Message: The result of the tool call as a message.
+        """
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
 class ContentBlock(BaseModel):
+    """
+    Represents a content block.
+
+    Attributes:
+        text (Optional[str]): The text content.
+        image (Optional[Union[PILImage.Image, str, np.ndarray]]): The image content.
+        audio (Optional[Union[np.ndarray, List[float]]]): The audio content.
+        tool_call (Optional[ToolCall]): The tool call content.
+        parsed (Optional[Union[Type[BaseModel], BaseModel]]): The parsed content.
+        tool_result (Optional[ToolResult]): The tool result content.
+    """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     text: Optional[_lstr_generic] = Field(default=None)
@@ -50,6 +98,12 @@ class ContentBlock(BaseModel):
 
     @model_validator(mode='after')
     def check_single_non_null(self):
+        """
+        Validates that only one field is non-null.
+
+        Returns:
+            ContentBlock: The validated content block.
+        """
         non_null_fields = [field for field, value in self.__dict__.items() if value is not None]
         if len(non_null_fields) > 1:
             raise ValueError(f"Only one field can be non-null. Found: {', '.join(non_null_fields)}")
@@ -57,6 +111,12 @@ class ContentBlock(BaseModel):
 
     @property
     def type(self):
+        """
+        Returns the type of the content block.
+
+        Returns:
+            str: The type of the content block.
+        """
         if self.text is not None:
             return "text"
         if self.image is not None:
@@ -73,6 +133,15 @@ class ContentBlock(BaseModel):
 
     @classmethod
     def coerce(cls, content: Union[str, ToolCall, ToolResult, BaseModel, "ContentBlock", PILImage.Image, np.ndarray]) -> "ContentBlock":
+        """
+        Coerces the content into a content block.
+
+        Args:
+            content (Union[str, ToolCall, ToolResult, BaseModel, ContentBlock, PILImage.Image, np.ndarray]): The content to coerce.
+
+        Returns:
+            ContentBlock: The coerced content block.
+        """
         if isinstance(content, ContentBlock):
             return content
         if isinstance(content, str):
@@ -90,6 +159,15 @@ class ContentBlock(BaseModel):
     @field_validator('image')
     @classmethod
     def validate_image(cls, v):
+        """
+        Validates the image content.
+
+        Args:
+            v (Union[PILImage.Image, str, np.ndarray]): The image content.
+
+        Returns:
+            Union[PILImage.Image, str, np.ndarray]: The validated image content.
+        """
         if v is None:
             return v
         if isinstance(v, PILImage.Image):
@@ -101,8 +179,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except:
-                raise ValueError("Invalid base64 string for image")
+            except Exception as e:
+                raise ValueError(f"Invalid base64 string for image: {str(e)}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -113,11 +191,27 @@ class ContentBlock(BaseModel):
 
     @field_serializer('image')
     def serialize_image(self, image: Optional[PILImage.Image], _info):
+        """
+        Serializes the image content.
+
+        Args:
+            image (Optional[PILImage.Image]): The image content.
+            _info: Additional information.
+
+        Returns:
+            str: The serialized image content.
+        """
         if image is None:
             return None
         return serialize_image(image)
 
     def to_openai_content_block(self):
+        """
+        Converts the content block to an OpenAI content block.
+
+        Returns:
+            Dict[str, Any]: The OpenAI content block.
+        """
         if self.image:
             base64_image = self.serialize_image(self.image, None)
             return {
@@ -140,6 +234,16 @@ class ContentBlock(BaseModel):
             return None
 
 def coerce_content_list(content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs) -> List[ContentBlock]:
+    """
+    Coerces a list of content into a list of content blocks.
+
+    Args:
+        content (Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]]): The content to coerce.
+        **content_block_kwargs: Additional keyword arguments for the content block.
+
+    Returns:
+        List[ContentBlock]: The coerced list of content blocks.
+    """
     if not content:
         content = [ContentBlock(**content_block_kwargs)]
 
@@ -149,34 +253,89 @@ def coerce_content_list(content: Union[str, List[ContentBlock], List[Union[str, 
     return [ContentBlock.model_validate(ContentBlock.coerce(c)) for c in content]
 
 class Message(BaseModel):
+    """
+    Represents a message.
+
+    Attributes:
+        role (str): The role of the message.
+        content (List[ContentBlock]): The content of the message.
+    """
     role: str
     content: List[ContentBlock]
 
     def __init__(self, role, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
+        """
+        Initializes a message.
+
+        Args:
+            role (str): The role of the message.
+            content (Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]]): The content of the message.
+            **content_block_kwargs: Additional keyword arguments for the content block.
+        """
         content = coerce_content_list(content, **content_block_kwargs)
         super().__init__(content=content, role=role)
 
     @cached_property
     def text(self) -> str:
+        """
+        Returns the text content of the message.
+
+        Returns:
+            str: The text content of the message.
+        """
         return "\n".join(c.text or f"<{c.type}>" for c in self.content)
 
     @cached_property
     def text_only(self) -> str:
+        """
+        Returns the text-only content of the message.
+
+        Returns:
+            str: The text-only content of the message.
+        """
         return "\n".join(c.text for c in self.content if c.text)
 
     @cached_property
     def tool_calls(self) -> List[ToolCall]:
+        """
+        Returns the tool calls in the message.
+
+        Returns:
+            List[ToolCall]: The tool calls in the message.
+        """
         return [c.tool_call for c in self.content if c.tool_call is not None]
 
     @cached_property
     def tool_results(self) -> List[ToolResult]:
+        """
+        Returns the tool results in the message.
+
+        Returns:
+            List[ToolResult]: The tool results in the message.
+        """
         return [c.tool_result for c in self.content if c.tool_result is not None]
 
     @cached_property
     def parsed_content(self) -> List[BaseModel]:
+        """
+        Returns the parsed content in the message.
+
+        Returns:
+            List[BaseModel]: The parsed content in the message.
+        """
         return [c.parsed for c in self.content if c.parsed is not None]
 
     def call_tools_and_collect_as_message(self, parallel=False, max_workers=None):
+        """
+        Calls the tools in the message and collects the results as a message.
+
+        Args:
+            parallel (bool): Whether to call the tools in parallel.
+            max_workers (int): The maximum number of workers for parallel execution.
+
+        Returns:
+            Message: The results of the tool calls as a message.
+        """
         if parallel:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(c.tool_call.call_and_collect_as_message_block) for c in self.content if c.tool_call]
@@ -186,6 +345,12 @@ class Message(BaseModel):
         return Message(role="user", content=content)
 
     def to_openai_message(self) -> Dict[str, Any]:
+        """
+        Converts the message to an OpenAI message.
+
+        Returns:
+            Dict[str, Any]: The OpenAI message.
+        """
         message = {
             "role": "tool" if self.tool_results else self.role,
             "content": list(filter(None, [
@@ -215,12 +380,39 @@ class Message(BaseModel):
 
 # HELPERS
 def system(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Creates a system message.
+
+    Args:
+        content (Union[str, List[ContentBlock]]): The content of the message.
+
+    Returns:
+        Message: The system message.
+    """
     return Message(role="system", content=content)
 
 def user(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Creates a user message.
+
+    Args:
+        content (Union[str, List[ContentBlock]]): The content of the message.
+
+    Returns:
+        Message: The user message.
+    """
     return Message(role="user", content=content)
 
 def assistant(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Creates an assistant message.
+
+    Args:
+        content (Union[str, List[ContentBlock]]): The content of the message.
+
+    Returns:
+        Message: The assistant message.
+    """
     return Message(role="assistant", content=content)
 
 LMPParams = Dict[str, Any]
