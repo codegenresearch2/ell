@@ -7,8 +7,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from watchfiles import awatch
 
-# Add the missing import for awatch
-
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
     parser.add_argument("--storage-dir", default=os.getcwd(),
@@ -18,17 +16,18 @@ def main():
     parser.add_argument("--dev", action="store_true", help="Run in development mode")
     args = parser.parse_args()
 
-    db_path = os.path.join(args.storage_dir, "database.db")
+    # Create the app before setting up the database watcher
+    app = create_app(args.storage_dir)
+
+    db_path = os.path.join(args.storage_dir, "ell.db")
 
     async def db_watcher():
         watcher = awatch(db_path)
-        async for changes in watcher:
-            for change in changes:
-                print(f"Database change detected: {change}")
+        async for change in watcher:
+            print(f"Database change detected: {change}")
+            # Implement a notification mechanism for clients here
 
     async def main_async():
-        app = create_app(args.storage_dir)
-
         if not args.dev:
             # In production mode, serve the built React app
             static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -38,14 +37,11 @@ def main():
             async def serve_react_app(full_path: str):
                 return FileResponse(os.path.join(static_dir, "index.html"))
 
-        # Create and run the server
-        server = uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port))
-
-        # Create tasks for the server and the database watcher
-        server_task = asyncio.create_task(server.serve())
-        watcher_task = asyncio.create_task(db_watcher())
-
-        # Wait for the tasks to complete
+        # Create a new event loop and run the server and the database watcher
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        server_task = loop.create_task(uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port)).serve())
+        watcher_task = loop.create_task(db_watcher())
         await asyncio.gather(server_task, watcher_task)
 
     asyncio.run(main_async())
