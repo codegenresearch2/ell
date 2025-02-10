@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from ell.types import SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLStr, utc_now
 
-# Moving the definition of InvocationTrace to a separate module to resolve circular import issue
-class InvocationTrace(SQLModel, table=True):
-    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
-    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
+# Moving the definition of SerializedLMPUses to a separate module to resolve circular import issue
+class SerializedLMPUses(SQLModel, table=True):
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
 
 class Invocation(SQLModel, table=True):
     id: Optional[str] = Field(default=None, primary_key=True)
