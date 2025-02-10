@@ -20,8 +20,8 @@ names_list = [
 def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
 
-Name: <name>
-Backstory: <3 sentence backstory>"""
+    Name: <name>
+    Backstory: <3 sentence backstory>"""
     name = random.choice(names_list)
     return f"Name: {name}\nBackstory: A character with a unique background and personality."
 
