@@ -39,8 +39,7 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     # Use the provided client or fallback to the default client for the model
-    if client is None:
-        client = config.get_client_for(model)
+    client = client or config.get_client_for(model)
 
     if client is None:
         raise RuntimeError(f"No client found for model '{model}'. Please ensure the model is registered or specify a client directly.")
@@ -117,7 +116,7 @@ def call(
             else:
                 choice = choice_deltas[0].message
                 if choice.refusal:
-                    raise RuntimeError(choice.refusal)
+                    raise RuntimeError(f"The model returned a refusal: {choice.refusal}")
                 if api_params.get("response_format", False):
                     content.append(ContentBlock(parsed=choice.parsed))
                 elif choice.content:
