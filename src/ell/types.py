@@ -1,23 +1,42 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Dict
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
 from ell.lstr import lstr
+from dataclasses import dataclass
 
 # Type Aliases
 _lstr_generic = Union[lstr, str]
 LMPParams = Dict[str, Any]
 
-# Message Class with DictSyncMeta
-from ell.util.dict_sync_meta import DictSyncMeta
+# Utility function for current UTC timestamp
+def utc_now() -> datetime:
+    return datetime.now(tz=timezone.utc)
 
-class Message(dict, metaclass=DictSyncMeta):
+# Message Class with dataclass
+@dataclass
+class Message:
     role: str
     content: _lstr_generic
 
 # Chat Type
 Chat = List[Message]
+
+# Type Aliases for LMPs
+OneTurn = Callable[..., _lstr_generic]
+MultiTurnLMP = Callable[..., Chat]
+ChatLMP = Callable[[Chat, Any], Chat]
+LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
+
+# Custom UTCTimestamp type
+class UTCTimestamp(types.TypeDecorator[datetime]):
+    impl = types.TIMESTAMP
+    def process_result_value(self, value: datetime, dialect:Any):
+        return value.replace(tzinfo=timezone.utc)
+
+def UTCTimestampField(index:bool=False, **kwargs:Any):
+    return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
 # Invocation Class
 class InvocationTrace(SQLModel, table=True):
