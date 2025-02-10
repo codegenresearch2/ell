@@ -17,6 +17,7 @@ author = 'William Guss'
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
 # Path setup
+templates_path = ['_templates']  # Added templates_path
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
