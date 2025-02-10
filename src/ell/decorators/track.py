@@ -1,126 +1,90 @@
 import logging
-from ell.types import SerializedLStr, utc_now
+from ell.types import SerializedLStr
 import ell.util.closure
 from ell.configurator import config
 from ell.lstr import lstr
 
 import inspect
-
 import cattrs
 import numpy as np
-
-
 import hashlib
 import json
 import secrets
-import time
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, OrderedDict, Tuple
 
 logger = logging.getLogger(__name__)
+
+def utc_now() -> datetime:
+    """
+    Returns the current UTC timestamp.
+    """
+    return datetime.now(tz=timezone.utc)
+
 def exclude_var(v):
-    # is module or is immutable
     return inspect.ismodule(v)
 
 def track(fn: Callable) -> Callable:
-    if hasattr(fn, "__ell_lm_kwargs__"):
-        func_to_track = fn
-        lm_kwargs = fn.__ell_lm_kwargs__
-        lmp = True
-    else:
-        func_to_track = fn
-        lm_kwargs = None
-        lmp = False
-
-
-    # see if it exists
-    _name = func_to_track.__qualname__
+    lm_kwargs = fn.__ell_lm_kwargs__ if hasattr(fn, "__ell_lm_kwargs__") else None
+    lmp = lm_kwargs is not None
+    _name = fn.__qualname__
     _has_serialized_lmp = False
 
-    fn_closure : Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]]
-    if not hasattr(func_to_track, "__ell_hash__") and not config.lazy_versioning:
-        fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
+    if not hasattr(fn, "__ell_hash__") and not config.lazy_versioning:
+        fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
 
     @wraps(fn)
     def wrapper(*fn_args, **fn_kwargs) -> str:
-        # XXX: Cache keys and global variable binding is not thread safe.
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
-        # Compute the invocation id and hash the inputs for serialization.
         invocation_id = "invocation-" + secrets.token_hex(16)
-        state_cache_key : str = None
+        state_cache_key = None
+
         if not config._store:
             return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
 
-
-        # Get the list of consumed lmps and clean the invocation paramns for serialization.
         cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
+        try_use_cache = hasattr(fn.__wrapper__, "__ell_use_cache__")
 
-        try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
+        if try_use_cache:
+            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
 
-        if  try_use_cache:
-            # Todo: add nice logging if verbose for when using a cahced invocaiton. IN a different color with thar args..
-            if not hasattr(func_to_track, "__ell_hash__")  and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
-
-            # compute the state cachekey
-            state_cache_key = compute_state_cache_key(ipstr, func_to_track.__ell_closure__)
-            
-            cache_store = func_to_track.__wrapper__.__ell_use_cache__
-            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=func_to_track.__ell_hash__), filters=dict(
-                state_cache_key=state_cache_key
-            ))
+            state_cache_key = compute_state_cache_key(ipstr, fn.__ell_closure__)
+            cache_store = fn.__wrapper__.__ell_use_cache__
+            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=fn.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
 
             if len(cached_invocations) > 0:
-                # TODO THis is bad?
-                results =  [SerializedLStr(**d).deserialize() for  d in cached_invocations[0]['results']]
-
-                logger.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
-                if len(results) == 1:
-                    return results[0]
-                else:
-                    return results
-                # Todo: Unfiy this with the non-cached case. We should go through the same code pathway.
+                results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0]['results']]
+                logger.info(f"Using cached result for {fn.__qualname__} with state cache key: {state_cache_key}")
+                return results[0] if len(results) == 1 else results
             else:
-                logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
-        
-        
+                logger.info(f"Attempted to use cache on {fn.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
+
         _start_time = utc_now()
-
-        # XXX: thread saftey note, if I prevent yielding right here and get the global context I should be fine re: cache key problem
-
-        # get the prompt
-        (result, invocation_kwargs, metadata) = (
-            (fn(*fn_args, **fn_kwargs), None)
-            if not lmp
-            else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs, )
-            )
+        result, invocation_kwargs, metadata = (fn(*fn_args, **fn_kwargs), None) if not lmp else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
         latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
-        prompt_tokens=usage.get("prompt_tokens", 0)
-        completion_tokens=usage.get("completion_tokens", 0)
-
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
 
         if not _has_serialized_lmp:
-            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
-            
-            _serialize_lmp(func_to_track, _name, fn_closure, lmp, lm_kwargs)
+            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
+            _serialize_lmp(fn, _name, fn_closure, lmp, lm_kwargs)
             _has_serialized_lmp = True
 
         if not state_cache_key:
-            state_cache_key = compute_state_cache_key(ipstr, func_to_track.__ell_closure__)
+            state_cache_key = compute_state_cache_key(ipstr, fn.__ell_closure__)
 
-        _write_invocation(func_to_track, invocation_id, latency_ms, prompt_tokens, completion_tokens, 
-                         state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
+        _write_invocation(fn, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
 
         return result
 
-
-    fn.__wrapper__  = wrapper
+    fn.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
-    wrapper.__ell_func__ = func_to_track
+    wrapper.__ell_func__ = fn
     wrapper.__ell_track = True
 
     return wrapper
@@ -129,16 +93,14 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
     lmps = config._store.get_lmps(name=name)
     version = 0
     already_in_store = any(lmp['lmp_id'] == func.__ell_hash__ for lmp in lmps)
-    
+
     if not already_in_store:
         if lmps:
             latest_lmp = max(lmps, key=lambda x: x['created_at'])
             version = latest_lmp['version_number'] + 1
             if config.autocommit:
                 from ell.util.differ import write_commit_message_for_diff
-                commit = str(write_commit_message_for_diff(
-                    f"{latest_lmp['dependencies']}\n\n{latest_lmp['source']}", 
-                    f"{fn_closure[1]}\n\n{fn_closure[0]}")[0])
+                commit = str(write_commit_message_for_diff(f"{latest_lmp['dependencies']}\n\n{latest_lmp['source']}", f"{fn_closure[1]}\n\n{fn_closure[0]}")[0])
         else:
             commit = None
 
@@ -157,8 +119,7 @@ def _serialize_lmp(func, name, fn_closure, is_lmp, lm_kwargs):
             uses=func.__ell_uses__,
         )
 
-def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion_tokens, 
-                     state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result):
+def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result):
     config._store.write_invocation(
         id=invocation_id,
         lmp_id=func.__ell_hash__,
@@ -175,15 +136,12 @@ def _write_invocation(func, invocation_id, latency_ms, prompt_tokens, completion
         result=result
     )
 
-
 def compute_state_cache_key(ipstr, fn_closure):
-    _global_free_vars_str = f"{json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)}"
-    _free_vars_str = f"{json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)}"
+    _global_free_vars_str = json.dumps(get_immutable_vars(fn_closure[2]), sort_keys=True, default=repr)
+    _free_vars_str = json.dumps(get_immutable_vars(fn_closure[3]), sort_keys=True, default=repr)
     state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
     return state_cache_key
 
-# TODO: If you are contributo this is a massive place to optimize jesus christ.
-# Consider using VS-code's prefered method or gdb's prefered method of strifying symbols recursively.
 def get_immutable_vars(vars_dict):
     converter = cattrs.Converter()
 
@@ -202,15 +160,10 @@ def get_immutable_vars(vars_dict):
             return f"<Object of type {type(obj).__name__}>"
 
     converter.register_unstructure_hook(object, handle_complex_types)
-    x = converter.unstructure(vars_dict)
-    return x
+    return converter.unstructure(vars_dict)
 
 def prepare_invocation_params(fn_args, fn_kwargs):
-    invocation_params = dict(
-        args=(fn_args),
-        kwargs=(fn_kwargs),
-    )
-
+    invocation_params = dict(args=fn_args, kwargs=fn_kwargs)
     invocation_converter = cattrs.Converter()
     consumes = set()
 
@@ -218,29 +171,11 @@ def prepare_invocation_params(fn_args, fn_kwargs):
         consumes.update(obj._origin_trace)
         return invocation_converter.unstructure(dict(content=str(obj), **obj.__dict__, __lstr=True))
 
-    invocation_converter.register_unstructure_hook(
-        np.ndarray,
-        lambda arr: arr.tolist()
-    )
-    invocation_converter.register_unstructure_hook(
-        lstr,
-        process_lstr
-    )
-    invocation_converter.register_unstructure_hook(
-        set,
-        lambda s: list(sorted(s))
-    )
-    invocation_converter.register_unstructure_hook(
-        frozenset,
-        lambda s: list(sorted(s))
-    )
- 
+    invocation_converter.register_unstructure_hook(np.ndarray, lambda arr: arr.tolist())
+    invocation_converter.register_unstructure_hook(lstr, process_lstr)
+    invocation_converter.register_unstructure_hook(set, lambda s: list(sorted(s)))
+    invocation_converter.register_unstructure_hook(frozenset, lambda s: list(sorted(s)))
 
     cleaned_invocation_params = invocation_converter.unstructure(invocation_params)
     jstr = json.dumps(cleaned_invocation_params, sort_keys=True, default=repr)
-    #  TODO: This is a hack fix it.
-    # XXX:  Unify this with above so that we don't have to do this.
-    # XXX: I really think there is some standard var explorer we can leverage from from ipython or someshit.
     return json.loads(jstr), jstr, consumes
-
-
