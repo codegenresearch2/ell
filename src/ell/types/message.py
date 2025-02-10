@@ -16,11 +16,11 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 
 from ell.util.serialization import serialize_image
 
-_lstr_generic = Union[_lstr, str]
-InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"]]]
+# Define InvocableTool type
+InvocableTool = Callable[..., Union["ToolResult", _lstr, List["ContentBlock"]]]
 
 class ToolResult(BaseModel):
-    tool_call_id: _lstr_generic
+    tool_call_id: _lstr
     result: List["ContentBlock"]
 
     def custom_json_serializer(self):
@@ -31,7 +31,7 @@ class ToolResult(BaseModel):
 
 class ToolCall(BaseModel):
     tool: InvocableTool
-    tool_call_id: Optional[_lstr_generic] = Field(default=None)
+    tool_call_id: Optional[_lstr] = Field(default=None)
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
@@ -55,7 +55,7 @@ class ToolCall(BaseModel):
 class ContentBlock(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    text: Optional[_lstr_generic] = Field(default=None)
+    text: Optional[_lstr] = Field(default=None)
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
@@ -115,8 +115,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except:
-                raise ValueError("Invalid base64 string for image")
+            except Exception as e:
+                raise ValueError("Invalid base64 string for image") from e
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -211,7 +211,6 @@ class Message(BaseModel):
                 c.to_openai_content_block() for c in self.content
             ]))
         }
-        print(message, self.content)
         if self.tool_calls:
             message["tool_calls"] = [
                 {
@@ -240,12 +239,39 @@ class Message(BaseModel):
 
 # HELPERS
 def system(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a system message with the given content.
+
+    Args:
+    content (str): The content of the system message.
+
+    Returns:
+    Message: A Message object with role set to 'system' and the provided content.
+    """
     return Message(role="system", content=content)
 
 def user(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a user message with the given content.
+
+    Args:
+    content (str): The content of the user message.
+
+    Returns:
+    Message: A Message object with role set to 'user' and the provided content.
+    """
     return Message(role="user", content=content)
 
 def assistant(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create an assistant message with the given content.
+
+    Args:
+    content (str): The content of the assistant message.
+
+    Returns:
+    Message: A Message object with role set to 'assistant' and the provided content.
+    """
     return Message(role="assistant", content=content)
 
 # Custom serialization for BaseModel instances
