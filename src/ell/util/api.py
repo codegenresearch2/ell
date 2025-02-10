@@ -39,14 +39,16 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     # Use the provided client or fallback to the default client for the model
-    client = client or config.get_client_for(model)
-    metadata = dict()
+    if client is None:
+        client = config.get_client_for(model)
 
     if client is None:
         raise RuntimeError(f"No client found for model '{model}'. Please ensure the model is registered or specify a client directly.")
 
     if not client.api_key:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True))
+
+    metadata = dict()
 
     try:
         # Determine the model call based on the API parameters and tools
@@ -74,8 +76,8 @@ def call(
             api_params["stream"] = True
             api_params["stream_options"] = {"include_usage": True}
 
-        client_safe_messages_messages = process_messages_for_client(messages, client)
-        model_result = model_call(model=model, messages=client_safe_messages_messages, **api_params)
+        client_safe_messages = process_messages_for_client(messages, client)
+        model_result = model_call(model=model, messages=client_safe_messages, **api_params)
 
         streaming = api_params.get("stream", False)
         if not streaming:
@@ -130,9 +132,9 @@ def call(
 
             tracked_results.append(Message(role=choice.role if not streaming else choice_deltas[0].delta.role, content=content))
 
-        api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
+        api_params = dict(model=model, messages=client_safe_messages, api_params=api_params)
 
-        return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
+        return (tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata)
 
     except openai.OpenAIError as e:
         logger.error(f"OpenAI API request failed with error: {e}")
