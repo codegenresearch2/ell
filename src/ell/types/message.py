@@ -105,8 +105,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except:
-                raise ValueError("Invalid base64 string for image")
+            except Exception as e:
+                raise ValueError(f"Invalid base64 string for image: {e}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
