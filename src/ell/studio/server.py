@@ -34,6 +34,7 @@ def create_app(config: Config):
 
     app = FastAPI(title="ell Studio", version=__version__)
 
+    # Enable CORS for all origins
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -79,7 +80,7 @@ def create_app(config: Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        filters = {}
+        filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
@@ -108,13 +109,13 @@ def create_app(config: Config):
         lmp_id: Optional[str] = Query(None),
         session: Session = Depends(get_session)
     ):
-        lmp_filters = {}
+        lmp_filters: Dict[str, Any] = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
         if lmp_id:
             lmp_filters["lmp_id"] = lmp_id
 
-        invocation_filters = {}
+        invocation_filters: Dict[str, Any] = {}
         if id:
             invocation_filters["id"] = id
 
@@ -144,7 +145,10 @@ def create_app(config: Config):
         return Response(content=blob, media_type="application/json")
 
     @app.get("/api/lmp-history", response_model=list[Dict[str, Any]])
-    def get_lmp_history(days: int = 365, session: Session = Depends(get_session)):
+    def get_lmp_history(
+        days: int = Query(365, ge=1, le=3650),  # Default to 1 year, max 10 years
+        session: Session = Depends(get_session)
+    ):
         start_date = datetime.utcnow() - timedelta(days=days)
         query = (
             select(SerializedLMP.created_at)
@@ -165,10 +169,10 @@ def create_app(config: Config):
     def get_invocations_aggregate(
         lmp_name: Optional[str] = Query(None),
         lmp_id: Optional[str] = Query(None),
-        days: int = 30,
+        days: int = Query(30, ge=1, le=365),
         session: Session = Depends(get_session)
     ):
-        lmp_filters = {}
+        lmp_filters: Dict[str, Any] = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
         if lmp_id:
