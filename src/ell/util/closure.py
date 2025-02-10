@@ -16,7 +16,7 @@ import black
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
 
-def lexical_closure(
+def lexical_extraction(
     func: Any,
     already_closed: Set[int] = None,
     initial_call: bool = False,
@@ -68,7 +68,7 @@ def xD():
     return prompt_consts.test()
 
 # Extracting the lexical closure of xD
-_, fnclosure, _ = lexical_closure(xD, initial_call=True, recursion_stack=[])
+_, fnclosure, _ = lexical_extraction(xD, initial_call=True, recursion_stack=[])
 source, _ = fnclosure
 
 # Format the source using Black
