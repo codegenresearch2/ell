@@ -13,8 +13,8 @@ def _no_api_key_warning(model, name, client_to_use, long=False, error=False):
         message += f"""
 
 To fix this:
-* Set your API key in the environment variable `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
-* Specify a client explicitly in the decorator:
+* Or, set your API key in the environment variable `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
+* Or, specify a client explicitly in the decorator:
     
     import ell
     import openai
@@ -23,7 +23,7 @@ To fix this:
     def {name}(...):
         ...
     
-* Explicitly specify the client when calling the LMP:
+* Or explicitly specify the client when calling the LMP:
     
     ell.lm(model, client=openai.Client(api_key=my_key))(...)
     
