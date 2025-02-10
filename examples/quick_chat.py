@@ -18,9 +18,7 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format the backstory as follows:
-    Name: <name>
-    Backstory: <3 sentence backstory>"""
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     random_name = random.choice(names_list)
     return f"Name: {random_name}\nBackstory: {random_name} has a fascinating past that shapes their current personality."
 
@@ -41,21 +39,21 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
         
-    messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(2)]  # Generate two personalities
+    for _ in range(100):  # Loop runs 100 times to generate messages
+        messages: List[Tuple[str, str]] = []  # Initialize messages for each iteration
+        personalities = [create_personality() for _ in range(2)]  # Generate two personalities
 
-    names = []
-    backstories = []    
-    for personality in personalities:
-        parts = list(filter(None, personality.split("\n")))
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
-    print(names)
+        names = []
+        backstories = []    
+        for personality in personalities:
+            parts = list(filter(None, personality.split("\n")))
+            names.append(parts[0].split(": ")[1])
+            backstories.append(parts[1].split(": ")[1])
+        print(names)
 
-    whos_turn = 0 
-    for _ in range(10):  # Loop runs 10 times to generate messages
-        personality_talking = personalities[whos_turn]
-        messages = []  # Initialize messages for each iteration
-        messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
-        whos_turn = (whos_turn + 1) % len(personalities)
-    print(messages)
+        whos_turn = 0 
+        for _ in range(10):  # Loop runs 10 times to generate messages
+            personality_talking = personalities[whos_turn]
+            messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
+            whos_turn = (whos_turn + 1) % len(personalities)
+        print(messages)
