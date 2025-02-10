@@ -157,7 +157,7 @@ class SQLStore(ell.store.Store):
             for key, value in filters.items():
                 query = query.where(getattr(SerializedLMP, key) == value)
         
-        query = query.order_by(SerializedLMP.created_at.desc())  # Sort by created_at in descending order
+        query = query.order_by(SerializedLMP.created_at.desc())
         query = query.offset(skip).limit(limit)
         results = session.exec(query).all()
         
