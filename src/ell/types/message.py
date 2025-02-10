@@ -1,5 +1,5 @@
 from typing import Optional, Union, List, Callable, Dict, Type
-from pydantic import BaseModel, Field, model_config
+from pydantic import BaseModel, Field, ConfigDict
 from PIL import Image
 import numpy as np
 import base64
@@ -38,9 +38,7 @@ class ContentBlock(BaseModel):
     parsed: Optional[Union[Type[BaseModel], BaseModel]] = None
     tool_result: Optional[ToolResult] = None
 
-    @model_config(arbitrary_types_allowed=True)
-    def __init__(self, **data):
-        super().__init__(**data)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
     def type(self):
