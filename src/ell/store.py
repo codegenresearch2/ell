@@ -90,32 +90,6 @@ class Store(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def search_lmps(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for LMPs in the storage.
-
-    #     Args:
-    #         query (str): Search query string.
-
-    #     Returns:
-    #         List[Dict[str, Any]]: List of LMPs matching the query.
-    #     """
-    #     pass
-
-    # @abstractmethod
-    # def search_invocations(self, query: str) -> List[Dict[str, Any]]:
-    #     """
-    #     Search for invocations in the storage.
-
-    #     Args:
-    #         query (str): Search query string.
-
-    #     Returns:
-    #         List[Dict[str, Any]]: List of invocations matching the query.
-    #     """
-    #     pass
-
     @abstractmethod
     def get_latest_lmps(self) -> List[Dict[str, Any]]:
         """
@@ -127,12 +101,14 @@ class Store(ABC):
         pass
 
     @contextmanager
-    def freeze(self, *lmps: InvocableLM):
+    def freeze(self, *lmps: InvocableLM, key: Optional[str] = None, condition: Optional[Callable[..., bool]] = None):
         """
         A context manager for caching operations using a particular store.
 
         Args:
             *lmps (InvocableLM): Language Model Programs (LMPs) to cache.
+            key (Optional[str], optional): The cache key. If None, a default key will be generated. Defaults to None.
+            condition (Optional[Callable[..., bool]], optional): A function that determines whether to cache or not. Defaults to None.
 
         Yields:
             None
@@ -144,6 +120,7 @@ class Store(ABC):
                 setattr(lmp, '__ell_use_cache__', self)
             yield
         finally:
+            # TODO: Implement cache storage logic here
             for lmp in lmps:
                 if lmp in old_cache_values:
                     setattr(lmp, '__ell_use_cache__', old_cache_values[lmp])
