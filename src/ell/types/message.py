@@ -87,33 +87,31 @@ class ContentBlock(BaseModel):
         if isinstance(content, BaseModel):
             return cls(parsed=content)
         if isinstance(content, (PILImage.Image, np.ndarray)):
-
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
     @field_validator('image')
     @classmethod
     def validate_image(cls, v):
-        if v is None:
-            return v
-        if isinstance(v, PILImage.Image):
-            return v
-        if isinstance(v, str):
-            try:
+        try:
+            if v is None:
+                return v
+            if isinstance(v, PILImage.Image):
+                return v
+            if isinstance(v, str):
                 img_data = base64.b64decode(v)
                 img = PILImage.open(BytesIO(img_data))
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except:
-                raise ValueError("Invalid base64 string for image")
-        if isinstance(v, np.ndarray):
-            if v.ndim == 3 and v.shape[2] in (3, 4):
-                mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
-                return PILImage.fromarray(v, mode=mode)
-            else:
-                raise ValueError(f"Invalid numpy array shape for image: {v.shape}. Expected 3D array with 3 or 4 channels.")
-        raise ValueError(f"Invalid image type: {type(v)}")
+            if isinstance(v, np.ndarray):
+                if v.ndim == 3 and v.shape[2] in (3, 4):
+                    mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
+                    return PILImage.fromarray(v, mode=mode)
+                else:
+                    raise ValueError(f"Invalid numpy array shape for image: {v.shape}. Expected 3D array with 3 or 4 channels.")
+        except Exception as e:
+            raise ValueError(f"Invalid image: {e}")
 
     @field_serializer('image')
     def serialize_image(self, image: Optional[PILImage.Image], _info):
@@ -121,17 +119,11 @@ class ContentBlock(BaseModel):
             return None
         return serialize_image(image)
     
-
     def to_openai_content_block(self):
         if self.parsed:
             return {
                 "type": "json",
                 "json": json.dumps(self.parsed.model_dump())
-            }
-        elif self.text:
-            return {
-                "type": "text",
-                "text": self.text
             }
         elif self.image:
             base64_image = self.serialize_image(self.image, None)
@@ -140,6 +132,11 @@ class ContentBlock(BaseModel):
                 "image_url": {
                     "url": base64_image
                 }
+            }
+        elif self.text:
+            return {
+                "type": "text",
+                "text": self.text
             }
         else:
             return None 
@@ -158,7 +155,6 @@ class Message(BaseModel):
     role: str
     content: List[ContentBlock]
     
-
     def __init__(self, role, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
         content = coerce_content_list(content, **content_block_kwargs)
         
@@ -194,14 +190,12 @@ class Message(BaseModel):
         return Message(role="user", content=content)
 
     def to_openai_message(self) -> Dict[str, Any]:
-
         message = {
             "role": "tool" if self.tool_results else self.role,
             "content": list(filter(None, [
                 c.to_openai_content_block() for c in self.content
             ]))
         }
-        print(message, self.content)
         if self.tool_calls:
             message["tool_calls"] = [
                 {
@@ -217,9 +211,7 @@ class Message(BaseModel):
 
         if self.tool_results:
             message["tool_call_id"] = self.tool_results[0].tool_call_id
-            # message["name"] = self.tool_results[0].tool_call_id.split('-')[0]  # Assuming the tool name is the first part of the tool_call_id
             message["content"] = self.tool_results[0].result[0].text
-            # Let's assert no other type of content block in the tool result
             assert len(self.tool_results[0].result) == 1, "Tool result should only have one content block"
             assert self.tool_results[0].result[0].type == "text", "Tool result should only have one text content block"
         return message
