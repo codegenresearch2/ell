@@ -23,6 +23,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
+
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
@@ -42,7 +43,3 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
-
-# Configure syntax highlighting for Awesome Sphinx Theme
-pygments_style = "default"
-pygments_style_dark = "dracula"
