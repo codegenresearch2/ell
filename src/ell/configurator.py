@@ -18,6 +18,7 @@ class _Config:
     _store: Optional[Store] = None
     autocommit: bool = False
     lazy_versioning: bool = True  # Optimizes computation of versioning to the initial invocation
+    # XXX: This might lead to incorrect serialization of globals/
     default_lm_params: Dict[str, Any] = field(default_factory=dict)
     default_system_prompt: str = "You are a helpful AI assistant."
     _default_openai_client: Optional[openai.Client] = None
@@ -53,7 +54,9 @@ class _Config:
     def get_client_for(self, model_name: str) -> Optional[openai.Client]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
         client = current_registry.get(model_name)
+        fallback = False  # Added to indicate fallback logic
         if client is None:
+            fallback = True
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
                 from colorama import Fore, Style
@@ -145,5 +148,3 @@ def set_default_lm_params(*args, **kwargs) -> None:
 @wraps(config.set_default_system_prompt)
 def set_default_system_prompt(*args, **kwargs) -> None:
     return config.set_default_system_prompt(*args, **kwargs)
-
-# You can add more helper functions here if needed
