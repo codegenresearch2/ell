@@ -4,10 +4,10 @@ from sqlmodel import SQLModel, BaseModel
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
 class SerializedLMPPublic(SerializedLMPBase):
-    pass
+    uses: List["SerializedLMPPublic"]
 
 class SerializedLMPWithUses(SerializedLMPPublic):
-    uses: List["SerializedLMPPublic"]
+    lmp_id: str
 
 class SerializedLMPCreate(SerializedLMPBase):
     pass
@@ -47,7 +47,7 @@ class InvocationUpdate(SQLModel):
 class SerializedLStrPublic(SerializedLStrBase):
     pass
 
-class SerializedLStrCreate(SQLModel):
+class SerializedLStrCreate(SerializedLStrBase):
     pass
 
 class SerializedLStrUpdate(SQLModel):
@@ -57,12 +57,15 @@ class SerializedLStrUpdate(SQLModel):
 # Additional classes as per the oracle feedback
 class GraphDataPoint(BaseModel):
     date: datetime
-    count: float
+    count: int
     comment: Optional[str] = None
 
-class InvocationsAggregate(SQLModel):
+class InvocationsAggregate(BaseModel):
     invocation_id: str
     total_latency: float
     average_latency: float
     total_tokens: int
+    total_invocations: int
+    avg_latency: float
+    unique_lmps: int
     comment: Optional[str] = None
