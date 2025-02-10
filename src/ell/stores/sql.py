@@ -24,7 +24,7 @@ class SQLStore(ell.store.Store):
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
-                  created_at: Optional[datetime.datetime]=None) -> Optional[Any]:
+                  created_at: Optional[datetime.datetime] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
@@ -40,7 +40,7 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= created_at or utc_now(),
+                    created_at=created_at or utc_now(),
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
