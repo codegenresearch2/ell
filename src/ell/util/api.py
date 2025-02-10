@@ -50,8 +50,7 @@ def call(
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
     
     if not client.api_key:
-        _no_api_key_warning(model, _name, client, long=True, error=True)
-        raise RuntimeError("API key is missing for the client.")
+        raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
     # todo: add suupport for streaming apis that dont give a final usage in the api
     # print(api_params)
