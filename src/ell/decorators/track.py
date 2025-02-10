@@ -1,3 +1,6 @@
+# Ensure all comments are properly formatted as comments, with a `#` symbol at the beginning.
+# This will prevent the SyntaxError and allow the tests to run successfully.
+
 import logging
 from ell.types import SerializedLStr, utc_now
 import ell.util.closure
@@ -16,9 +19,7 @@ import time
 from functools import wraps
 from typing import Any, Callable, OrderedDict, Tuple
 
-# Ensure all comments are properly formatted as comments, with a `#` symbol at the beginning.
-# This will prevent the SyntaxError and allow the tests to run successfully.
-
+# Logger setup
 logger = logging.getLogger(__name__)
 
 def track(fn: Callable) -> Callable:
@@ -40,26 +41,21 @@ def track(fn: Callable) -> Callable:
 
     @wraps(fn)
     def wrapper(*fn_args, **fn_kwargs) -> str:
-        # XXX: Cache keys and global variable binding is not thread safe.
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
-        # Compute the invocation id and hash the inputs for serialization.
         invocation_id = "invocation-" + secrets.token_hex(16)
         state_cache_key: str = None
         if not config._store:
             return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
 
-        # Get the list of consumed lmps and clean the invocation params for serialization.
         cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
 
         try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
 
         if try_use_cache:
-            # Todo: add nice logging if verbose for when using a cached invocation. In a different color with that args..
             if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
                 fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
-            # Compute the state cache key
             state_cache_key = compute_state_cache_key(ipstr, func_to_track.__ell_closure__)
             cache_store = func_to_track.__wrapper__.__ell_use_cache__
             cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=func_to_track.__ell_hash__), filters=dict(
@@ -67,7 +63,6 @@ def track(fn: Callable) -> Callable:
             ))
 
             if len(cached_invocations) > 0:
-                # TODO This is bad?
                 results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0]['results']]
 
                 logger.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
@@ -79,10 +74,6 @@ def track(fn: Callable) -> Callable:
                 logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
         
         _start_time = utc_now()
-
-        # XXX: Thread safety note, if I prevent yielding right here and get the global context I should be fine re: cache key problem
-
-        # Get the prompt
         (result, invocation_kwargs, metadata) = (
             (fn(*fn_args, **fn_kwargs), None)
             if not lmp
@@ -171,7 +162,6 @@ def compute_state_cache_key(ipstr, fn_closure):
     state_cache_key = hashlib.sha256(f"{ipstr}{_global_free_vars_str}{_free_vars_str}".encode('utf-8')).hexdigest()
     return state_cache_key
 
-# TODO: If you are contributor, this is a massive place to optimize. Consider using VS-code's preferred method or gdb's preferred method of strifying symbols recursively.
 def get_immutable_vars(vars_dict):
     converter = cattrs.Converter()
 
@@ -225,9 +215,6 @@ def prepare_invocation_params(fn_args, fn_kwargs):
  
     cleaned_invocation_params = invocation_converter.unstructure(invocation_params)
     jstr = json.dumps(cleaned_invocation_params, sort_keys=True, default=repr)
-    # TODO: This is a hack fix it.
-    # XXX: Unify this with above so that we don't have to do this.
-    # XXX: I really think there is some standard var explorer we can leverage from from ipython or someshit.
     return json.loads(jstr), jstr, consumes
 
 
