@@ -4,39 +4,30 @@ import os
 from typing import Any, Optional, Dict, List, Set, Union
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
 from sqlalchemy import or_, func, and_, text
-
-def utc_now() -> datetime.datetime:
-    """
-    Returns the current UTC timestamp.
-    """
-    return datetime.datetime.now(tz=datetime.timezone.utc)
+import cattrs
+import numpy as np
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
-
         self.open_files: Dict[str, Dict[str, Any]] = {}
 
-
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str, 
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lm: bool, lm_kwargs: str, 
                   version_number: int,
                   uses: Dict[str, Any], 
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
-                  created_at: Optional[float]=None) -> Optional[Any]:
+                  created_at: Optional[float] = None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
-            if lmp:
-                # Already added to the DB.
-                return lmp
-            else:
+            if not lmp:
                 lmp = SerializedLMP(
                     lmp_id=lmp_id,
                     name=name,
@@ -45,8 +36,8 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= created_at if created_at is not None else utc_now(),
-                    is_lm=is_lmp,
+                    created_at=utc_now() if created_at is None else created_at,
+                    is_lm=is_lm,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
                 )
