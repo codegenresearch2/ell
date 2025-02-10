@@ -43,13 +43,10 @@ def call(
     """
     Helper function to run the language model with the provided messages and parameters.
     """
-    # Todo: Decide if the client specified via the context amanger default registry is the shit or if the cliennt specified via lmp invocation args are the hing.
     client = client or config.get_client_for(model)
     if client is None:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
-    # todo: add suupport for streaming apis that dont give a final usage in the api
-    # print(api_params)
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
         api_params.pop("stream", None)
@@ -75,7 +72,6 @@ def call(
         api_params["stream_options"] = {"include_usage": True}
     
     client_safe_messages_messages = process_messages_for_client(messages, client)
-    # print(api_params)
     model_result = model_call(
         model=model, messages=client_safe_messages_messages, **api_params
     )
@@ -109,12 +105,10 @@ def call(
         model_usage_logger_post_end()
     n_choices = len(choices_progress)
 
-    # coerce the streaming into a final message type
     tracked_results = []
     for _, choice_deltas in sorted(choices_progress.items(), key=lambda x: x[0]):
         content = []
         
-        # Handle text content
         if streaming:
             text_content = "".join((choice.delta.content or "" for choice in choice_deltas))
             if text_content:
@@ -134,7 +128,6 @@ def call(
                     text=_lstr(content=choice.content, _origin_trace=_invocation_origin)
                 ))
         
-        # Handle tool calls
         if not streaming and hasattr(choice, 'tool_calls'):
             for tool_call in choice.tool_calls or []:
                 matching_tool = None
