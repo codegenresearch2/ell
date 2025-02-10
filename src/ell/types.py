@@ -1,27 +1,22 @@
 # Let's define the core types.
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union
-
-from typing import Any
-from ell.lstr import lstr
-from ell.util.dict_sync_meta import DictSyncMeta
-
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
 
-_lstr_generic = Union[lstr, str]
+_lstr_generic = Union[str, 'lstr']
 
 OneTurn = Callable[..., _lstr_generic]
 
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
+# want to enable a use case where the user can actually return a standard oai chat format
+# This is a placeholder will likely come back later for this
 LMPParams = Dict[str, Any]
 
 
 @dataclass
-class Message(dict, metaclass=DictSyncMeta):
+class Message(dict):
     role: str
     content: _lstr_generic
 
@@ -42,10 +37,6 @@ T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
-
-from datetime import timezone
-from sqlmodel import Field
-from typing import Optional
 
 
 def utc_now() -> datetime:
@@ -198,5 +189,5 @@ class SerializedLStr(SQLModel, table=True):
     producer_invocation: Optional[Invocation] = Relationship(back_populates="results")  # Relationship to the Invocation that produced this LStr
 
     # Convert an SerializedLStr to an lstr
-    def deserialize(self) -> lstr:
+    def deserialize(self) -> 'lstr':
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
