@@ -28,7 +28,8 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3-sentence backstory>
     """
-    return f"Create a backstory for a character named {random.choice(names_list)}."
+    name = random.choice(names_list)
+    return f"Create a backstory for a character named {name}. Format the output as follows:\nName: {name}\nBackstory: <3-sentence backstory>"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -52,7 +53,10 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     system_prompt = f"You are {name}. Your backstory: {backstory}. Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis."
     user_prompt = format_message_history(message_history)
 
-    return system_prompt + "\n" + user_prompt
+    return [
+        ell.system(system_prompt),
+        ell.user(user_prompt),
+    ]
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -67,6 +71,6 @@ if __name__ == "__main__":
     for _ in range(10):
         personality_talking = f"Name: {names[whos_turn]}\nBackstory: {backstories[whos_turn]}"
         response = chat(messages, personality=personality_talking)
-        messages.append((names[whos_turn], response.split('\n')[1]))
+        messages.append((names[whos_turn], response[1]))
         whos_turn = (whos_turn + 1) % len(names)
     print(messages)
