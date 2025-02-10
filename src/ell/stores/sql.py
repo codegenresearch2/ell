@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import json
 import os
 from typing import Any, Optional, Dict, List, Set, Union
@@ -59,7 +59,7 @@ class SQLStore(ell.store.Store):
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
                          global_vars: Dict[str, Any],
-                         free_vars: Dict[str, Any], created_at: Optional[float], consumes: Set[str], prompt_tokens: Optional[int] = None,
+                         free_vars: Dict[str, Any], created_at: Optional[datetime], consumes: Set[str], prompt_tokens: Optional[int] = None,
                          completion_tokens: Optional[int] = None, latency_ms: Optional[float] = None,
                          state_cache_key: Optional[str] = None,
                          cost_estimate: Optional[float] = None) -> Optional[Any]:
