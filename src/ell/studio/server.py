@@ -49,6 +49,7 @@ def create_app(config: Config):
         try:
             while True:
                 data = await websocket.receive_text()
+                # Handle incoming WebSocket messages if needed
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -153,16 +154,29 @@ def create_app(config: Config):
         days: int = Query(365, ge=1, le=3650),
         session: Session = Depends(get_session)
     ):
+        # Calculate the start date
         start_date = datetime.utcnow() - timedelta(days=days)
-        query = select(SerializedLMP.created_at).where(SerializedLMP.created_at >= start_date).order_by(SerializedLMP.created_at)
+
+        # Query to get all LMP creation times within the date range
+        query = (
+            select(SerializedLMP.created_at)
+            .where(SerializedLMP.created_at >= start_date)
+            .order_by(SerializedLMP.created_at)
+        )
+
         results = session.exec(query).all()
+
+        # Convert results to a list of dictionaries
         history = [{"date": str(row), "count": 1} for row in results]
+
         return history
 
     async def notify_clients(entity: str, id: Optional[str] = None):
+        # Notify clients about an entity update
         message = json.dumps({"entity": entity, "id": id})
         await manager.broadcast(message)
 
+    # Add this method to the app object
     app.notify_clients = notify_clients
 
     @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
@@ -172,12 +186,14 @@ def create_app(config: Config):
         days: int = Query(30, ge=1, le=365),
         session: Session = Depends(get_session)
     ):
+        # Construct filters based on query parameters
         lmp_filters = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
         if lmp_id:
             lmp_filters["lmp_id"] = lmp_id
 
+        # Get aggregated invocation data
         aggregate_data = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
         return InvocationsAggregate(**aggregate_data)
 
