@@ -1,17 +1,21 @@
 import os
 import uvicorn
+import asyncio
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import run_process
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+# Add the missing import for asyncio
 
-def main():
+# Define a database path variable
+db_path = "path/to/your/database.db"
+
+async def db_watcher():
+    # Implement a function to watch the database for changes
+    pass
+
+async def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
     parser.add_argument("--storage-dir", default=os.getcwd(),
                         help="Directory for filesystem serializer storage (default: current directory)")
@@ -31,27 +35,19 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    # Add WebSocket support for real-time communication
-    if args.dev:
-        async def websocket_endpoint(websocket):
-            await websocket.accept()
-            while True:
-                data = await websocket.receive_text()
-                await websocket.send_text(f"Message text was: {data}")
+    # Create a new event loop for managing tasks
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-        @app.websocket("/ws")
-        async def websocket_endpoint(websocket):
-            await websocket.accept()
-            while True:
-                data = await websocket.receive_text()
-                await websocket.send_text(f"Message text was: {data}")
+    # Create and run the server
+    server = uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port))
 
-    # Log filters for debugging purposes
-    logger.setLevel(logging.DEBUG)
-    logger.addFilter(lambda record: "WebSocket" in record.msg or "websocket" in record.msg)
+    # Create tasks for the server and the database watcher
+    server_task = loop.create_task(server.serve())
+    watcher_task = loop.create_task(db_watcher())
 
-    # In production mode, run without auto-reloading
-    uvicorn.run(app, host=args.host, port=args.port)
+    # Wait for the tasks to complete
+    await asyncio.gather(server_task, watcher_task)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
