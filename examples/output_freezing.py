@@ -3,14 +3,14 @@ from ell.stores.sql import SQLiteStore
 
 BASE_PROMPT = """You are an adept python programmer. Only answer in python code. Avoid markdown formatting at all costs."""
 
-@ell.lm(model="gpt-4o", temperature=0.7)
-def create_a_python_class(_user_spec: str):
+@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
+def create_a_python_class(user_spec: str):
     return [
         ell.system(
             f"{BASE_PROMPT}\n\nYour goal is to create a Python class based on a user specification."
         ),
         ell.user(
-            f"Here is the user specification: {_user_spec}"
+            f"Here is the user specification: {user_spec}"
         )
     ]
 
