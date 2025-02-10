@@ -2,6 +2,9 @@ import random
 from typing import List, Tuple
 import ell
 
+# Set verbose configuration
+ell.config.verbose = True
+
 # Define names list
 names_list = ["Alice", "Bob", "Charlie", "Diana", "Eve", "George", "Grace", "Hank", "Ivy", "Jack"]
 
@@ -11,7 +14,7 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3 sentence backstory>"""
     name = random.choice(names_list)
-    backstory = f"{name} is a mysterious character with a hidden past."
+    backstory = f"{name} is a mysterious character with a hidden past. They have a unique skill that sets them apart from others and a deep-seated secret that drives their actions."
     return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
@@ -32,13 +35,18 @@ if __name__ == "__main__":
     messages: List[Tuple[str, str]] = []
     personalities = [create_personality(), create_personality()]
 
-    names = [personality.split("\n")[0].split(": ")[1] for personality in personalities]
-    backstories = [personality.split("\n")[1].split(": ")[1] for personality in personalities]
+    names = []
+    backstories = []
+    for personality in personalities:
+        parts = personality.split("\n")
+        names.append(parts[0].split(": ")[1])
+        backstories.append(parts[1].split(": ")[1])
     print(f"Names: {names}")
 
     whos_turn = 0
     for _ in range(10):
         personality_talking = personalities[whos_turn]
-        messages.extend(chat(messages, personality=personality_talking))
+        response = chat(messages, personality=personality_talking)
+        messages.extend(response)
         whos_turn = (whos_turn + 1) % len(personalities)
     print(f"Messages: {messages}")
