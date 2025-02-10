@@ -1,9 +1,20 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
 from ell.lstr import lstr
+from dataclasses import dataclass
+from ell.util.dict_sync_meta import DictSyncMeta
+
+# Define the InvocableLM type
+InvocableLM = Callable[..., Union[lstr, str]]
+
+# Define the Message dataclass
+@dataclass
+class Message(dict, metaclass=DictSyncMeta):
+    role: str
+    content: Union[lstr, str]
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
@@ -11,14 +22,16 @@ class UTCTimestamp(types.TypeDecorator[datetime]):
         return value.replace(tzinfo=timezone.utc)
 
 def UTCTimestampField(index:bool=False, **kwargs:Any):
-    return Field(
-        sa_column= Column(UTCTimestamp(timezone=True),index=index, **kwargs))
+    return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
 class SerializedLMPUses(SQLModel, table=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class SerializedLMP(SQLModel, table=True):
+    """
+    Represents a serialized Language Model Program (LMP).
+    """
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     source: str
@@ -40,10 +53,16 @@ class SerializedLMP(SQLModel, table=True):
         unique_together = [("version_number", "name")]
 
 class InvocationTrace(SQLModel, table=True):
+    """
+    Represents a many-to-many relationship between Invocations and other Invocations.
+    """
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
 
 class Invocation(SQLModel, table=True):
+    """
+    Represents an invocation of an LMP.
+    """
     id: Optional[str] = Field(default=None, primary_key=True)
     lmp_id: str = Field(foreign_key="serializedlmp.lmp_id", index=True)
     args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
@@ -62,6 +81,9 @@ class Invocation(SQLModel, table=True):
     consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace, sa_relationship_kwargs=dict(primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id", secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id"))
 
 class SerializedLStr(SQLModel, table=True):
+    """
+    Represents a Language String (LStr) result from an LMP invocation.
+    """
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
     logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
