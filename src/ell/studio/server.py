@@ -6,12 +6,15 @@ from ell import __version__
 from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import json
+import logging
 from ell.studio.config import Config
 from ell.studio.connection_manager import ConnectionManager
 from ell.studio.datamodels import SerializedLMPWithUses, InvocationsAggregate
 from ell.types import SerializedLMP
 from datetime import datetime, timedelta
 from sqlmodel import select
+
+logger = logging.getLogger(__name__)
 
 def get_serializer(config: Config):
     if config.pg_connection_string:
@@ -184,7 +187,7 @@ def create_app(config:Config):
         if lmp_id:
             lmp_filters["lmp_id"] = lmp_id
 
-        aggregate = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
-        return InvocationsAggregate(**aggregate)
+        aggregate_data = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
+        return InvocationsAggregate(**aggregate_data)
 
     return app
