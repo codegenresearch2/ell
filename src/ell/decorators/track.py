@@ -40,24 +40,24 @@ def track(fn: Callable) -> Callable:
         fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
     @wraps(fn)
-    def wrapper(*fn_args, **fn_kwargs) -> str:
+    def wrapper(*args, **kwargs) -> str:
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
         invocation_id = "invocation-" + secrets.token_hex(16)
         state_cache_key: str = None
         if not config._store:
-            return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
+            return fn(*args, **kwargs, _invocation_origin=invocation_id)[0]
 
-        cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
+        cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(args, kwargs)
 
-        try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
+        try_use_cache = hasattr(wrapper, "__ell_use_cache__")
 
         if try_use_cache:
             if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
                 fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
             state_cache_key = compute_state_cache_key(ipstr, func_to_track.__ell_closure__)
-            cache_store = func_to_track.__wrapper__.__ell_use_cache__
+            cache_store = wrapper.__ell_use_cache__
             cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=func_to_track.__ell_hash__), filters=dict(
                 state_cache_key=state_cache_key
             ))
@@ -75,9 +75,9 @@ def track(fn: Callable) -> Callable:
         
         _start_time = utc_now()
         (result, invocation_kwargs, metadata) = (
-            (fn(*fn_args, **fn_kwargs), None)
+            (fn(*args, **kwargs), None)
             if not lmp
-            else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs, )
+            else fn(*args, _invocation_origin=invocation_id, **kwargs, )
             )
         latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
@@ -99,7 +99,6 @@ def track(fn: Callable) -> Callable:
 
         return result
 
-    fn.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
     wrapper.__ell_func__ = func_to_track
     wrapper.__ell_track = True
@@ -183,10 +182,10 @@ def get_immutable_vars(vars_dict):
     x = converter.unstructure(vars_dict)
     return x
 
-def prepare_invocation_params(fn_args, fn_kwargs):
+def prepare_invocation_params(args, kwargs):
     invocation_params = dict(
-        args=(fn_args),
-        kwargs=(fn_kwargs),
+        args=(args),
+        kwargs=(kwargs),
     )
 
     invocation_converter = cattrs.Converter()
