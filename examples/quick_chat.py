@@ -18,12 +18,9 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows:
-
-    Name: <name>
-    Backstory: <3 sentence backstory>"""
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     chosen_name = random.choice(names_list)
-    return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
+    return f"Generate a backstory for {chosen_name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -49,9 +46,9 @@ if __name__ == "__main__":
         names = []
         backstories = []    
         for personality in personalities:
-            parts = list(filter(None, personality.split("\n")))
-            names.append(parts[0].split(": ")[1])
-            backstories.append(parts[1].split(": ")[1])
+            prompt = personality.split(".")[-1].strip()  # Extract the prompt part from the personality string
+            names.append(prompt.split(" ")[-1].replace(".", ""))  # Extract the name from the prompt
+            backstories.append(prompt.split(" ")[-1].replace(".", ""))  # Extract the name from the prompt
 
         # Print the extracted names for debugging purposes
         print("Names extracted:", names)
