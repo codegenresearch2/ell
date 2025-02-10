@@ -11,12 +11,15 @@ import importlib.util
 import re
 from collections import deque
 import black
+import sys
+import math
 
 # Constants
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
 
-# Import the prompt_consts module directly
+# Add the parent directory to the Python path to import prompt_consts
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import prompt_consts
 
 def lexical_closure(
