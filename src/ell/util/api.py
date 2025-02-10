@@ -46,7 +46,7 @@ def call(
         raise RuntimeError(f"No client found for model '{model}'. Please ensure the model is registered or specify a client directly.")
 
     if not client.api_key:
-        logger.warning(_no_api_key_warning(model, _name, client, long=True))
+        raise RuntimeError(_no_api_key_warning(model, _name, client, long=True))
 
     try:
         # Determine the model call based on the API parameters and tools
