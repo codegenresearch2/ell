@@ -28,7 +28,7 @@ class SQLStore(ell.store.Store):
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
             if lmp:
-                return lmp  # Return early if the LMP already exists
+                return lmp  # Return the existing LMP if it already exists
             
             lmp = SerializedLMP(
                 lmp_id=lmp_id,
@@ -51,7 +51,7 @@ class SQLStore(ell.store.Store):
                     lmp.uses.append(used_lmp)
             
             session.commit()
-        return None
+        return None  # Indicate that the LMP was successfully written
 
     def write_invocation(self, id: str, lmp_id: str, args: str, kwargs: str, result: Union[lstr, List[lstr]], invocation_kwargs: Dict[str, Any],  
                          global_vars: Dict[str, Any],
@@ -105,6 +105,8 @@ class SQLStore(ell.store.Store):
                 ))
 
             session.commit()
+        return None  # Indicate that the invocation was successfully written
+
     def get_lmps(self, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
             query = select(SerializedLMP)
