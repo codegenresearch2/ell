@@ -10,12 +10,21 @@ names_list = ["Alice", "Bob", "Charlie", "Diana", "Eve", "George", "Grace", "Han
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
-    Name: <name>
-    Backstory: <3 sentence backstory>"""
+    """
+    You are backstoryGPT. You come up with a backstory for a character including name.
+    Choose a completely random name from the list. Format as follows:
+
+    System Prompt:
+    You are backstoryGPT. Come up with a 3-sentence backstory for a character named {name}.
+
+    User Prompt:
+    Name: {name}
+    Backstory: <3 sentence backstory>
+    """
     name = random.choice(names_list)
-    prompt = f"You are backstoryGPT. Come up with a 3-sentence backstory for a character named {name}. Format as follows: Name: {name}\nBackstory: <3 sentence backstory>"
-    return prompt
+    system_prompt = f"You are backstoryGPT. Come up with a 3-sentence backstory for a character named {name}."
+    user_prompt = f"Name: {name}\nBackstory: <3 sentence backstory>"
+    return f"{system_prompt}\n{user_prompt}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """Format the message history into a string."""
@@ -42,8 +51,8 @@ if __name__ == "__main__":
     backstories = []
     for personality in personalities:
         parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+        names.append(parts[1].split(": ")[1])
+        backstories.append(parts[2].split(": ")[1])
     print(f"Names: {names}")
 
     whos_turn = 0
