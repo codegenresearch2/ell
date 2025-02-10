@@ -24,7 +24,7 @@ def get_serializer(config: Config):
     else:
         raise ValueError("No storage configuration found")
 
-def create_app(config:Config):
+def create_app(config: Config):
     serializer = get_serializer(config)
 
     def get_session():
@@ -63,7 +63,7 @@ def create_app(config:Config):
         lmps = serializer.get_latest_lmps(
             session,
             skip=skip, limit=limit,
-            )
+        )
         return lmps
 
     @app.get("/api/lmp/{lmp_id}", response_model=SerializedLMPWithUses)
@@ -79,7 +79,7 @@ def create_app(config:Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        filters : Dict[str, Any] = {}
+        filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
@@ -174,7 +174,7 @@ def create_app(config:Config):
     # Add this method to the app object
     app.notify_clients = notify_clients
 
-    @app.get("/api/invocations-aggregate", response_model=InvocationsAggregate)
+    @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
     def get_invocations_aggregate(
         days: int = Query(30, ge=1, le=365),
         lmp_name: Optional[str] = Query(None),
