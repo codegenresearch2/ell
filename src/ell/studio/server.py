@@ -45,14 +45,11 @@ def create_app(config: Config):
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
-        # Connect to the WebSocket
         await manager.connect(websocket)
         try:
             while True:
                 data = await websocket.receive_text()
-                # Handle incoming WebSocket messages if needed
         except WebSocketDisconnect:
-            # Disconnect from the WebSocket
             manager.disconnect(websocket)
 
     @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
@@ -61,16 +58,11 @@ def create_app(config: Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        # Get the latest LMPs
-        lmps = serializer.get_latest_lmps(
-            session,
-            skip=skip, limit=limit,
-        )
+        lmps = serializer.get_latest_lmps(session, skip=skip, limit=limit)
         return lmps
 
     @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str, session: Session = Depends(get_session)):
-        # Get an LMP by its ID
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
         return lmp
 
@@ -82,18 +74,15 @@ def create_app(config: Config):
         limit: int = Query(100, ge=1, le=100),
         session: Session = Depends(get_session)
     ):
-        # Construct filters based on query parameters
         filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
             filters['lmp_id'] = lmp_id
 
-        # Get LMPs based on filters
         lmps = serializer.get_lmps(session, skip=skip, limit=limit, **filters)
 
         if not lmps:
-            # Raise an HTTPException if no LMPs are found
             raise HTTPException(status_code=404, detail="LMP not found")
 
         return lmps
@@ -103,7 +92,6 @@ def create_app(config: Config):
         invocation_id: str,
         session: Session = Depends(get_session)
     ):
-        # Get an invocation by its ID
         invocation = serializer.get_invocations(session, lmp_filters=dict(), filters={"id": invocation_id})[0]
         return invocation
 
@@ -117,7 +105,6 @@ def create_app(config: Config):
         lmp_id: Optional[str] = Query(None),
         session: Session = Depends(get_session)
     ):
-        # Construct filters based on query parameters
         lmp_filters = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
@@ -128,7 +115,6 @@ def create_app(config: Config):
         if id:
             invocation_filters["id"] = id
 
-        # Get invocations based on filters
         invocations = serializer.get_invocations(
             session,
             lmp_filters=lmp_filters,
@@ -143,7 +129,6 @@ def create_app(config: Config):
     def get_consumption_graph(
         session: Session = Depends(get_session)
     ):
-        # Get traces
         traces = serializer.get_traces(session)
         return traces
 
@@ -152,7 +137,6 @@ def create_app(config: Config):
         invocation_id: str,
         session: Session = Depends(get_session)
     ):
-        # Get all traces leading to a specific invocation
         traces = serializer.get_all_traces_leading_to(session, invocation_id)
         return traces
 
@@ -161,38 +145,24 @@ def create_app(config: Config):
         blob_id: str,
         session: Session = Depends(get_session)
     ):
-        # Get a blob by its ID and return it as a response
         blob = serializer.read_external_blob(blob_id)
         return Response(content=blob, media_type="application/json")
 
     @app.get("/api/lmp-history")
     def get_lmp_history(
-        days: int = Query(365, ge=1, le=3650),  # Default to 1 year, max 10 years
+        days: int = Query(365, ge=1, le=3650),
         session: Session = Depends(get_session)
     ):
-        # Calculate the start date
         start_date = datetime.utcnow() - timedelta(days=days)
-
-        # Query to get all LMP creation times within the date range
-        query = (
-            select(SerializedLMP.created_at)
-            .where(SerializedLMP.created_at >= start_date)
-            .order_by(SerializedLMP.created_at)
-        )
-
+        query = select(SerializedLMP.created_at).where(SerializedLMP.created_at >= start_date).order_by(SerializedLMP.created_at)
         results = session.exec(query).all()
-
-        # Convert results to a list of dictionaries
         history = [{"date": str(row), "count": 1} for row in results]
-
         return history
 
     async def notify_clients(entity: str, id: Optional[str] = None):
-        # Notify clients about an entity update
         message = json.dumps({"entity": entity, "id": id})
         await manager.broadcast(message)
 
-    # Add this method to the app object
     app.notify_clients = notify_clients
 
     @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
@@ -202,14 +172,12 @@ def create_app(config: Config):
         days: int = Query(30, ge=1, le=365),
         session: Session = Depends(get_session)
     ):
-        # Construct filters based on query parameters
         lmp_filters = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
         if lmp_id:
             lmp_filters["lmp_id"] = lmp_id
 
-        # Get aggregated invocation data
         aggregate_data = serializer.get_invocations_aggregate(session, lmp_filters=lmp_filters, days=days)
         return InvocationsAggregate(**aggregate_data)
 
