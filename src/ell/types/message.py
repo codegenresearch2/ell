@@ -1,4 +1,4 @@
-# todo: implement tracing for structured outs. this a v2 feature.
+# todo: implement tracing for structured outputs. this is a v2 feature.
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
@@ -136,11 +136,6 @@ class ContentBlock(BaseModel):
                 "type": "text",
                 "text": self.text
             }
-        elif self.parsed:
-            return {
-                "type": "text",
-                "json": self.parsed.model_dump_json()
-            }
         else:
             return None 
         
@@ -219,7 +214,7 @@ class Message(BaseModel):
             message["tool_call_id"] = self.tool_results[0].tool_call_id
             # message["name"] = self.tool_results[0].tool_call_id.split('-')[0]  # Assuming the tool name is the first part of the tool_call_id
             message["content"] = self.tool_results[0].result[0].text
-            # Let';s assert no other type of content block in the tool result
+            # Let's assert no other type of content block in the tool result
             assert len(self.tool_results[0].result) == 1, "Tool result should only have one content block"
             assert self.tool_results[0].result[0].type == "text", "Tool result should only have one text content block"
         return message
@@ -264,12 +259,12 @@ def assistant(content: Union[str, List[ContentBlock]]) -> Message:
     return Message(role="assistant", content=content)
 
 
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
+# want to enable a use case where the user can actually return a standard oai chat format
+# This is a placeholder will likely come back later for this
 LMPParams = Dict[str, Any]
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta. TypedDict is the ticket ell oh ell.
+# Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta. TypedDict is the ticket ell oh ell.
 MessageOrDict = Union[Message, Dict[str, str]]
-# Can support iamge prompts later.
+# Can support image prompts later.
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
