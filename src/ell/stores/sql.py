@@ -56,6 +56,16 @@ class SQLStore(ell.store.Store):
             session.commit()
         return None
 
+    def get_cached_invocations(self, lmp_id: str, state_cache_key: str) -> List[Invocation]:
+        with Session(self.engine) as session:
+            query = select(Invocation).join(SerializedLMP).where(SerializedLMP.lmp_id == lmp_id, Invocation.state_cache_key == state_cache_key)
+            return session.exec(query).all()
+
+    def get_versions_by_fqn(self, fqn: str) -> List[SerializedLMP]:
+        with Session(self.engine) as session:
+            query = select(SerializedLMP).where(SerializedLMP.name == fqn)
+            return session.exec(query).all()
+
     # ... (rest of the methods remain the same)
 
 class SQLiteStore(SQLStore):
