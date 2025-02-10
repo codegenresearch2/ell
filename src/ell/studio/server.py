@@ -131,6 +131,7 @@ def create_app(config: Config):
 
     @app.get("/api/traces", response_model=list)
     def get_consumption_graph(session: Session = Depends(get_session)):
+        # TODO: Implement the functionality to get consumption graph data
         traces = serializer.get_traces(session)
         return traces
 
