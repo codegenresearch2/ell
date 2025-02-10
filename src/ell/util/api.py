@@ -1,4 +1,4 @@
-from functools import partial
+from functools import wraps
 import json
 
 # import anthropic
@@ -40,12 +40,12 @@ def call(
     _exempt_from_tracking: bool,
     _logging_color=None,
     _name: str = None,
-) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
+) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]], Dict[str, Any]]:
     """
     Helper function to run the language model with the provided messages and parameters.
     """
     client = client or config.get_client_for(model)
-    metadata = dict()  # Initialize metadata dictionary using dict()
+    metadata = {}  # Initialize metadata dictionary
 
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
@@ -159,7 +159,5 @@ def call(
             role=choice.role if not streaming else choice_deltas[0].delta.role,
             content=content
         ))
-    
-    api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
     
     return tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata
