@@ -52,7 +52,11 @@ def create_app(config: Config):
             manager.disconnect(websocket)
 
     @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
-    def get_latest_lmps(skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
+    def get_latest_lmps(
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100),
+        session: Session = Depends(get_session)
+    ):
         lmps = serializer.get_latest_lmps(session, skip=skip, limit=limit)
         return lmps
 
@@ -62,8 +66,14 @@ def create_app(config: Config):
         return lmp
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
-    def get_lmp(lmp_id: Optional[str] = None, name: Optional[str] = None, skip: int = 0, limit: int = 100, session: Session = Depends(get_session)):
-        filters = {}
+    def get_lmp(
+        lmp_id: Optional[str] = Query(None),
+        name: Optional[str] = Query(None),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100),
+        session: Session = Depends(get_session)
+    ):
+        filters: Dict[str, Any] = {}
         if name:
             filters['name'] = name
         if lmp_id:
@@ -80,18 +90,33 @@ def create_app(config: Config):
         return invocation
 
     @app.get("/api/invocations", response_model=list[InvocationPublicWithConsumes])
-    def get_invocations(id: Optional[str] = None, hierarchical: Optional[bool] = False, skip: int = 0, limit: int = 100, lmp_name: Optional[str] = None, lmp_id: Optional[str] = None, session: Session = Depends(get_session)):
-        lmp_filters = {}
+    def get_invocations(
+        id: Optional[str] = Query(None),
+        hierarchical: Optional[bool] = Query(False),
+        skip: int = Query(0, ge=0),
+        limit: int = Query(100, ge=1, le=100),
+        lmp_name: Optional[str] = Query(None),
+        lmp_id: Optional[str] = Query(None),
+        session: Session = Depends(get_session)
+    ):
+        lmp_filters: Dict[str, Any] = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
         if lmp_id:
             lmp_filters["lmp_id"] = lmp_id
 
-        invocation_filters = {}
+        invocation_filters: Dict[str, Any] = {}
         if id:
             invocation_filters["id"] = id
 
-        invocations = serializer.get_invocations(session, lmp_filters=lmp_filters, filters=invocation_filters, skip=skip, limit=limit, hierarchical=hierarchical)
+        invocations = serializer.get_invocations(
+            session,
+            lmp_filters=lmp_filters,
+            filters=invocation_filters,
+            skip=skip,
+            limit=limit,
+            hierarchical=hierarchical
+        )
         return invocations
 
     @app.get("/api/traces")
@@ -110,7 +135,7 @@ def create_app(config: Config):
         return Response(content=blob, media_type="application/json")
 
     @app.get("/api/lmp-history")
-    def get_lmp_history(days: int = 365, session: Session = Depends(get_session)):
+    def get_lmp_history(days: int = Query(365, ge=1, le=3650), session: Session = Depends(get_session)):
         start_date = datetime.utcnow() - timedelta(days=days)
         query = (
             select(SerializedLMP.created_at)
@@ -128,8 +153,13 @@ def create_app(config: Config):
     app.notify_clients = notify_clients
 
     @app.get("/api/invocations/aggregate", response_model=InvocationsAggregate)
-    def get_invocations_aggregate(lmp_name: Optional[str] = None, lmp_id: Optional[str] = None, days: int = 30, session: Session = Depends(get_session)):
-        lmp_filters = {}
+    def get_invocations_aggregate(
+        lmp_name: Optional[str] = Query(None),
+        lmp_id: Optional[str] = Query(None),
+        days: int = Query(30, ge=1, le=365),
+        session: Session = Depends(get_session)
+    ):
+        lmp_filters: Dict[str, Any] = {}
         if lmp_name:
             lmp_filters["name"] = lmp_name
         if lmp_id:
