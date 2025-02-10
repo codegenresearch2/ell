@@ -1,11 +1,10 @@
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
-from PIL.Image import Image
+from PIL import Image as PILImage
 import numpy as np
 import base64
 from io import BytesIO
-from PIL import Image as PILImage
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
 from sqlmodel import Field
@@ -103,8 +102,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except base64.binascii.Error as e:
-                raise ValueError(f"Invalid base64 string for image: {e}")
+            except base64.binascii.Error:
+                raise ValueError("Invalid base64 string for image")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
