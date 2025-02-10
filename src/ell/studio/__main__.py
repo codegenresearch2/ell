@@ -19,6 +19,7 @@ def main():
     app = create_app(args.storage_dir)
 
     if not args.dev:
+        # Serve the built React app in production mode
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
@@ -26,26 +27,17 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    database_file = os.path.join(args.storage_dir, "database.db")
+    database_file = os.path.join(args.storage_dir, "ell.db")
 
-    async def db_watcher(database_file):
+    async def db_watcher():
         async for changes in awatch(database_file):
             print(f"Database changes detected: {changes}")
             # Notify clients or handle changes here
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    try:
-        server = uvicorn.Server(config=uvicorn.Config(app, host=args.host, port=args.port))
-        db_watcher_task = loop.create_task(db_watcher(database_file))
-        server_task = loop.create_task(server.serve())
-        loop.run_until_complete(asyncio.gather(server_task, db_watcher_task))
-    finally:
-        loop.close()
+    server = uvicorn.Server(config=uvicorn.Config(app, host=args.host, port=args.port))
+    db_watcher_task = asyncio.create_task(db_watcher())
+    server_task = asyncio.create_task(server.serve())
+    await asyncio.gather(server_task, db_watcher_task)
 
 if __name__ == "__main__":
-    main()
-
-
-In the updated code, I have ensured that the imports match the gold code. I have also constructed the database path using the storage directory. The database watcher function has been simplified to match the gold code's approach, and a print statement has been added to provide feedback when changes occur. The event loop management has been adjusted to match the gold code's pattern, and the naming conventions and overall structure have been made consistent with the gold code.
+    asyncio.run(main())
