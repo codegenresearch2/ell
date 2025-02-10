@@ -77,6 +77,51 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             # Implement the logic to handle the session context here
             # Create an Invocation instance, add it to the session, and commit the transaction
-            pass  # Placeholder for the implementation
+            if isinstance(result, lstr):
+                results = [result]
+            elif isinstance(result, list):
+                results = result
+            else:
+                raise TypeError("Result must be either lstr or List[lstr]")
+
+            lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
+            assert lmp is not None, f"LMP with id {lmp_id} not found. Writing invocation erroneously"
+
+            # Increment num_invocations
+            if lmp.num_invocations is None:
+                lmp.num_invocations = 1
+            else:
+                lmp.num_invocations += 1
+
+            invocation = Invocation(
+                id=id,
+                lmp_id=lmp.lmp_id,
+                args=args,
+                kwargs=kwargs,
+                global_vars=json.loads(json.dumps(global_vars, default=str)),
+                free_vars=json.loads(json.dumps(free_vars, default=str)),
+                created_at=created_at,
+                invocation_kwargs=invocation_kwargs,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                latency_ms=latency_ms,
+                state_cache_key=state_cache_key,
+            )
+
+            for res in results:
+                serialized_lstr = SerializedLStr(content=str(res), logits=res.logits)
+                session.add(serialized_lstr)
+                invocation.results.append(serialized_lstr)
+
+            session.add(invocation)
+
+            # Now create traces.
+            for consumed_id in consumes:
+                session.add(InvocationTrace(
+                    invocation_consumer_id=id,
+                    invocation_consuming_id=consumed_id
+                ))
+
+            session.commit()
 
     # Rest of the class implementation
