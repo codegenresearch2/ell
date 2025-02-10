@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Dict, Union
+from typing import Any, List, Optional, Dict, Union, Callable
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import func
 import sqlalchemy.types as types
 
 # Import lstr from the appropriate module
 from ell.lstr import lstr
+
+# Import Callable from the typing module
+from typing import Callable
 
 # Define type aliases
 _lstr_generic = Union[lstr, str]
@@ -16,6 +19,9 @@ T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
+
+# Define LMPParams as a type alias
+LMPParams = Dict[str, Any]
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
