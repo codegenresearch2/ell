@@ -2,6 +2,7 @@ import collections
 import ast
 import hashlib
 import os
+import sys
 from typing import Any, Dict, Set, Tuple, Callable
 import dill
 import inspect
@@ -11,7 +12,6 @@ import importlib.util
 import re
 from collections import deque
 import black
-import sys
 import math
 
 # Constants
@@ -20,6 +20,11 @@ FORBIDDEN_NAMES = ["ell", "lstr"]
 
 # Add the parent directory to the Python path to import prompt_consts
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Check if prompt_consts module is present
+if 'prompt_consts' not in sys.modules:
+    raise ModuleNotFoundError("The 'prompt_consts' module is not found. Please ensure it is correctly located within the Python path.")
+
 import prompt_consts
 
 def lexical_closure(
@@ -53,12 +58,13 @@ def _format_source(source: str) -> str:
         source: The source code to format.
 
     Returns:
-        The formatted source code.
+        The formatted source code. If formatting fails, the original source is returned.
     """
     try:
         return black.format_str(source, mode=black.Mode())
     except Exception as e:
-        raise Exception(f"Failed to format source code. Error: {str(e)}")
+        print(f"Failed to format source code. Error: {str(e)}. Returning original source.")
+        return source
 
 # ... (rest of the functions remain the same)
 
