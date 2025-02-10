@@ -4,6 +4,7 @@ from PIL import Image as PILImage
 import numpy as np
 import base64
 from io import BytesIO
+from functools import cached_property
 
 # Type Aliases
 InvocableTool = Callable[..., Union["ToolResult", str, List["ContentBlock"]]]
@@ -147,23 +148,23 @@ class Message(BaseModel):
         content = coerce_content_list(content, **content_block_kwargs)
         super().__init__(content=content, role=role)
 
-    @property
+    @cached_property
     def text(self) -> str:
         return "\n".join(c.text or f"<{c.type}>" for c in self.content)
 
-    @property
+    @cached_property
     def text_only(self) -> str:
         return "\n".join(c.text for c in self.content if c.text)
 
-    @property
+    @cached_property
     def tool_calls(self) -> List[ToolCall]:
         return [c.tool_call for c in self.content if c.tool_call is not None]
     
-    @property
+    @cached_property
     def tool_results(self) -> List[ToolResult]:
         return [c.tool_result for c in self.content if c.tool_result is not None]
 
-    @property
+    @cached_property
     def parsed_content(self) -> List[BaseModel]:
         return [c.parsed for c in self.content if c.parsed is not None]
     
