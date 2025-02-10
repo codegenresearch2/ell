@@ -1,6 +1,6 @@
 # Let's define the core types.
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
@@ -19,7 +19,7 @@ OneTurn = Callable[..., _lstr_generic]
 LMPParams = Dict[str, Any]
 
 
-@dataclass(init=False, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False)
+@dataclass(init=False, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False, metaclass=DictSyncMeta)
 class Message(dict):
     role: str
     content: _lstr_generic
