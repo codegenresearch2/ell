@@ -13,7 +13,7 @@ from dataclasses import dataclass
 @dataclass
 class Message:
     role: str
-    content: str
+    content: Union[str, 'lstr']
 
 # Define other necessary imports and type definitions as per the gold code
 
