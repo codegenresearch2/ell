@@ -1,5 +1,5 @@
+from typing import Any, Optional, List, Callable, Dict, Union
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Union, TypeVar
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
 from datetime import datetime, timezone
@@ -7,7 +7,7 @@ from sqlmodel import Field, SQLModel, Relationship, JSON
 import sqlalchemy.types as types
 
 # Define type variables
-T = TypeVar('T')
+T = Optional[Any]
 
 # Define the core types
 _lstr_generic = Union[lstr, str]
