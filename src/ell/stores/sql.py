@@ -6,7 +6,13 @@ from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
 from ell.lstr import lstr
-from sqlalchemy import or_, func, and_
+from sqlalchemy import or_, func, and_, text
+
+def utc_now() -> datetime.datetime:
+    """
+    Returns the current UTC timestamp.
+    """
+    return datetime.datetime.now(tz=datetime.timezone.utc)
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
@@ -39,7 +45,7 @@ class SQLStore(ell.store.Store):
                     dependencies=dependencies,
                     initial_global_vars=global_vars,
                     initial_free_vars=free_vars,
-                    created_at= datetime.datetime.utcnow(),
+                    created_at= created_at if created_at is not None else utc_now(),
                     is_lm=is_lmp,
                     lm_kwargs=lm_kwargs,
                     commit_message=commit_message
@@ -113,7 +119,12 @@ class SQLStore(ell.store.Store):
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
             results = session.exec(query).all()
-            return [lmp.model_dump() for lmp in results]
+            lmps = [lmp.model_dump() for lmp in results]
+            for lmp in lmps:
+                lmp['uses'] = []
+                for use in session.query(SerializedLMP).filter(SerializedLMPUses.lmp_using_id == lmp['lmp_id']).all():
+                    lmp['uses'].append(use.lmp_id)
+            return lmps
 
     def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
@@ -138,14 +149,25 @@ class SQLStore(ell.store.Store):
 
     def get_traces(self):
         with Session(self.engine) as session:
-            query = session.query(InvocationTrace, Invocation, SerializedLMP).join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id).join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id).order_by(Invocation.created_at.desc())
+            query = text("""
+            SELECT 
+                consumer.lmp_id, 
+                trace.*, 
+                consumed.lmp_id
+            FROM 
+                invocation AS consumer
+            JOIN 
+                invocationtrace AS trace ON consumer.id = trace.invocation_consumer_id
+            JOIN 
+                invocation AS consumed ON trace.invocation_consuming_id = consumed.id
+            """)
             results = session.exec(query).all()
             
             traces = []
-            for (trace, inv, lmp) in results:
+            for (consumer_lmp_id, consumer_invocation_id, consumed_invocation_id, consumed_lmp_id) in results:
                 traces.append({
-                    'consumer': inv.lmp_id,
-                    'consumed': lmp.lmp_id
+                    'consumer': consumer_lmp_id,
+                    'consumed': consumed_lmp_id
                 })
             
             return traces
@@ -171,7 +193,7 @@ class SQLStore(ell.store.Store):
                 for row in results:
                     trace = {
                         'consumer_id': row.InvocationTrace.invocation_consumer_id,
-                        'consumed': row.Invocation.model_dump(),
+                        'consumed': {key: value for key, value in row.Invocation.__dict__.items() if key not in ['invocation_consumer_id', 'invocation_consuming_id']},
                         'consumed_lmp': row.SerializedLMP.model_dump()
                     }
                     traces.append(trace)
