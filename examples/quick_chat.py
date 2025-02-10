@@ -21,29 +21,37 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
+    """
+    You are backstoryGPT. Your task is to create a backstory for a character, including a name chosen randomly from the provided list.
+    Format the output as follows:
 
     Name: <name>
-    Backstory: <3 sentence backstory>
+    Backstory: <3-sentence backstory>
     """
-    return "Create a backstory about " + random.choice(names_list)
+    return f"Create a backstory for a character named {random.choice(names_list)}."
 
 def format_message_history(messages: List[Tuple[str, str]]) -> str:
+    """
+    Format the message history into a string for use in the chat function.
+    """
     return "\n".join([f"{name}: {message}" for name, message in messages])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
 def chat(messages: List[Tuple[str, str]], *, personality: str) -> List[str]:
-    """Generate a response to a chat based on the character's backstory.
+    """
+    Generate a response to a chat based on the character's backstory.
 
     Format:
     System: <Character Backstory>
     User: <Chat History>
     """
     return [
-        ell.system(f"""Here is your description.
-{personality}.
+        ell.system(f"""
+        You are {personality.split('\n')[0].split(': ')[1]}.
+        Your backstory: {personality.split('\n')[1].split(': ')[1]}
 
-Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis."""),
+        Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis.
+        """),
         ell.user(format_message_history(messages)),
     ]
 
