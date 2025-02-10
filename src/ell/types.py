@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Union, Callable
+from typing import Any, List, Optional, Union, Callable, ClassVar
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
@@ -10,17 +10,20 @@ from typing import TypeVar, Dict
 from pydantic import ConfigDict
 
 # Define type aliases
-_lstr_generic = Union[lstr, str]
 LMPParams = Dict[str, Any]
+LStrGeneric = Union[lstr, str]
 
 # Define the InvocableLM type
-InvocableLM = Callable[..., _lstr_generic]
+InvocableLM = Callable[..., LStrGeneric]
 
 # Define the Message dataclass
 @dataclass
 class Message(dict, metaclass=DictSyncMeta):
+    """
+    Represents a message with a role and content.
+    """
     role: str
-    content: _lstr_generic
+    content: LStrGeneric
 
 # Define the UTCTimestamp class and UTCTimestampField function
 class UTCTimestamp(types.TypeDecorator[datetime]):
@@ -75,7 +78,7 @@ class SerializedLMP(SQLModel, table=True):
     version_number: Optional[int] = Field(default=None)
 
     # Use ConfigDict for configuration
-    config = ConfigDict(table_name="serializedlmp", unique_together=[("version_number", "name")])
+    config: ClassVar[ConfigDict] = ConfigDict(table_name="serializedlmp", unique_together=[("version_number", "name")])
 
 # Define the InvocationTrace class
 class InvocationTrace(SQLModel, table=True):
