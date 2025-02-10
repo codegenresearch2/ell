@@ -15,7 +15,7 @@ import black
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
 
-def lexically_closured_source(
+def lexical_closure(
     func: Any,
     already_closed: Set[int] = None,
     initial_call: bool = False,
@@ -61,7 +61,7 @@ def test():
     return math.sin(10)
 
 # lol3.py
-from . import prompt_consts  # Use relative import to ensure the module is correctly referenced
+import prompt_consts  # Use direct import instead of relative import
 
 X = 7
 def xD():
@@ -69,7 +69,7 @@ def xD():
     return prompt_consts.test()
 
 # Extracting lexical closure
-(source, dsrc), _ = lexically_closured_source(xD)
+(source, dsrc), _ = lexical_closure(xD, initial_call=True)
 
 # closure.py
 print(source)
