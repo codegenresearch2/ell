@@ -123,7 +123,7 @@ class ContentBlock(BaseModel):
         if self.parsed:
             return {
                 "type": "json",
-                "json": json.dumps(self.parsed.model_dump())
+                "json": json.dumps(self.parsed.model_dump_json())
             }
         elif self.image:
             base64_image = self.serialize_image(self.image, None)
@@ -203,7 +203,7 @@ class Message(BaseModel):
                     "type": "function",
                     "function": {
                         "name": tool_call.tool.__name__,
-                        "arguments": json.dumps(tool_call.params.model_dump())
+                        "arguments": json.dumps(tool_call.params.model_dump_json())
                     }
                 } for tool_call in self.tool_calls
             ]
