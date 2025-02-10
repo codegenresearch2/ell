@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Optional, Dict, List, Set, Union
 from ell.types import SerializedLMP, Invocation
 from ell.types.message import InvocableLM
+from ell._lstr import _lstr  # Added import for _lstr
 
 
 class Store(ABC):
