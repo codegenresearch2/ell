@@ -18,7 +18,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme'
 
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-# Theme configuration
+# -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
 html_theme_options = {
     "show_prev_next": True,
@@ -26,6 +26,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
+        "AI Jobs Board": "https://example.com/ai-jobs-board"  # Added navigation link
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -40,4 +41,4 @@ html_theme_options = {
 }
 
 # Path setup
-templates_path = ['_templates']
+templates_path = ['_templates']  # Removed redundant definition
