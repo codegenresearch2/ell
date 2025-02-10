@@ -64,7 +64,7 @@ def lexical_closure(
 
     dsrc = _clean_src(dirty_src_without_func)
 
-    # Format the sorce and dsrc soruce using Black
+    # Format the source and dsrc source using Black
     source = _format_source(source)
     dsrc = _format_source(dsrc)
 
