@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 from functools import cached_property
 import sqlalchemy.types as types
-from sqlmodel import SQLModel, Field, Relationship, JSON
+from sqlmodel import SQLModel, Field, Relationship, JSON, Column
 from sqlalchemy import Index, func
 from typing import Optional, Dict, List, Union, Any
 
