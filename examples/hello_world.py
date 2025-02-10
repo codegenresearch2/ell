@@ -5,6 +5,9 @@ from ell.stores.sql import SQLiteStore
 # Set configuration settings for ELL
 ell.config.verbose = True
 
+# Initialize the store
+ell.set_store('./logdir', autocommit=True)
+
 def get_random_length():
     return int(np.random.beta(2, 6) * 3000)
 
