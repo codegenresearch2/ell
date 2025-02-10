@@ -33,6 +33,7 @@ def create_app(config: Config):
 
     app = FastAPI(title="ell Studio", version=__version__)
 
+    # Enable CORS for all origins
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -67,7 +68,7 @@ def create_app(config: Config):
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)
         if not lmp:
             raise HTTPException(status_code=404, detail="LMP not found")
-        return lmp[0]
+        return lmp[0]  # Directly access the first element of the result
 
     @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
     def get_lmps(
