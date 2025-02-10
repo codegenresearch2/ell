@@ -17,19 +17,6 @@ author = 'William Guss'
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
 # Include templates path
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-html_theme = "sphinxawesome_theme"
-
-# Configure syntax highlighting for Awesome Sphinx Theme
-pygments_style = "default"
-pygments_style_dark = "dracula"
-
-# Additional theme configuration
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
