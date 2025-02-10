@@ -23,8 +23,8 @@ def main():
 
     async def db_watcher():
         watcher = awatch(db_path)
-        async for change in watcher:
-            print(f"Database change detected: {change}")
+        async for changes in watcher:
+            print(f"Database change detected: {changes}")
             # Implement a notification mechanism for clients here
 
     async def main_async():
@@ -43,6 +43,7 @@ def main():
         server_task = loop.create_task(uvicorn.Server(uvicorn.Config(app, host=args.host, port=args.port)).serve())
         watcher_task = loop.create_task(db_watcher())
         await asyncio.gather(server_task, watcher_task)
+        loop.run_forever()
 
     asyncio.run(main_async())
 
