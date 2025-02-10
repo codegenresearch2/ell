@@ -6,25 +6,23 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from sqlalchemy import or_, func, and_, text
 from ell.lstr import lstr
 from sqlalchemy import Column
-from sqlalchemy.sql import TIMESTAMP
+from sqlalchemy.types import TIMESTAMP
 import sqlalchemy.types as types
-from dataclasses import dataclass
 
 # Importing the required classes and functions locally to avoid circular import issues
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 
 class UTCTimestamp(types.TypeDecorator[datetime.datetime]):
-    impl = types.TIMESTAMP
+    impl = TIMESTAMP
     def process_result_value(self, value: datetime.datetime, dialect:Any):
         return value.replace(tzinfo=datetime.timezone.utc)
 
 def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
-@dataclass
-class SerializedLMPUses:
-    lmp_user_id: Optional[str] = None
-    lmp_using_id: Optional[str] = None
+class SerializedLMPUses(SQLModel, table=True):
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class SerializedLMP(SQLModel, table=True):
     """
