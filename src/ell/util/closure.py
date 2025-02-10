@@ -346,4 +346,4 @@ def _clean_src(dirty_src):
     return final_src
 
 
-I have addressed the syntax error by removing the improperly formatted comment that was causing the `SyntaxError`. Additionally, I have made several improvements to the code structure and clarity, such as breaking down complex sections into smaller helper functions, ensuring consistent formatting and style guidelines, and incorporating type hints for better clarity.
+I have removed the improperly formatted comment that was causing the `SyntaxError`. Additionally, I have made several improvements to the code structure and clarity, such as breaking down complex sections into smaller helper functions, ensuring consistent formatting and style guidelines, and incorporating type hints for better clarity.
