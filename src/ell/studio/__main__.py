@@ -1,12 +1,26 @@
-import asyncio
 import os
+import asyncio
 import uvicorn
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from watchfiles import awatch
+from watchfiles import run_process
+import websockets
+import json
 
+# Adding WebSocket functionality for real-time communication
+async def notify_clients(message):
+    for websocket in connected_websockets:
+        await websocket.send(json.dumps(message))
+
+async def websocket_handler(websocket):
+    connected_websockets.add(websocket)
+    try:
+        while True:
+            await asyncio.sleep(3600)  # Keep the connection open
+    except websockets.exceptions.ConnectionClosed:
+        connected_websockets.remove(websocket)
 
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
@@ -28,23 +42,18 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    db_path = os.path.join(args.storage_dir, "ell.db")
+    # Adding WebSocket endpoint
+    app.add_websocket_route("/ws", websocket_handler)
 
-    async def db_watcher():
-        async for changes in awatch(db_path):
-            print(f"Database changed: {changes}")
-            await app.notify_clients("database_updated")
-
-    # Start the database watcher
-
-
-    loop = asyncio.new_event_loop()
-
-    config = uvicorn.Config(app=app, port=args.port, loop=loop)
+    # In production mode, run without auto-reloading
+    config = uvicorn.Config(app, host=args.host, port=args.port)
     server = uvicorn.Server(config)
-    loop.create_task(server.serve())
-    loop.create_task(db_watcher())
-    loop.run_forever()
+
+    # Adding debug print statements and client notification capabilities for updates
+    print(f"Starting server on {args.host}:{args.port}")
+    asyncio.get_event_loop().run_until_complete(notify_clients({"message": "Server started"}))
+    server.run()
 
 if __name__ == "__main__":
+    connected_websockets = set()
     main()
