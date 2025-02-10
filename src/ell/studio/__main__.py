@@ -30,7 +30,7 @@ def main():
 
     async def db_watcher():
         async for changes in awatch(db_path):
-            print(f"Detected changes in the database: {changes}")
+            print(f"Database changes detected")
             await app.notify_clients("database_updated")
 
     async def start_server_and_watch_database():
@@ -40,7 +40,10 @@ def main():
         print(f"Starting server on {args.host}:{args.port}")
         await app.notify_clients("server_started")
 
-        await asyncio.gather(server.serve(), db_watcher())
+        try:
+            await asyncio.gather(server.serve(), db_watcher())
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -48,6 +51,8 @@ def main():
     try:
         loop.create_task(start_server_and_watch_database())
         loop.run_forever()
+    except KeyboardInterrupt:
+        print("Server stopped")
     finally:
         loop.close()
 
