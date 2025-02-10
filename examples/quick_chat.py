@@ -37,7 +37,7 @@ def format_message_history(messages: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in messages])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(messages: List[Tuple[str, str]], *, personality: str) -> List[str]:
+def chat(messages: List[Tuple[str, str]], *, personality: str) -> str:
     """
     Generate a response to a chat based on the character's backstory.
 
@@ -45,15 +45,20 @@ def chat(messages: List[Tuple[str, str]], *, personality: str) -> List[str]:
     System: <Character Backstory>
     User: <Chat History>
     """
-    return [
-        ell.system(f"""
-        You are {personality.split('\n')[0].split(': ')[1]}.
-        Your backstory: {personality.split('\n')[1].split(': ')[1]}
+    name, backstory = personality.split('\n')
+    name = name.split(': ')[1]
+    backstory = backstory.split(': ')[1]
 
-        Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis.
-        """),
-        ell.user(format_message_history(messages)),
-    ]
+    system_prompt = f"""
+    You are {name}.
+    Your backstory: {backstory}
+
+    Your goal is to come up with a response to a chat. Only respond in one sentence, using an informal tone. Never use Emojis.
+    """
+
+    user_prompt = format_message_history(messages)
+
+    return ell.system(system_prompt) + ell.user(user_prompt)
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -65,15 +70,15 @@ if __name__ == "__main__":
     names = []
     backstories = []
     for personality in personalities:
-        parts = list(filter(None, personality.split("\n")))
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+        name, backstory = personality.split('\n')
+        names.append(name.split(': ')[1])
+        backstories.append(backstory.split(': ')[1])
     print(names)
 
     whos_turn = 0
     for _ in range(100):
         personality_talking = personalities[whos_turn]
         response = chat(messages, personality=personality_talking)
-        messages.append((names[whos_turn], response[1]))
+        messages.append((names[whos_turn], response))
         whos_turn = (whos_turn + 1) % len(personalities)
     print(messages)
