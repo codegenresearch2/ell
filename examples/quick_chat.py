@@ -8,7 +8,8 @@ names_list = ["Alice", "Bob", "Charlie", "Diana", "Eve", "George", "Grace", "Han
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    Generate a backstory for a character with a random name from the names_list.
+    You are backstoryGPT. Your task is to create a backstory for a character with a random name from the names_list.
+    The backstory should be a 3-sentence paragraph.
 
     Returns:
         str: A formatted string containing the character's name and backstory.
@@ -54,6 +55,7 @@ if __name__ == "__main__":
     personalities = [create_personality(), create_personality()]
 
     names = [personality.split("\n")[0].split(": ")[1] for personality in personalities]
+    backstories = [personality.split("\n")[1].split(": ")[1] for personality in personalities]
     print("Names:", names)
 
     whos_turn = 0
