@@ -3,20 +3,11 @@ import enum
 from functools import cached_property
 
 import sqlalchemy.types as types
-
-from sqlmodel import Column, Field, SQLModel
-from typing import Optional
-from dataclasses import dataclass
+from sqlmodel import Column, Field, SQLModel, Relationship, JSON
+from sqlalchemy import Index, func
 from typing import Dict, List, Literal, Union, Any, Optional
 
-from datetime import datetime
-from typing import Any, List, Optional
-from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from sqlalchemy import Index, func
-
-from typing import TypeVar, Any
-
-from ell.types import Message
+from ell.types.message import Message
 
 def utc_now() -> datetime:
     """
@@ -28,12 +19,12 @@ def utc_now() -> datetime:
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
     impl = types.TIMESTAMP
-    def process_result_value(self, value: datetime, dialect:Any):
+
+    def process_result_value(self, value: datetime, dialect: Any):
         return value.replace(tzinfo=timezone.utc)
 
-def UTCTimestampField(index:bool=False, **kwargs:Any):
-    return Field(
-        sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
+def UTCTimestampField(index: bool = False, **kwargs: Any):
+    return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
 class LMPType(str, enum.Enum):
     LM = "LM"
@@ -59,12 +50,9 @@ class SerializedLMPBase(SQLModel):
 class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
-
-    This class is used to track which LMPs use or are used by other LMPs.
     """
-
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
@@ -110,7 +98,7 @@ class InvocationContentsBase(SQLModel):
     invocation_api_params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     global_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     free_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    is_external : bool = Field(default=False)
+    is_external: bool = Field(default=False)
 
     @cached_property
     def should_externalize(self) -> bool:
@@ -125,7 +113,7 @@ class InvocationContentsBase(SQLModel):
         ]
 
         total_size = sum(
-            len(json.dumps(field).encode('utf-8')) for field in json_fields if field is not None
+            len(json.dumps(field.dict()).encode('utf-8')) for field in json_fields if field is not None
         )
 
         return total_size > 102400  # Precisely 100kb in bytes
