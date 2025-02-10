@@ -5,7 +5,7 @@ import sqlalchemy.types as types
 from ell.types.message import Any, Field, Message, Optional
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON, func
 from typing import Optional, Dict, List, Any, Union
-from dataclasses import dataclass
+from sqlalchemy import Index
 
 def utc_now() -> datetime:
     """
@@ -59,7 +59,8 @@ class SerializedLMP(SerializedLMPBase, table=True):
         link_model=SerializedLMPUses,
         sa_relationship_kwargs=dict(
             primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
+            extend_existing=True
         )
     )
     uses: List["SerializedLMP"] = Relationship(
@@ -67,7 +68,8 @@ class SerializedLMP(SerializedLMPBase, table=True):
         link_model=SerializedLMPUses,
         sa_relationship_kwargs=dict(
             primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
+            extend_existing=True
         )
     )
 
