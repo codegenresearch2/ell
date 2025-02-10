@@ -2,19 +2,19 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from ell.stores.sql import SQLiteStore
-from ell import __version__
-from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
 import uvicorn
+from fastapi import FastAPI, Query, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from ell.stores.sql import SQLiteStore
+from ell import __version__
 
 logger = logging.getLogger(__name__)
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        self.active_connections = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -63,7 +63,7 @@ def create_app(storage_dir: Optional[str] = None):
         try:
             while True:
                 data = await websocket.receive_text()
-                # TODO: Implement handling of incoming messages if needed
+                # TODO: Handle incoming WebSocket messages here
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -81,6 +81,10 @@ def create_app(storage_dir: Optional[str] = None):
             filters['lmp_id'] = lmp_id
 
         lmps = serializer.get_lmps(skip=skip, limit=limit, **filters)
+
+        if not lmps:
+            raise HTTPException(status_code=404, detail="LMPs not found")
+
         return lmps
 
     @app.get("/api/latest/lmps")
@@ -95,8 +99,10 @@ def create_app(storage_dir: Optional[str] = None):
 
     @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str):
-        lmp = serializer.get_lmps(lmp_id=lmp_id)[0]
-        return lmp
+        lmp = serializer.get_lmps(lmp_id=lmp_id)
+        if not lmp:
+            raise HTTPException(status_code=404, detail="LMP not found")
+        return lmp[0]
 
     @app.get("/api/invocation/{invocation_id}")
     def get_invocation(
