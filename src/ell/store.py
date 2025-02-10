@@ -73,8 +73,6 @@ class Store(ABC):
 
         Args:
             *lmps: Variable length argument list of InvocableLM objects.
-            key (Optional[str]): The cache key. If None, a default key will be generated.
-            condition (Optional[Callable[..., bool]]): A function that determines whether to cache or not.
 
         Yields:
             None
