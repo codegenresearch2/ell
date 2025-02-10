@@ -45,7 +45,7 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     client = client or config.get_client_for(model)
-    metadata = {}  # Initialize metadata dictionary
+    metadata = dict()  # Initialize metadata dictionary using dict()
 
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
