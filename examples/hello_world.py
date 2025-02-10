@@ -4,6 +4,7 @@ import numpy as np
 from ell.stores.sql import SQLiteStore
 
 # Initialize the store directly in the global scope
+# Equivalent to ell.init(store='./logdir', autocommit=True, verbose=True)
 ell.config.verbose = True
 ell.set_store('./logdir', autocommit=True)
 
@@ -19,7 +20,7 @@ def hello(world: str):
     return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
 
 if __name__ == "__main__":
-    greeting = hello("sam altman")
+    greeting = hello("sam altman")  # Expected output: "hello Sam! ..."
 
     # Print the greeting directly
     print(greeting)
