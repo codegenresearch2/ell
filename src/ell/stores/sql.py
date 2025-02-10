@@ -2,7 +2,7 @@ import datetime
 import json
 import os
 from typing import Any, Optional, Dict, List, Set, Union
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine, select, outerjoin
 import ell.store
 from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
 from ell.lstr import lstr
@@ -23,25 +23,27 @@ class SQLStore(ell.store.Store):
                   global_vars: Dict[str, Any],
                   free_vars: Dict[str, Any],
                   commit_message: Optional[str] = None,
-                  created_at: Optional[float] = None) -> Optional[Any]:
+                  created_at: Optional[float]=None) -> Optional[Any]:
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
-            if not lmp:
-                lmp = SerializedLMP(
-                    lmp_id=lmp_id,
-                    name=name,
-                    version_number=version_number,
-                    source=source,
-                    dependencies=dependencies,
-                    initial_global_vars=global_vars,
-                    initial_free_vars=free_vars,
-                    created_at=utc_now() if created_at is None else created_at,
-                    is_lm=is_lm,
-                    lm_kwargs=lm_kwargs,
-                    commit_message=commit_message
-                )
-                session.add(lmp)
+            if lmp:
+                return lmp  # Return early if the LMP already exists
+            
+            lmp = SerializedLMP(
+                lmp_id=lmp_id,
+                name=name,
+                version_number=version_number,
+                source=source,
+                dependencies=dependencies,
+                initial_global_vars=global_vars,
+                initial_free_vars=free_vars,
+                created_at=utc_now() if created_at is None else created_at,
+                is_lm=is_lm,
+                lm_kwargs=lm_kwargs,
+                commit_message=commit_message
+            )
+            session.add(lmp)
             
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
@@ -109,12 +111,14 @@ class SQLStore(ell.store.Store):
             if filters:
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
+            
             results = session.exec(query).all()
-            lmps = [lmp.model_dump() for lmp in results]
-            for lmp in lmps:
-                lmp['uses'] = []
-                for use in session.query(SerializedLMP).filter(SerializedLMPUses.lmp_using_id == lmp['lmp_id']).all():
-                    lmp['uses'].append(use.lmp_id)
+            
+            lmps = []
+            for lmp in results:
+                lmp_dict = lmp.model_dump()
+                lmp_dict['uses'] = [use.lmp_id for use in lmp.uses]
+                lmps.append(lmp_dict)
             return lmps
 
     def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -134,7 +138,7 @@ class SQLStore(ell.store.Store):
                     inv_dict['results'] = []
                     invocations[inv.id] = inv_dict
                 if lstr:
-                    invocations[inv.id]['results'].append(lstr.model_dump())
+                    inv_dict['results'].append(lstr.model_dump())
             
             return list(invocations.values())
 
