@@ -30,7 +30,7 @@ def main():
     db_path = os.path.join(args.storage_dir, "ell.db")
 
     async def db_watcher():
-        # Start of database watcher
+        # Database watcher
         async for changes in awatch(db_path):
             print(f"Database changes detected: {changes}")
             # Implement a notification mechanism for clients here
@@ -40,10 +40,10 @@ def main():
     asyncio.set_event_loop(loop)
 
     try:
-        config = uvicorn.Config(app, host=args.host, port=args.port)
+        config = uvicorn.Config(app=app, host=args.host, port=args.port)
         server = uvicorn.Server(config)
-        loop.create_task(db_watcher())
         loop.create_task(server.serve())
+        loop.create_task(db_watcher())
         loop.run_forever()
     finally:
         loop.close()
