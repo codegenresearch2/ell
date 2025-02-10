@@ -6,6 +6,7 @@ from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 def utc_now():
     return datetime.utcnow()
 
+# Define the InvocationTrace class before using it in the Invocation class
 class InvocationTrace(SQLModel, table=True):
     invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True)
     invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True)
@@ -59,7 +60,7 @@ class SerializedLStr(SQLModel, table=True):
     def deserialize(self) -> lstr:
         return lstr(self.content, logits=self.logits, _origin_trace=frozenset([self.producer_invocation_id]))
 
-# Moving the definition of SerializedLMPUses to a separate module to resolve circular import issue
+# Define the SerializedLMPUses class after the SerializedLMP class to avoid circular import issues
 class SerializedLMPUses(SQLModel, table=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True)
