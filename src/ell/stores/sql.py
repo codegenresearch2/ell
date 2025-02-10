@@ -20,6 +20,13 @@ import json
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str, has_blob_storage: bool = False):
+        """
+        Initializes the SQLStore with a given database URI and optional blob storage.
+        
+        Args:
+            db_uri (str): The URI for the database.
+            has_blob_storage (bool): Whether the store has blob storage.
+        """
         self.engine = create_engine(db_uri,
                                     json_serializer=lambda obj: json.dumps(pydantic_ltype_aware_cattr.unstructure(obj), 
                                      sort_keys=True, default=repr))
@@ -150,7 +157,7 @@ class SQLStore(ell.store.Store):
             for key, value in filters.items():
                 query = query.where(getattr(SerializedLMP, key) == value)
         
-        query = query.order_by(SerializedLMP.created_at.desc())
+        query = query.order_by(SerializedLMP.created_at.desc())  # Sort by created_at in descending order
         query = query.offset(skip).limit(limit)
         results = session.exec(query).all()
         
