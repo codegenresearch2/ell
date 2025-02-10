@@ -41,17 +41,17 @@ if __name__ == "__main__":
         
     for _ in range(100):
         messages: List[Tuple[str, str]] = []
-        personalities = [create_personality(), create_personality()]
+        personalities = [create_personality() for _ in range(2)]
 
         names = []
         backstories = []    
         for personality in personalities:
             parts = personality.split("\n")
-            name_part = [part for part in parts if "Name:" in part]
-            backstory_part = [part for part in parts if "Backstory:" in part]
+            name_part = next((part.split(": ")[1] for part in parts if "Name:" in part), None)
+            backstory_part = next((part.split(": ")[1] for part in parts if "Backstory:" in part), None)
             if name_part and backstory_part:
-                names.append(name_part[0].split(": ")[1])
-                backstories.append(backstory_part[0].split(": ")[1])
+                names.append(name_part)
+                backstories.append(backstory_part)
 
         # Print the extracted names for debugging purposes
         print("Names extracted:", names)
