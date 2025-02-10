@@ -44,8 +44,8 @@ def _warnings(model, fn, default_client_from_decorator):
                             "\n    import ell"
                             "\n    ell.lm(model, client=my_client)"
                             "\n    def {fn.__name__}(...):"
-                            "\n        ..."
-                            "\n* Or explicitly specify the client when the calling the LMP:"
+                            "\n        ...\n"
+                            "* Or explicitly specify the client when the calling the LMP:"
                             "\n    ell.lm(model, client=my_client)(...)"
                             f"{Style.RESET_ALL}")
         elif not client_to_use.api_key:
