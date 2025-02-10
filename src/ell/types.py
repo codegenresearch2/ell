@@ -1,13 +1,33 @@
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Union
+from ell.lstr import lstr
+
+_lstr_generic = Union[lstr, str]
+
+OneTurn = Callable[..., _lstr_generic]
+LMPParams = Dict[str, Any]
+
+@dataclass
+class Message(dict):
+    role: str
+    content: _lstr_generic
+
+MessageOrDict = Union[Message, Dict[str, str]]
+Chat = List[Message]
+
+MultiTurnLMP = Callable[..., Chat]
+T = TypeVar("T", bound=Any)
+ChatLMP = Callable[[Chat, T], Chat]
+LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
+InvocableLM = Callable[..., _lstr_generic]
+
+# Your updated code snippet
 from datetime import datetime, timezone
 from typing import Any, List, Optional, Union
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import TIMESTAMP, func
 import sqlalchemy.types as types
-from ell.lstr import lstr  # Importing the lstr type
-
-# Moving the definitions of InvocableLM and Message to a separate module to avoid circular dependencies
-# Assuming these definitions are in a module called ell.core
-from ell.core import InvocableLM, Message
+from ell.core import InvocableLM, Message  # Importing the required types from ell.core
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     impl = types.TIMESTAMP
@@ -30,7 +50,7 @@ class SerializedLMP(SQLModel, table=True):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     source: str
-    dependencies: str  # Changed the type to string as per the feedback
+    dependencies: str
     created_at: datetime = UTCTimestampField(index=True, default=func.now(), nullable=False)
     is_lm: bool
     lm_kwargs: dict = Field(sa_column=Column(JSON))
