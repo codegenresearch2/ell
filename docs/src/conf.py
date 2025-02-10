@@ -46,6 +46,3 @@ html_theme_options = {
 # Configure syntax highlighting for Awesome Sphinx Theme
 pygments_style = "default"
 pygments_style_dark = "dracula"
-
-# Additional theme configuration
-templates_path = ['_templates']
