@@ -59,8 +59,7 @@ class SerializedLMP(SerializedLMPBase, table=True):
         link_model=SerializedLMPUses,
         sa_relationship_kwargs=dict(
             primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            extend_existing=True
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id"
         )
     )
     uses: List["SerializedLMP"] = Relationship(
@@ -68,8 +67,7 @@ class SerializedLMP(SerializedLMPBase, table=True):
         link_model=SerializedLMPUses,
         sa_relationship_kwargs=dict(
             primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            extend_existing=True
+            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id"
         )
     )
 
