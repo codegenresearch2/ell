@@ -24,7 +24,6 @@ class ConnectionManager:
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
-            print(f'Broadcasting message to connection {connection}: {message}')
             await connection.send_text(message)
 
 def create_app(storage_dir: Optional[str] = None):
@@ -51,7 +50,7 @@ def create_app(storage_dir: Optional[str] = None):
             while True:
                 data = await websocket.receive_text()
                 # TODO: Implement logic to handle incoming WebSocket messages
-                await manager.broadcast(f'Message text was: {data}')
+                await manager.broadcast(f'Message received: {data}')
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -59,26 +58,18 @@ def create_app(storage_dir: Optional[str] = None):
         message = f'New {entity} created'
         if id:
             message += f' with ID: {id}'
-        print(f'Notifying clients: {message}')
-        # Create a message in JSON format
         json_message = json.dumps({'message': message})
         await manager.broadcast(json_message)
 
     app.notify_clients = notify_clients
 
     @app.get('/api/lmps')
-    def get_lmps(
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100)
-    ):
+    def get_lmps(skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
         lmps = serializer.get_lmps(skip=skip, limit=limit)
         return lmps
 
     @app.get('/api/latest/lmps')
-    def get_latest_lmps(
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100)
-    ):
+    def get_latest_lmps(skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
         lmps = serializer.get_latest_lmps(skip=skip, limit=limit)
         return lmps
 
@@ -90,12 +81,7 @@ def create_app(storage_dir: Optional[str] = None):
         return lmp[0]
 
     @app.get('/api/lmps')
-    def get_lmp(
-        lmp_id: Optional[str] = Query(None),
-        name: Optional[str] = Query(None),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100)
-    ):
+    def get_lmp(lmp_id: Optional[str] = Query(None), name: Optional[str] = Query(None), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
         filters = {}
         if name:
             filters['name'] = name
@@ -115,13 +101,7 @@ def create_app(storage_dir: Optional[str] = None):
         return invocation[0]
 
     @app.get('/api/invocations')
-    def get_invocations(
-        id: Optional[str] = Query(None),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100),
-        lmp_name: Optional[str] = Query(None),
-        lmp_id: Optional[str] = Query(None),
-    ):
+    def get_invocations(id: Optional[str] = Query(None), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100), lmp_name: Optional[str] = Query(None), lmp_id: Optional[str] = Query(None)):
         lmp_filters = {}
         if lmp_name:
             lmp_filters['name'] = lmp_name
@@ -132,20 +112,11 @@ def create_app(storage_dir: Optional[str] = None):
         if id:
             invocation_filters['id'] = id
 
-        invocations = serializer.get_invocations(
-            lmp_filters=lmp_filters,
-            filters=invocation_filters,
-            skip=skip,
-            limit=limit
-        )
+        invocations = serializer.get_invocations(lmp_filters=lmp_filters, filters=invocation_filters, skip=skip, limit=limit)
         return invocations
 
     @app.post('/api/invocations/search')
-    def search_invocations(
-        q: str = Query(...),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=100)
-    ):
+    def search_invocations(q: str = Query(...), skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
         invocations = serializer.search_invocations(q, skip=skip, limit=limit)
         return invocations
 
