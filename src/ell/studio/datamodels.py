@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from sqlmodel import SQLModel, select, func
-from sqlalchemy import Index
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase, UTCTimestampField
 
 class SerializedLMPPublic(SerializedLMPBase):
@@ -76,7 +75,28 @@ class InvocationMetrics(SQLModel):
         result = session.exec(query).first()
         return cls(**result._asdict()) if result else None
 
-# Improving code organization with SQL indexes
-Index('ix_invocation_lmp_id_created_at', Invocation.lmp_id, Invocation.created_at)
-Index('ix_invocation_created_at_latency_ms', Invocation.created_at, Invocation.latency_ms)
-Index('ix_invocation_created_at_tokens', Invocation.created_at, Invocation.prompt_tokens, Invocation.completion_tokens)
+# Additional classes as per oracle feedback
+class GraphDataPoint(SQLModel):
+    x: datetime
+    y: float
+
+class InvocationsAggregate(SQLModel):
+    lmp_id: str
+    total_invocations: int
+    total_latency_ms: float
+    # total_prompt_tokens: int
+    # total_completion_tokens: int
+
+    @classmethod
+    def get_aggregate_for_lmp(cls, session, lmp_id: str):
+        query = select(
+            [
+                Invocation.lmp_id,
+                func.count(Invocation.id).label('total_invocations'),
+                func.sum(Invocation.latency_ms).label('total_latency_ms'),
+                # func.sum(Invocation.prompt_tokens).label('total_prompt_tokens'),
+                # func.sum(Invocation.completion_tokens).label('total_completion_tokens'),
+            ]
+        ).where(Invocation.lmp_id == lmp_id).group_by(Invocation.lmp_id)
+        result = session.exec(query).first()
+        return cls(**result._asdict()) if result else None
