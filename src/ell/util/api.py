@@ -17,6 +17,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 def process_messages_for_client(messages: list[Message], client: Any):
+    """
+    Helper function to convert the list of Message objects into a format that is safe for the client.
+    """
     if isinstance(client, openai.Client):
         return [message.to_openai_message() for message in messages]
 
@@ -31,17 +34,22 @@ def call(
     _exempt_from_tracking: bool,
     _logging_color=None,
     _name: str = None,
-) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
+) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """
+    Helper function to run the language model with the provided messages and parameters.
+    """
+    # Use the provided client or fallback to the default client for the model
     client = client or config.get_client_for(model)
     metadata = dict()
 
     if client is None:
-        raise ValueError(f"No client found for model '{model}'. Please ensure the model is registered or specify a client directly.")
+        raise RuntimeError(f"No client found for model '{model}'. Please ensure the model is registered or specify a client directly.")
 
     if not client.api_key:
         logger.warning(_no_api_key_warning(model, _name, client, long=True))
 
     try:
+        # Determine the model call based on the API parameters and tools
         if api_params.get("response_format", False):
             model_call = client.beta.chat.completions.parse
             api_params.pop("stream", None)
@@ -107,7 +115,7 @@ def call(
             else:
                 choice = choice_deltas[0].message
                 if choice.refusal:
-                    raise ValueError(choice.refusal)
+                    raise RuntimeError(choice.refusal)
                 if api_params.get("response_format", False):
                     content.append(ContentBlock(parsed=choice.parsed))
                 elif choice.content:
