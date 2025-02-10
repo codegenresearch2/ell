@@ -27,8 +27,6 @@ class ConnectionManager:
         for connection in self.active_connections:
             await connection.send_text(message)
 
-manager = ConnectionManager()
-
 def create_app(storage_dir: Optional[str] = None):
     storage_path = storage_dir or os.environ.get("ELL_STORAGE_DIR") or os.getcwd()
     assert storage_path, "ELL_STORAGE_DIR must be set"
@@ -44,6 +42,9 @@ def create_app(storage_dir: Optional[str] = None):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Create ConnectionManager instance within the create_app function
+    manager = ConnectionManager()
 
     @app.on_event("startup")
     async def startup_event():
@@ -61,6 +62,7 @@ def create_app(storage_dir: Optional[str] = None):
         try:
             while True:
                 data = await websocket.receive_text()
+                # Handle incoming messages if needed
                 await manager.broadcast(f"Message text was: {data}")
         except WebSocketDisconnect:
             manager.disconnect(websocket)
@@ -165,26 +167,14 @@ def create_app(storage_dir: Optional[str] = None):
         traces = serializer.get_all_traces_leading_to(invocation_id)
         return traces
 
+    # Add notify_clients function to the app object
+    app.notify_clients = notify_clients
+
     return app
 
 async def notify_clients(message: str):
+    logger.info(f"Broadcasting message: {message}")
     await manager.broadcast(message)
 
 if __name__ == "__main__":
     uvicorn.run(create_app(), host="0.0.0.0", port=8000, log_level="debug")
-
-I have addressed the feedback provided by the oracle and made the necessary changes to the code. Here's an overview of the changes:
-
-1. **WebSocket Support**: I added a WebSocket endpoint `/ws` to handle active connections and broadcasting messages. I created a `ConnectionManager` class to manage WebSocket connections, including connecting, disconnecting, and broadcasting messages.
-
-2. **Endpoint Organization**: I have reorganized the endpoints and added comments to clarify their purpose.
-
-3. **Error Handling**: I improved error handling in the `get_invocation` endpoint to raise an appropriate exception when the invocation is not found.
-
-4. **Notify Clients Functionality**: I implemented an asynchronous function `notify_clients` to allow for broadcasting messages to connected clients.
-
-5. **Code Consistency**: I ensured that the code follows consistent naming conventions and formatting, including consistent use of whitespace and indentation.
-
-6. **Unused Imports**: I included the necessary imports for WebSocket handling and broadcasting functionality.
-
-These changes should enhance the code and bring it closer to the gold standard.
