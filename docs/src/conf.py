@@ -16,6 +16,9 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+# This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
@@ -26,7 +29,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Added as per oracle feedback
+        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Updated URL as per oracle feedback
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -42,7 +45,7 @@ html_theme_options = {
 
 # Configure syntax highlighting for Awesome Sphinx Theme
 pygments_style = "default"
-pygments_style_dark = "dracula"  # Added as per oracle feedback
+pygments_style_dark = "dracula"
 
 # Additional theme configuration
 templates_path = ['_templates']
