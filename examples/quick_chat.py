@@ -19,8 +19,8 @@ names_list = [
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0, max_tokens=50)
 def create_personality() -> str:
-    """You are backstoryGPT. Your task is to create a backstory for a character.
-    Choose a completely random name from the provided list and format the output as follows:
+    """Create a backstory for a character with a random name from the provided list.
+    Format the output as:
 
     Name: <name>
     Backstory: <3 sentence backstory>"""
@@ -32,7 +32,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
+def chat(message_history: List[Tuple[str, str]], personality: str) -> List[str]:
     return [
         ell.system(f"""Here is your description.
 {personality}.
@@ -41,7 +41,7 @@ Your goal is to come up with a response to a chat. Only respond in one sentence 
 
 Chat History:
 {format_message_history(message_history)}"""),
-        ell.user(format_message_history(message_history))
+        ell.user("")
     ]
 
 if __name__ == "__main__":
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     whos_turn = 0
     for _ in range(10):
         personality_talking = personalities[whos_turn]
-        response = chat(messages, personality=personality_talking)[0]
+        response = chat(messages, personality_talking)[0]
         messages.append((names[whos_turn], response))
         whos_turn = (whos_turn + 1) % len(personalities)
 
