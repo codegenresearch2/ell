@@ -22,7 +22,7 @@ def create_personality() -> str:
     Generates a backstory for a character including their name.
     Chooses a random name from the provided list and constructs a backstory.
     Returns:
-        str: A formatted string containing the name and a backstory.
+        str: A formatted string with the character's name and a backstory.
     """
     random_name = random.choice(names_list)
     backstory = f"Name: {random_name}\nBackstory: {random_name} has a fascinating past that shapes their current personality."
