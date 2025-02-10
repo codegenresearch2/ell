@@ -7,37 +7,19 @@ ell.config.verbose = True
 # Define base prompt
 BASE_PROMPT = """You are an adept python programmer. Only answer in python code. Avoid markdown formatting at all costs."""
 
-@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=500)
+@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=4)
 def create_a_python_class(user_spec: str):
-    """
-    This function creates a python class based on a user specification.
-
-    Args:
-    user_spec (str): The user's specification for the class.
-
-    Returns:
-    list: A list containing the system message and user message for the language model.
-    """
     return [
         ell.system(
-            f"{BASE_PROMPT}\n\nYour goal is to make a python class for a user based a user spec."
+            f"{BASE_PROMPT}\n\nYour goal to make a python class for a user based a user spec."
         ),
         ell.user(
             f"Here is the user spec: {user_spec}"
         )
     ]
 
-@ell.lm(model="gpt-4o", temperature=0.7, max_tokens=500)
+@ell.lm(model="gpt-4o", temperature=0.7)
 def write_unit_for_a_class(class_def: str):
-    """
-    This function writes a single unit test for a specific class definition.
-
-    Args:
-    class_def (str): The definition of the class.
-
-    Returns:
-    list: A list containing the system message and user message for the language model.
-    """
     return [
         ell.system(
             f"{BASE_PROMPT}\n\nYour goal is to write only a single unit test for a specific class definition. Don't use `unittest` package"
