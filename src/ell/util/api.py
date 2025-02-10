@@ -73,8 +73,8 @@ def call(
             api_params["stream"] = True
             api_params["stream_options"] = {"include_usage": True}
 
-        client_safe_messages = process_messages_for_client(messages, client)
-        model_result = model_call(model=model, messages=client_safe_messages, **api_params)
+        client_safe_messages_messages = process_messages_for_client(messages, client)
+        model_result = model_call(model=model, messages=client_safe_messages_messages, **api_params)
 
         streaming = api_params.get("stream", False)
         if not streaming:
@@ -129,7 +129,7 @@ def call(
 
             tracked_results.append(Message(role=choice.role if not streaming else choice_deltas[0].delta.role, content=content))
 
-        api_params = dict(model=model, messages=client_safe_messages, api_params=api_params)
+        api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
 
         return (tracked_results[0] if n_choices == 1 else tracked_results, api_params, metadata)
 
