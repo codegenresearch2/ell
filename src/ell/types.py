@@ -1,92 +1,30 @@
-# Let's define the core types.
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Union, Any, Optional
-
 from ell.lstr import lstr
 from ell.util.dict_sync_meta import DictSyncMeta
-
 from datetime import datetime, timezone
-from typing import Any, List, Optional
 from sqlmodel import Field, SQLModel, Relationship, JSON, Column
-from sqlalchemy import Index, func
+from sqlalchemy import func
 import sqlalchemy.types as types
+from ell.studio.datamodels import SerializedLMPBase, InvocationBase, SerializedLStrBase, SerializedLMPUses, UTCTimestampField
+from ell.stores.sql import SQLStore
 
 _lstr_generic = Union[lstr, str]
-
 OneTurn = Callable[..., _lstr_generic]
-
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
 LMPParams = Dict[str, Any]
-
 
 @dataclass
 class Message(dict, metaclass=DictSyncMeta):
     role: str
     content: _lstr_generic
 
-
-# Well this is disappointing, I wanted to effectively type hint by doign that data sync meta, but eh, at elast we can still reference role or content this way. Probably wil lcan the dict sync meta.
 MessageOrDict = Union[Message, Dict[str, str]]
-
-# Can support iamge prompts later.
-Chat = List[
-    Message
-]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
-
+Chat = List[Message]
 MultiTurnLMP = Callable[..., Chat]
-from typing import TypeVar, Any
-
-# This is the specific LMP that must accept history as an argument and can take any additional arguments
 T = TypeVar("T", bound=Any)
 ChatLMP = Callable[[Chat, T], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
-
-
-def utc_now() -> datetime:
-    """
-    Returns the current UTC timestamp.
-    Serializes to ISO-8601.
-    """
-    return datetime.now(tz=timezone.utc)
-class SerializedLMPUses(SQLModel, table=True):
-    """
-    Represents the many-to-many relationship between SerializedLMPs.
-    
-    This class is used to track which LMPs use or are used by other LMPs.
-    """
-
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
-
-
-class UTCTimestamp(types.TypeDecorator[datetime]):
-    cache_ok = True
-    impl = types.TIMESTAMP
-    def process_result_value(self, value: datetime, dialect:Any):
-        return value.replace(tzinfo=timezone.utc)
-
-def UTCTimestampField(index:bool=False, **kwargs:Any):
-    return Field(
-        sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
-
-
-
-class SerializedLMPBase(SQLModel):
-    lmp_id: Optional[str] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    source: str
-    dependencies: str
-    created_at: datetime = UTCTimestampField(index=True, nullable=False)
-    is_lm: bool
-    lm_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_free_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_global_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
-    num_invocations: Optional[int] = Field(default=0)
-    commit_message: Optional[str] = Field(default=None)
-    version_number: Optional[int] = Field(default=None)
-
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
@@ -106,38 +44,6 @@ class SerializedLMP(SerializedLMPBase, table=True):
             secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
         ),
     )
-
-    class Config:
-        table_name = "serializedlmp"
-        unique_together = [("version_number", "name")]
-
-class InvocationTrace(SQLModel, table=True):
-    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
-    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
-
-class SerializedLStrBase(SQLModel):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    content: str
-    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
-    producer_invocation_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
-
-class SerializedLStr(SerializedLStrBase, table=True):
-    producer_invocation: Optional["Invocation"] = Relationship(back_populates="results")
-
-class InvocationBase(SQLModel):
-    id: Optional[str] = Field(default=None, primary_key=True)
-    lmp_id: str = Field(foreign_key="serializedlmp.lmp_id", index=True)
-    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
-    kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    global_vars: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    free_vars: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    latency_ms: float
-    prompt_tokens: Optional[int] = Field(default=None)
-    completion_tokens: Optional[int] = Field(default=None)
-    state_cache_key: Optional[str] = Field(default=None)
-    created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
-    invocation_kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
 
 class Invocation(InvocationBase, table=True):
     lmp: SerializedLMP = Relationship(back_populates="invocations")
@@ -161,8 +67,43 @@ class Invocation(InvocationBase, table=True):
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
     uses: List["Invocation"] = Relationship(back_populates="used_by")
 
-    __table_args__ = (
-        Index('ix_invocation_lmp_id_created_at', 'lmp_id', 'created_at'),
-        Index('ix_invocation_created_at_latency_ms', 'created_at', 'latency_ms'),
-        Index('ix_invocation_created_at_tokens', 'created_at', 'prompt_tokens', 'completion_tokens'),
-    )
+class SerializedLStr(SerializedLStrBase, table=True):
+    producer_invocation: Optional["Invocation"] = Relationship(back_populates="results")
+
+# Enhanced data aggregation capabilities
+class SQLStore(SQLStore):
+    def get_invocations_aggregate(self, session: Session, lmp_filters: Dict[str, Any] = None, filters: Dict[str, Any] = None, days: int = 30) -> Dict[str, Any]:
+        # Existing code...
+
+        # Calculate aggregate metrics
+        total_invocations = len(data)
+        total_tokens = sum(row.prompt_tokens + row.completion_tokens for row in data)
+        avg_latency = sum(row.latency_ms for row in data) / total_invocations if total_invocations > 0 else 0
+        unique_lmps = len(set(row.name for row in data))
+
+        # Enhanced data aggregation
+        total_cost = sum(row.prompt_tokens * 0.000002 + row.completion_tokens * 0.000002 for row in data)  # Assuming costs per token
+        successful_invocations = len([row for row in data if row.completion_tokens is not None])
+        success_rate = successful_invocations / total_invocations if total_invocations > 0 else 0
+
+        # Prepare graph data
+        graph_data = []
+        for row in data:
+            graph_data.append({
+                "date": row.created_at,
+                "avg_latency": row.latency_ms,
+                "tokens": row.prompt_tokens + row.completion_tokens,
+                "count": 1,
+                "cost": row.prompt_tokens * 0.000002 + row.completion_tokens * 0.000002  # Assuming costs per token
+            })
+
+        return {
+            "total_invocations": total_invocations,
+            "total_tokens": total_tokens,
+            "avg_latency": avg_latency,
+            "unique_lmps": unique_lmps,
+            "total_cost": total_cost,
+            "successful_invocations": successful_invocations,
+            "success_rate": success_rate,
+            "graph_data": graph_data
+        }
