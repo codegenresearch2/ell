@@ -15,6 +15,9 @@ import ell.models
 # Import everything from configurator
 from ell.configurator import *
 
+# Import specific classes from ell.types.message
+from ell.types.message import Message, ContentBlock
+
 # Add new navigation links in documentation
 # For example:
 # - [Getting Started](../getting_started.md)
