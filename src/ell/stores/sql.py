@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import json
+import os
 from typing import Any, Optional, Dict, List, Set
 from sqlmodel import Session, SQLModel, create_engine, select
 import ell.store
@@ -6,12 +7,14 @@ import cattrs
 import numpy as np
 from sqlalchemy import or_, func, and_
 from sqlalchemy.exc import SQLAlchemyError
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLStr, utc_now
 
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
-        
+        self.open_files: Dict[str, Dict[str, Any]] = {}
+
     def write_lmp(self, serialized_lmp: 'SerializedLMP', uses: Dict[str, Any]) -> Optional[Any]:
         try:
             with Session(self.engine) as session:
