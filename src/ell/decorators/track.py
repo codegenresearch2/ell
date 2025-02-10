@@ -12,6 +12,7 @@ from ell.lstr import lstr
 from ell.configurator import config
 
 # Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Thread-local storage for the invocation stack
