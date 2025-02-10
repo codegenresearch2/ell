@@ -20,8 +20,8 @@ names_list = [
 def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
 
-Name: <name>
-Backstory: <3 sentence backstory>'"""
+    Name: <name>
+    Backstory: <3 sentence backstory>"""
     chosen_name = random.choice(names_list)
     return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
@@ -42,20 +42,20 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
         
-    messages: List[Tuple[str, str]] = []
-    personalities = [create_personality(), create_personality()]
+    for _ in range(100):
+        messages: List[Tuple[str, str]] = []
+        personalities = [create_personality(), create_personality()]
 
-    names = []
-    backstories = []    
-    for personality in personalities:
-        parts = list(filter(None, personality.split("\n")))
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
-    print(names)
+        names = []
+        backstories = []    
+        for personality in personalities:
+            parts = list(filter(None, personality.split("\n")))
+            names.append(parts[0].split(": ")[1])
+            backstories.append(parts[1].split(": ")[1])
 
-    whos_turn = 0 
-    for _ in range(10):
-        personality_talking = personalities[whos_turn]
-        messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
-        whos_turn = (whos_turn + 1) % len(personalities)
-    print(messages)
+        whos_turn = 0 
+        for _ in range(10):
+            personality_talking = personalities[whos_turn]
+            messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
+            whos_turn = (whos_turn + 1) % len(personalities)
+        print(messages)
