@@ -75,6 +75,8 @@ class SQLStore(ell.store.Store):
                          state_cache_key: Optional[str] = None, cost_estimate: Optional[float] = None) -> Optional[Any]:
         from ell.types import InvocationTrace  # Import InvocationTrace here to avoid circular import
         with Session(self.engine) as session:
-            # Rest of the method implementation
+            # Implement the logic to handle the session context here
+            # Create an Invocation instance, add it to the session, and commit the transaction
+            pass  # Placeholder for the implementation
 
     # Rest of the class implementation
