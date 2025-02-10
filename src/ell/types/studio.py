@@ -1,6 +1,4 @@
 from datetime import datetime, timezone
-import enum
-from functools import cached_property
 import sqlalchemy.types as types
 from ell.types.message import Any, Any, Field, Message, Optional
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
@@ -13,15 +11,6 @@ def utc_now() -> datetime:
     Serializes to ISO-8601.
     """
     return datetime.now(tz=timezone.utc)
-
-class SerializedLMPUses(SQLModel, table=True):
-    """
-    Represents the many-to-many relationship between SerializedLMPs.
-
-    This class is used to track which LMPs use or are used by other LMPs.
-    """
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
@@ -54,24 +43,8 @@ class SerializedLMPBase(SQLModel):
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(
-        back_populates="uses",
-        link_model=SerializedLMPUses,
-        sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            foreign_keys=[SerializedLMPUses.lmp_user_id, SerializedLMPUses.lmp_using_id]
-        )
-    )
-    uses: List["SerializedLMP"] = Relationship(
-        back_populates="used_by",
-        link_model=SerializedLMPUses,
-        sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            foreign_keys=[SerializedLMPUses.lmp_using_id, SerializedLMPUses.lmp_user_id]
-        )
-    )
+    used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses")
+    uses: List["SerializedLMP"] = Relationship(back_populates="used_by")
 
     class Config:
         table_name = "serializedlmp"
@@ -89,15 +62,12 @@ class InvocationBase(SQLModel):
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
     created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
-    used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
 
 class InvocationContentsBase(SQLModel):
     invocation_id: str = Field(foreign_key="invocation.id", index=True, primary_key=True)
     params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     results: Optional[Union[List[Message], Any]] = Field(default=None, sa_column=Column(JSON))
     invocation_api_params: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    global_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
-    free_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     is_external: bool = Field(default=False)
 
     @cached_property
@@ -106,9 +76,7 @@ class InvocationContentsBase(SQLModel):
         json_fields = [
             self.params,
             self.results,
-            self.invocation_api_params,
-            self.global_vars,
-            self.free_vars
+            self.invocation_api_params
         ]
         total_size = sum(len(json.dumps(field).encode('utf-8')) for field in json_fields if field is not None)
         return total_size > 102400
@@ -118,11 +86,28 @@ class InvocationContents(InvocationContentsBase, table=True):
 
 class Invocation(InvocationBase, table=True):
     lmp: SerializedLMP = Relationship(back_populates="invocations")
-    consumed_by: List["Invocation"] = Relationship(back_populates="consumes", link_model=InvocationTrace)
-    consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace)
+    consumed_by: List["Invocation"] = Relationship(
+        back_populates="consumes",
+        link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
+            foreign_keys=[InvocationTrace.invocation_consumer_id, InvocationTrace.invocation_consuming_id]
+        )
+    )
+    consumes: List["Invocation"] = Relationship(
+        back_populates="consumed_by",
+        link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
+            foreign_keys=[InvocationTrace.invocation_consuming_id, InvocationTrace.invocation_consumer_id]
+        )
+    )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
     uses: List["Invocation"] = Relationship(back_populates="used_by")
     contents: InvocationContents = Relationship(back_populates="invocation")
+
     __table_args__ = (
         Index('ix_invocation_lmp_id_created_at', 'lmp_id', 'created_at'),
         Index('ix_invocation_created_at_latency_ms', 'created_at', 'latency_ms'),
