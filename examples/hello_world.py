@@ -15,5 +15,7 @@ def hello(world: str):
 if __name__ == "__main__":
     ell.config.verbose = True
     ell.set_store(SQLiteStore('./logdir'), autocommit=True)
+    # equivalent to
+    # ell.init(store='./logdir', autocommit=True, verbose=True)
     greeting = hello("sam altman")  # > "hello sama! ... "
     print(greeting.split(" ")[-1])
