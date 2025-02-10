@@ -161,9 +161,11 @@ def create_app(storage_dir: Optional[str] = None):
         traces = serializer.get_all_traces_leading_to(invocation_id)
         return traces
 
-    async def notify_clients(message: str, data: Dict[str, Any]):
+    async def notify_clients(entity: str, id: str, message: str, data: Dict[str, Any]):
         logger.info(f"Broadcasting message: {message}")
         notification = {
+            "entity": entity,
+            "id": id,
             "message": message,
             "data": data
         }
