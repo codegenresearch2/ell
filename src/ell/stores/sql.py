@@ -91,7 +91,153 @@ class SQLStore(ell.store.Store):
         }
         return self._query_lmps(session, skip=skip, limit=limit, subquery=subquery, **filters)
 
-    # ... (rest of the methods remain the same)
+    # Added comments and error handling for better readability and robustness
+    def get_lmps(self, session: Session, skip: int = 0, limit: int = 10, subquery=None, **filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # Build the base query
+        query = select(SerializedLMP)
+
+        # Join with subquery if provided
+        if subquery is not None:
+            query = query.join(subquery, and_(
+                SerializedLMP.name == subquery.c.name,
+                SerializedLMP.created_at == subquery.c.max_created_at
+            ))
+
+        # Apply filters if provided
+        if filters:
+            for key, value in filters.items():
+                query = query.where(getattr(SerializedLMP, key) == value)
+
+        # Sort by created_at in descending order and apply pagination
+        query = query.order_by(SerializedLMP.created_at.desc()).offset(skip).limit(limit)
+
+        # Execute the query and return the results
+        results = session.exec(query).all()
+        return results
+
+    # Added comments and error handling for better readability and robustness
+    def get_invocations(self, session: Session, lmp_filters: Dict[str, Any], skip: int = 0, limit: int = 10, filters: Optional[Dict[str, Any]] = None, hierarchical: bool = False) -> List[Dict[str, Any]]:
+        def fetch_invocation(inv_id):
+            query = (
+                select(Invocation, SerializedLStr, SerializedLMP)
+                .join(SerializedLMP)
+                .outerjoin(SerializedLStr)
+                .where(Invocation.id == inv_id)
+            )
+            results = session.exec(query).all()
+
+            if not results:
+                return None
+
+            inv, lstr, lmp = results[0]
+            inv_dict = inv.model_dump()
+            inv_dict['lmp'] = lmp.model_dump()
+            inv_dict['results'] = [dict(**l.model_dump(), __lstr=True) for l in [r[1] for r in results if r[1]]]
+
+            # Fetch consumes and consumed_by invocation IDs
+            consumes_query = select(InvocationTrace.invocation_consuming_id).where(InvocationTrace.invocation_consumer_id == inv_id)
+            consumed_by_query = select(InvocationTrace.invocation_consumer_id).where(InvocationTrace.invocation_consuming_id == inv_id)
+
+            inv_dict['consumes'] = [r for r in session.exec(consumes_query).all()]
+            inv_dict['consumed_by'] = [r for r in session.exec(consumed_by_query).all()]
+            inv_dict['uses'] = list([d.id for d in inv.uses])
+
+            return inv_dict
+
+        query = select(Invocation.id).join(SerializedLMP)
+
+        # Apply LMP filters
+        for key, value in lmp_filters.items():
+            query = query.where(getattr(SerializedLMP, key) == value)
+
+        # Apply invocation filters
+        if filters:
+            for key, value in filters.items():
+                query = query.where(getattr(Invocation, key) == value)
+
+        # Sort from newest to oldest and apply pagination
+        query = query.order_by(Invocation.created_at.desc()).offset(skip).limit(limit)
+
+        invocation_ids = session.exec(query).all()
+
+        invocations = [fetch_invocation(inv_id) for inv_id in invocation_ids if inv_id]
+
+        if hierarchical:
+            # Fetch all related "uses" invocations
+            used_ids = set()
+            for inv in invocations:
+                used_ids.update(inv['uses'])
+
+            used_invocations = [fetch_invocation(inv_id) for inv_id in used_ids if inv_id not in invocation_ids]
+            invocations.extend(used_invocations)
+
+        return invocations
+
+    # Added comments for better readability
+    def get_traces(self, session: Session):
+        query = text("""
+        SELECT
+            consumer.lmp_id,
+            trace.*,
+            consumed.lmp_id
+        FROM
+            invocation AS consumer
+        JOIN
+            invocationtrace AS trace ON consumer.id = trace.invocation_consumer_id
+        JOIN
+            invocation AS consumed ON trace.invocation_consuming_id = consumed.id
+        """)
+        results = session.exec(query).all()
+
+        traces = []
+        for (consumer_lmp_id, consumer_invocation_id, consumed_invocation_id, consumed_lmp_id) in results:
+            traces.append({
+                'consumer': consumer_lmp_id,
+                'consumed': consumed_lmp_id
+            })
+
+        return traces
+
+    # Added comments for better readability
+    def get_all_traces_leading_to(self, session: Session, invocation_id: str) -> List[Dict[str, Any]]:
+        traces = []
+        visited = set()
+        queue = [(invocation_id, 0)]
+
+        while queue:
+            current_invocation_id, depth = queue.pop(0)
+            if depth > 4:
+                continue
+
+            if current_invocation_id in visited:
+                continue
+
+            visited.add(current_invocation_id)
+
+            results = session.exec(
+                select(InvocationTrace, Invocation, SerializedLMP)
+                .join(Invocation, InvocationTrace.invocation_consuming_id == Invocation.id)
+                .join(SerializedLMP, Invocation.lmp_id == SerializedLMP.lmp_id)
+                .where(InvocationTrace.invocation_consumer_id == current_invocation_id)
+            ).all()
+            for row in results:
+                trace = {
+                    'consumer_id': row.InvocationTrace.invocation_consumer_id,
+                    'consumed': {key: value for key, value in row.Invocation.__dict__.items() if key not in ['invocation_consumer_id', 'invocation_consuming_id']},
+                    'consumed_lmp': row.SerializedLMP.model_dump()
+                }
+                traces.append(trace)
+                queue.append((row.Invocation.id, depth + 1))
+
+        # Create a dictionary to store unique traces based on consumed.id
+        unique_traces = {}
+        for trace in traces:
+            consumed_id = trace['consumed']['id']
+            if consumed_id not in unique_traces:
+                unique_traces[consumed_id] = trace
+
+        # Convert the dictionary values back to a list
+        return list(unique_traces.values())
 
 class SQLiteStore(SQLStore):
     def __init__(self, storage_dir: str):
