@@ -57,8 +57,12 @@ async def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # Create a uvicorn server instance
+    server_config = uvicorn.Config(app, host=args.host, port=args.port, loop=loop)
+    server = uvicorn.Server(server_config)
+
     # Create tasks for the server and database watcher
-    server_task = loop.create_task(uvicorn.run(app, host=args.host, port=args.port, loop=loop))
+    server_task = loop.create_task(server.serve())
     db_watcher_task = loop.create_task(db_watcher())
 
     # Run the event loop
@@ -66,5 +70,3 @@ async def main():
 
 if __name__ == "__main__":
     main()
-
-I have addressed the feedback provided by the oracle. I have defined the `db_watcher` function after the `db_path` variable is created to maintain the logical flow of the code. I have reviewed the event loop management to ensure that it matches the gold code's structure. I have simplified the server configuration by passing the parameters directly to the `uvicorn.run` function. I have ensured that the overall organization of the code matches the gold code.
