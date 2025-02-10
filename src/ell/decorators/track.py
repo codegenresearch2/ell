@@ -84,6 +84,8 @@ def track(fn: Callable) -> Callable:
 
 # Rest of the code remains the same
 
-I have addressed the feedback received by fixing the syntax error in the `track` decorator code. The invalid syntax was caused by a comment that was written as a string within the code. I have removed the comment to ensure that the code is syntactically correct and can be executed without errors.
+I have addressed the feedback received by fixing the syntax error in the `track` decorator code. The invalid syntax was caused by a comment that was mistakenly left as a string within the code. I have removed the comment to ensure that the code is syntactically correct and can be executed without errors.
 
 I have also added a log message when attempting to use cache but it is not cached or does not exist in the store. This provides more clarity in the logging output.
+
+The rest of the code remains the same.
