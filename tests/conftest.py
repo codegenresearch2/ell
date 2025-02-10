@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import os
 
 @pytest.fixture(autouse=True)
@@ -8,9 +8,11 @@ def setup_test_env():
     os.environ['OPENAI_API_KEY'] = 'sk-fake-api-key-for-testing'
 
     # Mock the OpenAI client
-    with patch('openai.OpenAI') as mock_openai:
-        # Get the mock client
-        mock_client = mock_openai.return_value
+    with patch('openai.OpenAI') as MockOpenAI:
+        mock_client = MagicMock()
+        # Configure the mock client to do nothing
+        mock_client.chat.completions.create.return_value = None
+        MockOpenAI.return_value = mock_client
 
         # Yield the mock client for use in tests
         yield mock_client
@@ -29,5 +31,3 @@ def get_client():
     except Exception as e:
         warnings.warn(f"An error occurred while retrieving the model client: {str(e)}")
         return None
-
-In this revised code snippet, I have addressed the test case feedback by properly formatting the comments and removing any extraneous comments that could be causing syntax errors. I have also incorporated the oracle feedback by setting a fake OpenAI API key, using the `mock_openai.return_value` to get the mock client, adding a comment about setting the API key, and including a placeholder for cleanup logic if needed.
