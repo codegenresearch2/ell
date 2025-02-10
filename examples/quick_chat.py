@@ -36,7 +36,7 @@ def create_personality() -> str:
     name = random.choice(names_list)
 
     # Return the formatted backstory
-    return f"Name: {name}\nBackstory: {name} is a character with a unique background."
+    return f"Name: {name}\nBackstory: {name} is a character with a rich and intriguing background."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
