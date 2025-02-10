@@ -4,14 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def register_openai_models(client: openai.Client = None):
-    if client is None:
-        try:
-            client = openai.Client()
-        except openai.OpenAIError as e:
-            logger.error(f"Failed to create OpenAI client: {e}")
-            return
-
+def register_openai_models(client: openai.Client):
     model_data = [
         ('gpt-4-1106-preview', 'system'),
         ('gpt-4-32k-0314', 'openai'),
@@ -44,11 +37,11 @@ def register_openai_models(client: openai.Client = None):
     for model_id, owned_by in model_data:
         config.register_model(model_id, client)
 
-default_client = None
 try:
     default_client = openai.Client()
 except openai.OpenAIError as e:
     logger.error(f"Failed to create default OpenAI client: {e}")
+    default_client = None
 
 if default_client:
     register_openai_models(default_client)
