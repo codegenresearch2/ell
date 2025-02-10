@@ -4,6 +4,7 @@ from ell.types.message import Any, Any, Field, Message, Optional
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from sqlalchemy import Index, func
 from typing import Optional, Dict, List, Union, Any
+import enum
 
 def utc_now() -> datetime:
     """
@@ -21,7 +22,7 @@ class UTCTimestamp(types.TypeDecorator[datetime]):
 def UTCTimestampField(index: bool = False, **kwargs: Any):
     return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
-class LMPType(str, enum.Enum):
+class LMPType(enum.Enum):
     LM = "LM"
     TOOL = "TOOL"
     MULTIMODAL = "MULTIMODAL"
