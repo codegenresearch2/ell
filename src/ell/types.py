@@ -8,9 +8,10 @@ from ell.lstr import lstr
 from sqlalchemy import Column
 from sqlalchemy.types import TIMESTAMP
 import sqlalchemy.types as types
+from dataclasses import dataclass
 
 # Importing the required classes and functions locally to avoid circular import issues
-from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr, utc_now
+from ell.types import InvocationTrace, SerializedLMPUses, utc_now
 
 class UTCTimestamp(types.TypeDecorator[datetime.datetime]):
     impl = TIMESTAMP
@@ -19,6 +20,11 @@ class UTCTimestamp(types.TypeDecorator[datetime.datetime]):
 
 def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
+
+@dataclass
+class Message:
+    role: str
+    content: Union[lstr, str]
 
 class SerializedLMPUses(SQLModel, table=True):
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
