@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import logging
 import asyncio
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +23,9 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        logger.info(f"Broadcasting message to {len(self.active_connections)} connections: {message}")
+        print(f"Broadcasting message to {len(self.active_connections)} connections: {message}")
         for connection in self.active_connections:
             await connection.send_text(message)
-
-async def notify_clients(message: str):
-    logger.info(f"Notifying clients: {message}")
-    # Implement logic to notify clients here
 
 def create_app(storage_dir: Optional[str] = None):
     storage_path = storage_dir or os.environ.get("ELL_STORAGE_DIR") or os.getcwd()
@@ -37,8 +34,6 @@ def create_app(storage_dir: Optional[str] = None):
     manager = ConnectionManager()
 
     app = FastAPI(title="ELL Studio", version=__version__)
-    app.manager = manager  # Integrate manager into app object
-    app.notify_clients = notify_clients  # Integrate notify_clients into app object
 
     # Enable CORS for all origins
     app.add_middleware(
@@ -51,16 +46,22 @@ def create_app(storage_dir: Optional[str] = None):
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
-        await app.manager.connect(websocket)
+        await manager.connect(websocket)
         try:
             while True:
                 data = await websocket.receive_text()
                 # TODO: Implement logic to handle incoming WebSocket messages
-                await app.manager.broadcast(f"Message text was: {data}")
+                await manager.broadcast(f"Message text was: {data}")
         except WebSocketDisconnect:
-            app.manager.disconnect(websocket)
+            manager.disconnect(websocket)
 
-    @app.get("/api/lmps", response_model=List[Dict[str, Any]])
+    async def notify_clients(message: str):
+        print(f"Notifying clients: {message}")
+        # Create a message in JSON format
+        json_message = json.dumps({"message": message})
+        await manager.broadcast(json_message)
+
+    @app.get("/api/lmps")
     def get_lmps(
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=100)
@@ -68,7 +69,7 @@ def create_app(storage_dir: Optional[str] = None):
         lmps = serializer.get_lmps(skip=skip, limit=limit)
         return lmps
 
-    @app.get("/api/latest/lmps", response_model=List[Dict[str, Any]])
+    @app.get("/api/latest/lmps")
     def get_latest_lmps(
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=100)
@@ -76,14 +77,14 @@ def create_app(storage_dir: Optional[str] = None):
         lmps = serializer.get_latest_lmps(skip=skip, limit=limit)
         return lmps
 
-    @app.get("/api/lmp/{lmp_id}", response_model=Dict[str, Any])
+    @app.get("/api/lmp/{lmp_id}")
     def get_lmp_by_id(lmp_id: str):
         lmp = serializer.get_lmps(lmp_id=lmp_id)
         if not lmp:
             raise HTTPException(status_code=404, detail="LMP not found")
         return lmp[0]
 
-    @app.get("/api/lmps", response_model=List[Dict[str, Any]])
+    @app.get("/api/lmps")
     def get_lmp(
         lmp_id: Optional[str] = Query(None),
         name: Optional[str] = Query(None),
@@ -96,14 +97,14 @@ def create_app(storage_dir: Optional[str] = None):
             raise HTTPException(status_code=404, detail="LMP not found")
         return lmps
 
-    @app.get("/api/invocation/{invocation_id}", response_model=Dict[str, Any])
+    @app.get("/api/invocation/{invocation_id}")
     def get_invocation(invocation_id: str):
         invocation = serializer.get_invocations(id=invocation_id)
         if not invocation:
             raise HTTPException(status_code=404, detail="Invocation not found")
         return invocation[0]
 
-    @app.get("/api/invocations", response_model=List[Dict[str, Any]])
+    @app.get("/api/invocations")
     def get_invocations(
         id: Optional[str] = Query(None),
         skip: int = Query(0, ge=0),
@@ -121,7 +122,7 @@ def create_app(storage_dir: Optional[str] = None):
         )
         return invocations
 
-    @app.post("/api/invocations/search", response_model=List[Dict[str, Any]])
+    @app.post("/api/invocations/search")
     def search_invocations(
         q: str = Query(...),
         skip: int = Query(0, ge=0),
@@ -130,12 +131,12 @@ def create_app(storage_dir: Optional[str] = None):
         invocations = serializer.search_invocations(q, skip=skip, limit=limit)
         return invocations
 
-    @app.get("/api/traces", response_model=List[Dict[str, Any]])
+    @app.get("/api/traces")
     def get_consumption_graph():
         traces = serializer.get_traces()
         return traces
 
-    @app.get("/api/traces/{invocation_id}", response_model=List[Dict[str, Any]])
+    @app.get("/api/traces/{invocation_id}")
     def get_all_traces_leading_to(invocation_id: str):
         traces = serializer.get_all_traces_leading_to(invocation_id)
         return traces
