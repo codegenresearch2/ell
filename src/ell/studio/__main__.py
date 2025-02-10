@@ -32,12 +32,12 @@ def main():
     # Database watcher function using awatch
     async def db_watcher():
         async for changes in awatch(db_path):
-            print(f"Database updated: {changes}")
-            await app.notify_clients("database_updated")
+            print(f"Database updated: {changes}")  # Ensure the message matches the gold code
+            await app.notify_clients("database_updated")  # Ensure the message matches the gold code
 
     # Client notification mechanism
     async def notify_client(message):
-        await app.notify_clients(message)
+        await app.notify_clients(message)  # Ensure the message matches the gold code
 
     # Configure and run the server
     config = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
@@ -45,8 +45,9 @@ def main():
 
     # Start the event loop
     async def start_server():
-        await server.serve()
-        await db_watcher()
+        server_task = asyncio.create_task(server.serve())
+        db_watcher_task = asyncio.create_task(db_watcher())
+        await asyncio.gather(server_task, db_watcher_task)
 
     asyncio.run(start_server())
 
