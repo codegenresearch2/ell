@@ -43,10 +43,12 @@ def call(
     """
     Helper function to run the language model with the provided messages and parameters.
     """
-    client = client or config.get_client_for(model)
     if client is None:
-        raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
-
+        raise ValueError("Client is not provided. Please specify a client.")
+    
+    if not client.api_key:
+        raise ValueError("API key is not set for the client.")
+    
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
         api_params.pop("stream", None)
