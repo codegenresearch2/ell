@@ -1,33 +1,15 @@
-"""
-This should do the following.
-# prompt_consts.py
 import math
+
 def test():
     return math.sin(10)
-
-# lol3.py
-import prompt_consts
 
 X = 7
-def xD():
-    print(X)
-    return prompt_consts.test()
 
-###
-Our goal is to use AST & dill to get a full lexical closured source of xD, with the exception of modules that are stored in site-packages. For example.
-
-lexical_extration(xD) returns
-#closure.py
-import math
-def test():
-    return math.sin(10)
-
-X = 7 
 def xD():
     print(X)
     return test()
 
-"""
+# Closure extraction
 import collections
 import ast
 import hashlib
@@ -360,7 +342,7 @@ def lexically_closured_source(func):
     source, dsrc = fnclosure
     formatted_source = _format_source(source)
     formatted_dsrc = _format_source(dsrc)
-    return (formatted_source, formatted_dsrc,) + func.__ell_closure__[2:], uses
+    return (formatted_source, formatted_dsrc), uses
 
 import ast
 
@@ -456,27 +438,4 @@ def globalvars(func, recurse=True, builtin=False):
             # find globals for all entries of func
             for key in func.copy(): #XXX: unnecessary...?
                 nested_func = globs.get(key)
-                if nested_func is orig_func:
-                   #func.remove(key) if key in func else None
-                    continue  #XXX: globalvars(func, False)?
-                func.update(globalvars(nested_func, True, builtin))
-    elif inspect.iscode(func):
-        globs = vars(inspect.getmodule(sum)).copy() if builtin else {}
-       #globs.update(globals())
-        if not recurse:
-            func = func.co_names # get names
-        else:
-            orig_func = func.co_name # to stop infinite recursion
-            func = set(nestedglobals(func))
-            # find globals for all entries of func
-            for key in func.copy(): #XXX: unnecessary...?
-                if key is orig_func:
-                   #func.remove(key) if key in func else None
-                    continue  #XXX: globalvars(func, False)?
-                nested_func = globs.get(key)
-                func.update(globalvars(nested_func, True, builtin))
-    else:
-        return {}
-    #NOTE: if name not in __globals__, then we skip it...
-    return dict((name,globs[name]) for name in func if name in globs)
-
+                if nested_func
