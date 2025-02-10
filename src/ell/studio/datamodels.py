@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from sqlmodel import SQLModel, select, func
 from ell.types import SerializedLMPBase, InvocationBase, SerializedLStrBase, UTCTimestampField
 
@@ -55,37 +56,20 @@ class SerializedLStrUpdate(SQLModel):
     content: Optional[str] = None
     logits: Optional[List[float]] = None
 
-# Adding database query capabilities
-class InvocationMetrics(SQLModel):
-    lmp_id: str
-    avg_latency_ms: float
-    total_prompt_tokens: int
-    total_completion_tokens: int
-
-    @classmethod
-    def get_metrics_for_lmp(cls, session, lmp_id: str):
-        query = select(
-            [
-                Invocation.lmp_id,
-                func.avg(Invocation.latency_ms).label('avg_latency_ms'),
-                func.sum(Invocation.prompt_tokens).label('total_prompt_tokens'),
-                func.sum(Invocation.completion_tokens).label('total_completion_tokens'),
-            ]
-        ).where(Invocation.lmp_id == lmp_id).group_by(Invocation.lmp_id)
-        result = session.exec(query).first()
-        return cls(**result._asdict()) if result else None
-
 # Additional classes as per oracle feedback
-class GraphDataPoint(SQLModel):
-    x: datetime
-    y: float
+class GraphDataPoint(BaseModel):
+    date: datetime
+    count: int
+    avg_latency: float
+    tokens: int
 
-class InvocationsAggregate(SQLModel):
+class InvocationsAggregate(BaseModel):
     lmp_id: str
     total_invocations: int
     total_latency_ms: float
-    # total_prompt_tokens: int
-    # total_completion_tokens: int
+    total_tokens: int
+    avg_latency: float
+    unique_lmps: int
 
     @classmethod
     def get_aggregate_for_lmp(cls, session, lmp_id: str):
@@ -94,8 +78,9 @@ class InvocationsAggregate(SQLModel):
                 Invocation.lmp_id,
                 func.count(Invocation.id).label('total_invocations'),
                 func.sum(Invocation.latency_ms).label('total_latency_ms'),
-                # func.sum(Invocation.prompt_tokens).label('total_prompt_tokens'),
-                # func.sum(Invocation.completion_tokens).label('total_completion_tokens'),
+                func.sum(Invocation.prompt_tokens + Invocation.completion_tokens).label('total_tokens'),
+                func.avg(Invocation.latency_ms).label('avg_latency'),
+                func.count(func.distinct(Invocation.lmp_id)).label('unique_lmps'),
             ]
         ).where(Invocation.lmp_id == lmp_id).group_by(Invocation.lmp_id)
         result = session.exec(query).first()
