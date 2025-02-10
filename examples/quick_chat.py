@@ -24,7 +24,8 @@ Name: <name>
 Backstory: <3 sentence backstory>"""
 
     name = random.choice(names_list)
-    return f"Name: {name}\nBackstory: A brief backstory about {name}."
+    backstory = f"A brief backstory about {name}."
+    return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -48,6 +49,8 @@ if __name__ == "__main__":
 
     names = [personality.split(": ")[1] for personality in personalities]
     backstories = [personality.split(": ")[2] for personality in personalities]
+
+    print("Names:", names)
 
     whos_turn = 0 
     for _ in range(10):
