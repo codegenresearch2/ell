@@ -1,14 +1,14 @@
-from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import JSON, Column
 
 class SerializedLMPBase(SQLModel):
     lmp_id: Optional[str] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+    name: str
     source: str
     dependencies: str
-    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
+    created_at: Optional[str] = Field(default_factory=str, nullable=False)
     is_lm: bool
     lm_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
     initial_free_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
@@ -17,93 +17,94 @@ class SerializedLMPBase(SQLModel):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
-class SerializedLMP(SerializedLMPBase, table=True):
-    invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(
+class SerializedLMPPublic(SerializedLMPBase):
+    invocations: List["InvocationPublic"] = Relationship(back_populates="lmp")
+    used_by: Optional[List["SerializedLMPPublic"]] = Relationship(
         back_populates="uses",
         link_model="SerializedLMPUses",
-        sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-        ),
     )
-    uses: List["SerializedLMP"] = Relationship(
+    uses: List["SerializedLMPPublic"] = Relationship(
         back_populates="used_by",
         link_model="SerializedLMPUses",
-        sa_relationship_kwargs=dict(
-            primaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_using_id",
-            secondaryjoin="SerializedLMP.lmp_id==SerializedLMPUses.lmp_user_id",
-        ),
     )
 
-    class Config:
-        table_name = "serializedlmp"
-        unique_together = [("version_number", "name")]
+class SerializedLMPCreate(SerializedLMPBase):
+    pass
 
-class SerializedLMPUses(SQLModel, table=True):
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+class SerializedLMPUpdate(SQLModel):
+    name: Optional[str] = None
+    source: Optional[str] = None
+    dependencies: Optional[str] = None
+    is_lm: Optional[bool] = None
+    lm_kwargs: Optional[Dict[str, Any]] = None
+    initial_free_vars: Optional[Dict[str, Any]] = None
+    initial_global_vars: Optional[Dict[str, Any]] = None
+    commit_message: Optional[str] = None
+    version_number: Optional[int] = None
 
 class InvocationBase(SQLModel):
     id: Optional[str] = Field(default=None, primary_key=True)
-    lmp_id: str = Field(foreign_key="serializedlmp.lmp_id", index=True)
-    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
-    kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    global_vars: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
-    free_vars: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    lmp_id: str
+    args: List[Any] = Field(default_factory=list)
+    kwargs: Dict[str, Any] = Field(default_factory=dict)
+    global_vars: Dict[str, Any] = Field(default_factory=dict)
+    free_vars: Dict[str, Any] = Field(default_factory=dict)
     latency_ms: float
     prompt_tokens: Optional[int] = Field(default=None)
     completion_tokens: Optional[int] = Field(default=None)
     state_cache_key: Optional[str] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.now, nullable=False)
-    invocation_kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: Optional[str] = Field(default_factory=str, nullable=False)
+    invocation_kwargs: Dict[str, Any] = Field(default_factory=dict)
 
-class Invocation(InvocationBase, table=True):
-    lmp: SerializedLMP = Relationship(back_populates="invocations")
-    results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")
-    consumed_by: List["Invocation"] = Relationship(
-        back_populates="consumes",
-        link_model="InvocationTrace",
-        sa_relationship_kwargs=dict(
-            primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
-            secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
-        ),
-    )
-    consumes: List["Invocation"] = Relationship(
-        back_populates="consumed_by",
-        link_model="InvocationTrace",
-        sa_relationship_kwargs=dict(
-            primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
-            secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
-        ),
-    )
-    used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
-    uses: List["Invocation"] = Relationship(back_populates="used_by")
+class InvocationPublic(InvocationBase):
+    lmp: SerializedLMPPublic
+    results: List["SerializedLStrPublic"] = Relationship(back_populates="producer_invocation")
+    consumes: List[str]
+    consumed_by: List[str]
+    uses: List[str]
 
-    __table_args__ = (
-        Index('ix_invocation_lmp_id_created_at', 'lmp_id', 'created_at'),
-        Index('ix_invocation_created_at_latency_ms', 'created_at', 'latency_ms'),
-        Index('ix_invocation_created_at_tokens', 'created_at', 'prompt_tokens', 'completion_tokens'),
-    )
+class InvocationCreate(InvocationBase):
+    pass
+
+class InvocationUpdate(SQLModel):
+    args: Optional[List[Any]] = None
+    kwargs: Optional[Dict[str, Any]] = None
+    global_vars: Optional[Dict[str, Any]] = None
+    free_vars: Optional[Dict[str, Any]] = None
+    latency_ms: Optional[float] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    state_cache_key: Optional[str] = None
+    invocation_kwargs: Optional[Dict[str, Any]] = None
 
 class SerializedLStrBase(SQLModel):
     id: Optional[int] = Field(default=None, primary_key=True)
     content: str
-    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
-    producer_invocation_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
+    logits: List[float] = Field(default_factory=list)
+    producer_invocation_id: Optional[str] = Field(default=None, foreign_key="invocation.id")
 
-class SerializedLStr(SerializedLStrBase, table=True):
-    producer_invocation: Optional["Invocation"] = Relationship(back_populates="results")
+class SerializedLStrPublic(SerializedLStrBase):
+    producer_invocation: Optional["InvocationPublic"] = Relationship(back_populates="results")
 
-class InvocationTrace(SQLModel, table=True):
-    invocation_consumer_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
-    invocation_consuming_id: str = Field(foreign_key="invocation.id", primary_key=True, index=True)
+class SerializedLStrCreate(SerializedLStrBase):
+    pass
+
+class SerializedLStrUpdate(SQLModel):
+    content: Optional[str] = None
+    logits: Optional[List[float]] = None
+
+class InvocationTrace(SQLModel):
+    invocation_consumer_id: str
+    invocation_consuming_id: str
 
 class GraphDataPoint(SQLModel):
-    timestamp: datetime
+    timestamp: str
     value: float
 
 class InvocationsAggregate(SQLModel):
-    date: datetime
+    date: str
     total_invocations: int
     average_latency_ms: float
+    count: int
+    avg_latency: float
+    tokens: int
