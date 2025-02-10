@@ -28,27 +28,35 @@ class SQLStore(ell.store.Store):
         with Session(self.engine) as session:
             lmp = session.query(SerializedLMP).filter(SerializedLMP.lmp_id == lmp_id).first()
             
-            if lmp:
-                return lmp
-            
-            lmp = SerializedLMP(
-                lmp_id=lmp_id,
-                name=name,
-                version_number=version_number,
-                source=source,
-                dependencies=dependencies,
-                initial_global_vars=global_vars,
-                initial_free_vars=free_vars,
-                created_at=created_at if created_at is not None else utc_now(),
-                is_lm=is_lmp,
-                lm_kwargs=lm_kwargs,
-                commit_message=commit_message
-            )
-            session.add(lmp)
-            
+            if lmp is None:
+                lmp = SerializedLMP(
+                    lmp_id=lmp_id,
+                    name=name,
+                    version_number=version_number,
+                    source=source,
+                    dependencies=dependencies,
+                    initial_global_vars=global_vars,
+                    initial_free_vars=free_vars,
+                    created_at=created_at if created_at is not None else utc_now(),
+                    is_lm=is_lmp,
+                    lm_kwargs=lm_kwargs,
+                    commit_message=commit_message
+                )
+                session.add(lmp)
+            else:
+                lmp.name = name
+                lmp.source = source
+                lmp.dependencies = dependencies
+                lmp.initial_global_vars = global_vars
+                lmp.initial_free_vars = free_vars
+                lmp.created_at = created_at if created_at is not None else utc_now()
+                lmp.is_lm = is_lmp
+                lmp.lm_kwargs = lm_kwargs
+                lmp.commit_message = commit_message
+
             for use_id in uses:
                 used_lmp = session.exec(select(SerializedLMP).where(SerializedLMP.lmp_id == use_id)).first()
-                if used_lmp:
+                if used_lmp and used_lmp not in lmp.uses:
                     lmp.uses.append(used_lmp)
             
             session.commit()
@@ -115,7 +123,25 @@ class SQLStore(ell.store.Store):
                 for key, value in filters.items():
                     query = query.where(getattr(SerializedLMP, key) == value)
             results = session.exec(query).all()
-            return [lmp.model_dump() for lmp in results]
+            lmps = []
+            for lmp in results:
+                uses = [use.lmp_user_id for use in lmp.uses]
+                lmps.append({
+                    'lmp_id': lmp.lmp_id,
+                    'name': lmp.name,
+                    'source': lmp.source,
+                    'dependencies': lmp.dependencies,
+                    'is_lm': lmp.is_lm,
+                    'lm_kwargs': lmp.lm_kwargs,
+                    'created_at': lmp.created_at,
+                    'uses': uses,
+                    'version_number': lmp.version_number,
+                    'initial_global_vars': lmp.initial_global_vars,
+                    'initial_free_vars': lmp.initial_free_vars,
+                    'num_invocations': lmp.num_invocations,
+                    'commit_message': lmp.commit_message
+                })
+            return lmps
 
     def get_invocations(self, lmp_id: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         with Session(self.engine) as session:
@@ -128,6 +154,7 @@ class SQLStore(ell.store.Store):
             for inv in results:
                 inv_dict = inv.model_dump()
                 inv_dict['lmp'] = inv.lmp.model_dump()
+                inv_dict['results'] = [res.model_dump() for res in inv.results]
                 invocations.append(inv_dict)
             return invocations
 
