@@ -386,7 +386,7 @@ I have made the following changes to address the feedback:
 
 1. **Parameter Ordering**: I have ensured that the parameters in the function signatures are ordered consistently with the gold code.
 
-2. **Comment Clarity and Consistency**: I have reviewed the comments for clarity and consistency. I have ensured that comments are not only clear but also follow the same style and format as those in the gold code.
+2. **Comment Clarity and Consistency**: I have reviewed the comments for clarity and consistency. I have ensured that comments are concise and directly related to the code they describe.
 
 3. **Unused Imports**: I have double-checked for any unused imports and removed them to keep the code clean.
 
@@ -394,7 +394,7 @@ I have made the following changes to address the feedback:
 
 5. **Error Handling**: I have reviewed the error handling to ensure it matches the gold code's approach. This includes checking the specificity and clarity of error messages, as well as ensuring that exceptions are raised in a consistent manner.
 
-6. **Code Structure and Organization**: I have paid attention to the organization of functions and their placement within the `create_app` function. I have aimed to mirror the structure of the gold code as closely as possible.
+6. **Code Structure and Organization**: I have paid attention to the organization of functions and their placement within the `create_app` function. I have aimed to mirror the structure of the gold code as closely as possible, including the order of the functions.
 
 7. **Consistent Use of Type Hints**: I have made sure that type hints are used consistently throughout the code, especially in function signatures and return types.
 
