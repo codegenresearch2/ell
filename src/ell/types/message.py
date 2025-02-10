@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 from ell.util.serialization import serialize_image
 
 _lstr_generic = Union[_lstr, str]
-InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"]]]
+InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"], ]]
 
 class ToolResult(BaseModel):
     """
@@ -54,6 +54,8 @@ class ToolCall(BaseModel):
             The result of the tool call.
         """
         assert not kwargs, "Unexpected arguments provided. Calling a tool uses the params provided in the ToolCall."
+
+        # TODO: MOVE TRACKING CODE TO _TRACK AND OUT OF HERE AND API.
         return self.tool(**self.params.model_dump())
 
     def call_and_collect_as_message_block(self):
@@ -84,7 +86,7 @@ class ContentBlock(BaseModel):
         image (Optional[Union[PILImage.Image, str, np.ndarray]]): The image content.
         audio (Optional[Union[np.ndarray, List[float]]]): The audio content.
         tool_call (Optional[ToolCall]): The tool call content.
-        structured (Optional[Union[Type[BaseModel], BaseModel]]): The structured content.
+        parsed (Optional[Union[Type[BaseModel], BaseModel]]): The parsed content.
         tool_result (Optional[ToolResult]): The tool result content.
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -93,7 +95,7 @@ class ContentBlock(BaseModel):
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
     tool_call: Optional[ToolCall] = Field(default=None)
-    structured: Optional[Union[Type[BaseModel], BaseModel]] = Field(default=None)
+    parsed: Optional[Union[Type[BaseModel], BaseModel]] = Field(default=None)
     tool_result: Optional[ToolResult] = Field(default=None)
 
     @model_validator(mode='after')
@@ -125,8 +127,8 @@ class ContentBlock(BaseModel):
             return "audio"
         if self.tool_call is not None:
             return "tool_call"
-        if self.structured is not None:
-            return "structured"
+        if self.parsed is not None:
+            return "parsed"
         if self.tool_result is not None:
             return "tool_result"
         return None
@@ -151,7 +153,7 @@ class ContentBlock(BaseModel):
         if isinstance(content, ToolResult):
             return cls(tool_result=content)
         if isinstance(content, BaseModel):
-            return cls(structured=content)
+            return cls(parsed=content)
         if isinstance(content, (PILImage.Image, np.ndarray)):
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
@@ -179,8 +181,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except Exception:
-                raise ValueError("Invalid base64 string for image")
+            except Exception as e:
+                raise ValueError(f"Invalid base64 string for image: {str(e)}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -225,10 +227,10 @@ class ContentBlock(BaseModel):
                 "type": "text",
                 "text": self.text
             }
-        elif self.structured:
+        elif self.parsed:
             return {
                 "type": "text",
-                "json": self.structured.model_dump_json()
+                "json": self.parsed.model_dump_json()
             }
         else:
             return None
@@ -316,14 +318,14 @@ class Message(BaseModel):
         return [c.tool_result for c in self.content if c.tool_result is not None]
 
     @cached_property
-    def structured(self) -> List[BaseModel]:
+    def parsed(self) -> List[BaseModel]:
         """
-        Returns the structured content in the message.
+        Returns the parsed content in the message.
 
         Returns:
-            List[BaseModel]: The structured content in the message.
+            List[BaseModel]: The parsed content in the message.
         """
-        return [c.structured for c in self.content if c.structured is not None]
+        return [c.parsed for c in self.content if c.parsed is not None]
 
     def call_tools_and_collect_as_message(self, parallel=False, max_workers=None):
         """
