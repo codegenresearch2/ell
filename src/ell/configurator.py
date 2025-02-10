@@ -54,6 +54,7 @@ class _Config:
     def get_client_for(self, model_name: str) -> Optional[openai.Client]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
         client = current_registry.get(model_name)
+        fallback_used = False
         if client is None:
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
@@ -62,6 +63,7 @@ class _Config:
             else:
                 _config_logger.debug(warning_message)
             client = self.default_client
+            fallback_used = True
 
         return client
 
