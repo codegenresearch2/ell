@@ -13,7 +13,16 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, response_format: Optional[Dict[str, Any]] = None, n: Optional[int] = None, temperature: Optional[float] = None, max_tokens: Optional[int] = None, top_p: Optional[float] = None, frequency_penalty: Optional[float] = None, presence_penalty: Optional[float] = None, stop: Optional[List[str]] = None, **api_params):
+    """
+    A sophisticated language model programming decorator for complex LLM interactions.
+
+    This decorator transforms a function into a Language Model Program (LMP) capable of handling
+    multi-turn conversations, tool usage, and various output formats. It's designed for advanced
+    use cases where full control over the LLM's capabilities is needed.
+
+    ... (rest of the docstring)
+    """
     default_client_from_decorator = client
 
     def parameterized_lm_decorator(prompt: LMP) -> Callable[..., Union[List[Message], Message]]:
@@ -24,15 +33,15 @@ def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_
         def model_call(*fn_args, _invocation_origin: str = None, client: Optional[openai.Client] = None, lm_params: Optional[LMPParams] = {}, invocation_api_params=False, **fn_kwargs) -> _lstr_generic:
             res = prompt(*fn_args, **fn_kwargs)
             assert exempt_from_tracking or _invocation_origin is not None, "Invocation origin is required when using a tracked LMP"
-            messages = get_messages(res, prompt)
+            messages = _get_messages(res, prompt)
 
             if config.verbose and not exempt_from_tracking:
                 model_usage_logger_pre(prompt, fn_args, fn_kwargs, "notimplemented", messages, color)
 
-            result, _api_params, metadata = call(model=model, messages=messages, api_params={**config.default_lm_params, **api_params, **lm_params}, client=client or default_client_from_decorator, _invocation_origin=_invocation_origin, _exempt_from_tracking=exempt_from_tracking, _logging_color=color, _name=prompt.__name__, tools=tools)
+            result, _api_params, metadata = call(model=model, messages=messages, api_params={**config.default_lm_params, **api_params, **lm_params, 'response_format': response_format, 'n': n, 'temperature': temperature, 'max_tokens': max_tokens, 'top_p': top_p, 'frequency_penalty': frequency_penalty, 'presence_penalty': presence_penalty, 'stop': stop}, client=client or default_client_from_decorator, _invocation_origin=_invocation_origin, _exempt_from_tracking=exempt_from_tracking, _logging_color=color, _name=prompt.__name__, tools=tools)
 
             result = post_callback(result) if post_callback else result
-            return result, api_params, metadata
+            return result, _api_params, metadata
 
         model_call.__ell_api_params__ = api_params
         model_call.__ell_func__ = prompt
@@ -46,7 +55,7 @@ def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_
 
     return parameterized_lm_decorator
 
-def get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
+def _get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
     if isinstance(prompt_ret, str):
         return [
             Message(role="system", content=[ContentBlock(text=_lstr(prompt.__doc__) or config.default_system_prompt)]),
