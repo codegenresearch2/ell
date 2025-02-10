@@ -1,11 +1,8 @@
 from datetime import datetime, timezone
 import enum
-from functools import cached_property
-import sqlalchemy.types as types
-from ell.types.message import Any, Field, Message, Optional
-from sqlmodel import Column, Field, SQLModel, Relationship, JSON, func
 from typing import Optional, Dict, List, Any, Union
-from sqlalchemy import Index
+from sqlmodel import SQLModel, Field, Relationship, JSON, func
+from pydantic import BaseModel
 
 def utc_now() -> datetime:
     """
