@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 def exclude_var(v):
     return inspect.ismodule(v)
 
-def track(fn: Callable) -> Callable:
-    lm_kwargs = getattr(fn, "__ell_lm_kwargs__", None)
+def track(func_to_track: Callable) -> Callable:
+    lm_kwargs = getattr(func_to_track, "__ell_lm_kwargs__", None)
     lmp = bool(lm_kwargs)
-    _name = fn.__qualname__
+    _name = func_to_track.__qualname__
     _has_serialized_lmp = False
 
-    if not hasattr(fn, "__ell_hash__") and not config.lazy_versioning:
-        fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
+    if not hasattr(func_to_track, "__ell_hash__") and not config.lazy_versioning:
+        fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
-    @wraps(fn)
+    @wraps(func_to_track)
     def wrapper(*fn_args, **fn_kwargs) -> str:
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
@@ -37,57 +37,57 @@ def track(fn: Callable) -> Callable:
         state_cache_key: str = None
 
         if not config._store:
-            return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
+            return func_to_track(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
 
         cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
-        try_use_cache = hasattr(fn.__wrapper__, "__ell_use_cache__")
+        try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
 
         if try_use_cache:
-            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
+            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
             state_cache_key = compute_state_cache_key(ipstr, fn_closure)
-            cache_store = fn.__wrapper__.__ell_use_cache__
-            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=fn.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
+            cache_store = func_to_track.__wrapper__.__ell_use_cache__
+            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=func_to_track.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
 
             if len(cached_invocations) > 0:
                 results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0]['results']]
-                logger.info(f"Using cached result for {fn.__qualname__} with state cache key: {state_cache_key}")
+                logger.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
                 return results[0] if len(results) == 1 else results
             else:
-                logger.info(f"Attempted to use cache on {fn.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
+                logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
 
         _start_time = utc_now()
-        result, invocation_kwargs, metadata = (fn(*fn_args, **fn_kwargs), None) if not lmp else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
+        result, invocation_kwargs, metadata = (func_to_track(*fn_args, **fn_kwargs), None) if not lmp else func_to_track(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
         latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
 
         if not _has_serialized_lmp:
-            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
-            _serialize_lmp(fn, _name, fn_closure, lmp, lm_kwargs)
+            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
+            _serialize_lmp(func_to_track, _name, fn_closure, lmp, lm_kwargs)
             _has_serialized_lmp = True
 
         if not state_cache_key:
             state_cache_key = compute_state_cache_key(ipstr, fn_closure)
 
-        _write_invocation(fn, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
+        _write_invocation(func_to_track, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
 
         return result
 
-    fn.__wrapper__ = wrapper
+    func_to_track.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
-    wrapper.__ell_func__ = fn
+    wrapper.__ell_func__ = func_to_track
     wrapper.__ell_track = True
 
     return wrapper
 
-def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: dict):
+def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: dict):
     lmps = config._store.get_lmps(name=name)
     version = 0
-    already_in_store = any(lmp['lmp_id'] == fn.__ell_hash__ for lmp in lmps)
+    already_in_store = any(lmp['lmp_id'] == func.__ell_hash__ for lmp in lmps)
 
     if not already_in_store:
         if lmps:
@@ -100,7 +100,7 @@ def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedD
             commit = None
 
         config._store.write_lmp(
-            lmp_id=fn.__ell_hash__,
+            lmp_id=func.__ell_hash__,
             name=name,
             created_at=utc_now(),
             source=fn_closure[0],
@@ -111,16 +111,16 @@ def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedD
             is_lmp=is_lmp,
             lm_kwargs=lm_kwargs if lm_kwargs else None,
             version_number=version,
-            uses=fn.__ell_uses__,
+            uses=func.__ell_uses__,
         )
 
-def _write_invocation(fn: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: dict, cleaned_invocation_params: dict, consumes: set, result: Any):
+def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: dict, cleaned_invocation_params: dict, consumes: set, result: Any):
     config._store.write_invocation(
         id=invocation_id,
-        lmp_id=fn.__ell_hash__,
+        lmp_id=func.__ell_hash__,
         created_at=utc_now(),
-        global_vars=get_immutable_vars(fn.__ell_closure__[2]),
-        free_vars=get_immutable_vars(fn.__ell_closure__[3]),
+        global_vars=get_immutable_vars(func.__ell_closure__[2]),
+        free_vars=get_immutable_vars(func.__ell_closure__[3]),
         latency_ms=latency_ms,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
@@ -175,26 +175,6 @@ def prepare_invocation_params(fn_args: Tuple[Any], fn_kwargs: dict) -> Tuple[dic
     jstr = json.dumps(cleaned_invocation_params, sort_keys=True, default=repr)
     return json.loads(jstr), jstr, consumes
 
-I have addressed the feedback received and made the necessary changes to the code. Here are the modifications:
-
-1. **Function Naming and Parameters**: I have renamed the `func_to_track` parameter to `fn` in the `track` function to match the gold code.
-
-2. **Code Structure and Comments**: I have added comments to clarify the purpose of certain blocks of code, such as the cache usage and invocation attempts.
-
-3. **Variable Initialization**: I have simplified the handling of `lm_kwargs` and `lmp` to reduce redundancy.
-
-4. **Use of Nonlocal Variables**: I have ensured that the use of `nonlocal` variables is consistent with the gold code.
-
-5. **Error Handling and Logging**: I have enhanced the logging to include details about cache usage and invocation attempts.
-
-6. **Functionality Consistency**: I have ensured that the functionality of methods such as `_serialize_lmp`, `_write_invocation`, and `compute_state_cache_key` aligns closely with the gold code.
-
-7. **Formatting and Style**: I have followed consistent formatting and style guidelines as seen in the gold code.
-
-8. **Redundant Code**: I have eliminated redundancy in the code by simplifying certain checks and operations.
-
-The modified code is as follows:
-
 
 import logging
 from ell.types import SerializedLStr, utc_now
@@ -218,16 +198,16 @@ logger = logging.getLogger(__name__)
 def exclude_var(v):
     return inspect.ismodule(v)
 
-def track(fn: Callable) -> Callable:
-    lm_kwargs = getattr(fn, "__ell_lm_kwargs__", None)
+def track(func_to_track: Callable) -> Callable:
+    lm_kwargs = getattr(func_to_track, "__ell_lm_kwargs__", None)
     lmp = bool(lm_kwargs)
-    _name = fn.__qualname__
+    _name = func_to_track.__qualname__
     _has_serialized_lmp = False
 
-    if not hasattr(fn, "__ell_hash__") and not config.lazy_versioning:
-        fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
+    if not hasattr(func_to_track, "__ell_hash__") and not config.lazy_versioning:
+        fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
-    @wraps(fn)
+    @wraps(func_to_track)
     def wrapper(*fn_args, **fn_kwargs) -> str:
         nonlocal _has_serialized_lmp
         nonlocal fn_closure
@@ -235,57 +215,57 @@ def track(fn: Callable) -> Callable:
         state_cache_key: str = None
 
         if not config._store:
-            return fn(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
+            return func_to_track(*fn_args, **fn_kwargs, _invocation_origin=invocation_id)[0]
 
         cleaned_invocation_params, ipstr, consumes = prepare_invocation_params(fn_args, fn_kwargs)
-        try_use_cache = hasattr(fn.__wrapper__, "__ell_use_cache__")
+        try_use_cache = hasattr(func_to_track.__wrapper__, "__ell_use_cache__")
 
         if try_use_cache:
-            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
+            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
 
             state_cache_key = compute_state_cache_key(ipstr, fn_closure)
-            cache_store = fn.__wrapper__.__ell_use_cache__
-            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=fn.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
+            cache_store = func_to_track.__wrapper__.__ell_use_cache__
+            cached_invocations = cache_store.get_invocations(lmp_filters=dict(lmp_id=func_to_track.__ell_hash__), filters=dict(state_cache_key=state_cache_key))
 
             if len(cached_invocations) > 0:
                 results = [SerializedLStr(**d).deserialize() for d in cached_invocations[0]['results']]
-                logger.info(f"Using cached result for {fn.__qualname__} with state cache key: {state_cache_key}")
+                logger.info(f"Using cached result for {func_to_track.__qualname__} with state cache key: {state_cache_key}")
                 return results[0] if len(results) == 1 else results
             else:
-                logger.info(f"Attempted to use cache on {fn.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
+                logger.info(f"Attempted to use cache on {func_to_track.__qualname__} but it was not cached, or did not exist in the store. Refreshing cache...")
 
         _start_time = utc_now()
-        result, invocation_kwargs, metadata = (fn(*fn_args, **fn_kwargs), None) if not lmp else fn(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
+        result, invocation_kwargs, metadata = (func_to_track(*fn_args, **fn_kwargs), None) if not lmp else func_to_track(*fn_args, _invocation_origin=invocation_id, **fn_kwargs)
         latency_ms = (utc_now() - _start_time).total_seconds() * 1000
         usage = metadata.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 0)
         completion_tokens = usage.get("completion_tokens", 0)
 
         if not _has_serialized_lmp:
-            if not hasattr(fn, "__ell_hash__") and config.lazy_versioning:
-                fn_closure, _ = ell.util.closure.lexically_closured_source(fn)
-            _serialize_lmp(fn, _name, fn_closure, lmp, lm_kwargs)
+            if not hasattr(func_to_track, "__ell_hash__") and config.lazy_versioning:
+                fn_closure, _ = ell.util.closure.lexically_closured_source(func_to_track)
+            _serialize_lmp(func_to_track, _name, fn_closure, lmp, lm_kwargs)
             _has_serialized_lmp = True
 
         if not state_cache_key:
             state_cache_key = compute_state_cache_key(ipstr, fn_closure)
 
-        _write_invocation(fn, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
+        _write_invocation(func_to_track, invocation_id, latency_ms, prompt_tokens, completion_tokens, state_cache_key, invocation_kwargs, cleaned_invocation_params, consumes, result)
 
         return result
 
-    fn.__wrapper__ = wrapper
+    func_to_track.__wrapper__ = wrapper
     wrapper.__ell_lm_kwargs__ = lm_kwargs
-    wrapper.__ell_func__ = fn
+    wrapper.__ell_func__ = func_to_track
     wrapper.__ell_track = True
 
     return wrapper
 
-def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: dict):
+def _serialize_lmp(func: Callable, name: str, fn_closure: Tuple[str, str, OrderedDict[str, Any], OrderedDict[str, Any]], is_lmp: bool, lm_kwargs: dict):
     lmps = config._store.get_lmps(name=name)
     version = 0
-    already_in_store = any(lmp['lmp_id'] == fn.__ell_hash__ for lmp in lmps)
+    already_in_store = any(lmp['lmp_id'] == func.__ell_hash__ for lmp in lmps)
 
     if not already_in_store:
         if lmps:
@@ -298,7 +278,7 @@ def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedD
             commit = None
 
         config._store.write_lmp(
-            lmp_id=fn.__ell_hash__,
+            lmp_id=func.__ell_hash__,
             name=name,
             created_at=utc_now(),
             source=fn_closure[0],
@@ -309,16 +289,16 @@ def _serialize_lmp(fn: Callable, name: str, fn_closure: Tuple[str, str, OrderedD
             is_lmp=is_lmp,
             lm_kwargs=lm_kwargs if lm_kwargs else None,
             version_number=version,
-            uses=fn.__ell_uses__,
+            uses=func.__ell_uses__,
         )
 
-def _write_invocation(fn: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: dict, cleaned_invocation_params: dict, consumes: set, result: Any):
+def _write_invocation(func: Callable, invocation_id: str, latency_ms: float, prompt_tokens: int, completion_tokens: int, state_cache_key: str, invocation_kwargs: dict, cleaned_invocation_params: dict, consumes: set, result: Any):
     config._store.write_invocation(
         id=invocation_id,
-        lmp_id=fn.__ell_hash__,
+        lmp_id=func.__ell_hash__,
         created_at=utc_now(),
-        global_vars=get_immutable_vars(fn.__ell_closure__[2]),
-        free_vars=get_immutable_vars(fn.__ell_closure__[3]),
+        global_vars=get_immutable_vars(func.__ell_closure__[2]),
+        free_vars=get_immutable_vars(func.__ell_closure__[3]),
         latency_ms=latency_ms,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
@@ -344,4 +324,10 @@ def get_immutable_vars(vars_dict: dict) -> dict:
         elif isinstance(obj, (list, tuple)):
             return [handle_complex_types(item) if not isinstance(item, (int, float, str, bool, type(None))) else item for item in obj]
         elif isinstance(obj, dict):
-            return {k: handle_complex_types(v) if not isinstance
+            return {k: handle_complex_types(v) if not isinstance(v, (int, float, str, bool, type(None))) else v for k, v in obj.items()}
+        elif isinstance(obj, (set, frozenset)):
+            return list(sorted(handle_complex_types(item) if not isinstance(item, (int, float, str, bool, type(None))) else item for item in obj))
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return f"<Object of type {type(obj).__name__}>"
