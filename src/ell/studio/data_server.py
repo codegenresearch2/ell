@@ -25,6 +25,7 @@ class ConnectionManager:
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
+            print(f"Broadcasting message to {connection}: {message}")
             await connection.send_text(message)
 
 def create_app(storage_dir: Optional[str] = None):
@@ -62,8 +63,7 @@ def create_app(storage_dir: Optional[str] = None):
         try:
             while True:
                 data = await websocket.receive_text()
-                # Handle incoming messages if needed
-                await manager.broadcast(f"Message text was: {data}")
+                # Removed handling of incoming messages
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
@@ -114,7 +114,7 @@ def create_app(storage_dir: Optional[str] = None):
     def get_invocation(
         invocation_id: str,
     ):
-        invocations = serializer.get_invocations(id=invocation_id)
+        invocations = serializer.get_invocations(filters={'id': invocation_id})
         if not invocations:
             raise HTTPException(status_code=404, detail="Invocation not found")
         return invocations[0]
@@ -172,9 +172,13 @@ def create_app(storage_dir: Optional[str] = None):
 
     return app
 
-async def notify_clients(message: str):
+async def notify_clients(message: str, data: Dict[str, Any]):
     logger.info(f"Broadcasting message: {message}")
-    await manager.broadcast(message)
+    notification = {
+        "message": message,
+        "data": data
+    }
+    await manager.broadcast(json.dumps(notification))
 
 if __name__ == "__main__":
     uvicorn.run(create_app(), host="0.0.0.0", port=8000, log_level="debug")
