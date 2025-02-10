@@ -21,7 +21,64 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     multi-turn conversations, tool usage, and various output formats. It's designed for advanced
     use cases where full control over the LLM's capabilities is needed.
 
-    ... (rest of the docstring)
+    Parameters:
+    - model (str): The name or identifier of the language model to use.
+    - client (Optional[openai.Client]): An optional OpenAI client instance. If not provided, a default client will be used.
+    - exempt_from_tracking (bool): If True, the LMP usage won't be tracked. Default is False.
+    - tools (Optional[List[Callable]]): A list of tool functions that can be used by the LLM. Only available for certain models.
+    - post_callback (Optional[Callable]): An optional function to process the LLM's output before returning.
+    - response_format (Optional[Dict[str, Any]]): The response format for the LLM. Only available for certain models.
+    - n (Optional[int]): The number of responses to generate for the LLM. Only available for certain models.
+    - temperature (Optional[float]): The temperature parameter for controlling the randomness of the LLM.
+    - max_tokens (Optional[int]): The maximum number of tokens to generate for the LLM.
+    - top_p (Optional[float]): The top-p sampling parameter for controlling the diversity of the LLM.
+    - frequency_penalty (Optional[float]): The frequency penalty parameter for controlling the LLM's repetition.
+    - presence_penalty (Optional[float]): The presence penalty parameter for controlling the LLM's relevance.
+    - stop (Optional[List[str]]): The stop sequence for the LLM.
+    - api_params (Any): Additional keyword arguments to pass to the underlying API call.
+
+    Returns:
+    - Callable: A decorator that can be applied to a function, transforming it into a complex LMP.
+
+    Functionality:
+    - Supports multi-turn conversations and stateful interactions.
+    - Enables tool usage within the LLM context.
+    - Allows for various output formats, including structured data and function calls.
+    - Can process both single prompts and conversation histories.
+    - Supports multimodal inputs (text, images, etc.) in the prompt.
+    - Integrates with ell's tracking system for monitoring LMP versions, usage, and performance.
+    - Supports various language models and API configurations.
+    - Can return raw LLM outputs or process them through a post-callback function.
+    - Supports returning multiple message types (e.g., text, function calls, tool results).
+
+    Usage Modes and Examples:
+    - Basic Prompt
+    - Multi-turn Conversation
+    - Tool Usage
+    - Structured Output
+    - Multimodal Input
+    - Parallel Tool Execution
+
+    Helper Functions for Output Processing:
+    - response.text: Get the full text content of the last message.
+    - response.text_only: Get only the text content, excluding non-text elements.
+    - response.tool_calls: Access the list of tool calls in the message.
+    - response.tool_results: Access the list of tool results in the message.
+    - response.parsed_content: Access structured data outputs.
+    - response.call_tools_and_collect_as_message(): Execute tool calls and collect results.
+    - Message(role="user", content=[...]).to_openai_message(): Convert to OpenAI API format.
+
+    Notes:
+    - The decorated function should return a list of Message objects.
+    - For tool usage, ensure that tools are properly decorated with @ell.tool().
+    - When using structured outputs, specify the response_format in the decorator.
+    - The complex decorator supports all features of simpler decorators like @ell.simple.
+    - Use helper functions and properties to easily access and process different types of outputs.
+
+    See Also:
+    - ell.simple: For simpler text-only LMP interactions.
+    - ell.tool: For defining tools that can be used within complex LMPs.
+    - ell.studio: For visualizing and analyzing LMP executions.
     """
     default_client_from_decorator = client
 
@@ -56,6 +113,9 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     return parameterized_lm_decorator
 
 def _get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
+    """
+    Helper function to convert the output of an LMP into a list of Messages.
+    """
     if isinstance(prompt_ret, str):
         return [
             Message(role="system", content=[ContentBlock(text=_lstr(prompt.__doc__) or config.default_system_prompt)]),
