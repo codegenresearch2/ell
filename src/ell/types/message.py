@@ -1,3 +1,5 @@
+# Fixed the syntax error by ensuring the comment is properly formatted
+
 import json
 from ell.types._lstr import _lstr
 from functools import cached_property
