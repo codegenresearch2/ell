@@ -47,7 +47,7 @@ def call(
     if not client.api_key:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True))
 
-    metadata = dict()
+    metadata = {}
 
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
