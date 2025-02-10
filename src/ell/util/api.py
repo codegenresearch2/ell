@@ -74,7 +74,7 @@ def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], too
         Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]: The results of the model and the API parameters used.
     """
     client = get_client(client, model)
-    metadata = {}
+    metadata = dict()
 
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
