@@ -71,6 +71,25 @@ def get_referenced_names(code: str, module_name: str):
 
     return referenced_names
 
+def is_function_called(func_name, source_code):
+    """
+    Check if a function is called in the given source code.
+
+    Parameters:
+    func_name (str): The name of the function to check.
+    source_code (str): The source code to check.
+
+    Returns:
+    bool: True if the function is called, False otherwise.
+    """
+    tree = ast.parse(source_code)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == func_name:
+            return True
+
+    return False
+
 DELIM = "$$$$$$$$$$$$$$$$$$$$$$$$$"
 FORBIDDEN_NAMES = ["ell", "lstr"]
 CLOSURE_SOURCE: Dict[str, str] = {}
