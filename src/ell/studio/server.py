@@ -96,7 +96,7 @@ def create_app(config: Config):
         Endpoint to get invocations based on filters.
         """
         lmp_filters: Dict[str, Any] = {k: v for k, v in {'name': lmp_name, 'lmp_id': lmp_id}.items() if v is not None}
-        invocation_filters: Dict[str, Any] = {'id': id} if id else {}
+        invocation_filters: Dict[str, Any] = {'id': id} if id is not None else {}
         return serializer.get_invocations(session, lmp_filters=lmp_filters, filters=invocation_filters, skip=skip, limit=limit, hierarchical=hierarchical)
 
     @app.get("/api/traces")
