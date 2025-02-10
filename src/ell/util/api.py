@@ -45,14 +45,15 @@ def call(
     Helper function to run the language model with the provided messages and parameters.
     """
     client = client or config.get_client_for(model)
-    metadata = dict()
+    metadata = {}  # Initialize metadata dictionary
+
     if client is None:
         raise ValueError(f"No client found for model '{model}'. Ensure the model is registered using 'register_model' in 'config.py' or specify a client directly using the 'client' argument in the decorator or function call.")
     
     if not client.api_key:
         raise RuntimeError(_no_api_key_warning(model, _name, client, long=True, error=True))
 
-    # todo: add suupport for streaming apis that dont give a final usage in the api
+    # todo: add support for streaming APIs that don't give a final usage in the API
     # print(api_params)
     if api_params.get("response_format", False):
         model_call = client.beta.chat.completions.parse
