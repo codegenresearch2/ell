@@ -32,7 +32,8 @@ def main():
 
     # Implement the database watcher using watchfiles.awatch
     async def db_watcher():
-        async for changes in watchfiles.awatch(db_path, recursive=True):
+        # Start watching the database for changes
+        async for changes in watchfiles.awatch(db_path):
             print(f"Database changed: {changes}")
             await app.notify_clients("database_updated")
 
@@ -41,7 +42,7 @@ def main():
     asyncio.set_event_loop(loop)
 
     # Create a Uvicorn server configuration
-    config = uvicorn.Config(app, host=args.host, port=args.port)
+    config = uvicorn.Config(app, host=args.host, port=args.port, loop=loop)
     server = uvicorn.Server(config)
 
     # Start the server and the database watcher
