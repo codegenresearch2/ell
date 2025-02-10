@@ -21,10 +21,11 @@ def create_personality() -> str:
     """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list.
 
     Returns:
-        str: A prompt for generating a backstory.
+        str: A string formatted as 'Name: <name>\nBackstory: <3 sentence backstory>'
     """
     name = random.choice(names_list)
-    return f"Generate a backstory for {name}"
+    backstory = f"Once upon a time, {name} was an adventurer who embarked on a journey to find their destiny."
+    return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -42,13 +43,13 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
         
-    personalities = [create_personality(), create_personality()]
+    personalities = [create_personality() for _ in range(2)]
     messages: List[Tuple[str, str]] = []
 
     names = []
     for personality in personalities:
-        parts = personality.split(": ")
-        names.append(parts[1])
+        parts = personality.split("\n")
+        names.append(parts[0].split(": ")[1])
     
     print("Names:", names)  # Print the names for verification
     
