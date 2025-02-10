@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 from typing import Optional, Dict, List, Any, Union
 from sqlmodel import SQLModel, Field, Relationship, JSON, func
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 def utc_now() -> datetime:
     """
@@ -94,6 +94,12 @@ class InvocationContentsBase(SQLModel):
     global_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     free_vars: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     is_external: bool = Field(default=False)
+
+    @field_validator('params', 'results', 'invocation_api_params', 'global_vars', 'free_vars')
+    def validate_fields(cls, value):
+        if value is not None and not isinstance(value, (dict, list)):
+            raise ValueError("Field must be a dictionary or list")
+        return value
 
     @cached_property
     def should_externalize(self) -> bool:
