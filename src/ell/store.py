@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from typing import Any, Optional, Dict, List, Set, Union, Callable
 from datetime import datetime
 from ell.lstr import lstr
@@ -10,7 +11,7 @@ class Store(ABC):
     """
 
     @abstractmethod
-    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], is_lmp: bool, lm_kwargs: str,
+    def write_lmp(self, lmp_id: str, name: str, source: str, dependencies: List[str], lm_kwargs: str,
                   version_number: int, uses: Dict[str, Any], created_at: Optional[datetime] = None,
                   commit_message: Optional[str] = None) -> Optional[Any]:
         """
@@ -21,7 +22,6 @@ class Store(ABC):
             name (str): Name of the LMP.
             source (str): Source code or reference for the LMP.
             dependencies (List[str]): List of dependencies for the LMP.
-            is_lmp (bool): Boolean indicating if it is an LMP.
             lm_kwargs (str): Additional keyword arguments for the LMP.
             version_number (int): Version number of the LMP.
             uses (Dict[str, Any]): Dictionary of LMPs used by this LMP.
@@ -100,14 +100,12 @@ class Store(ABC):
         pass
 
     @contextmanager
-    def freeze(self, *lmps: InvocableLM, key: Optional[str] = None, condition: Optional[Callable[..., bool]] = None):
+    def freeze(self, *lmps: InvocableLM):
         """
         A context manager for caching operations using a particular store.
 
         Args:
             *lmps (InvocableLM): Language Model Programs (LMPs) to cache.
-            key (Optional[str], optional): The cache key. If None, a default key will be generated. Defaults to None.
-            condition (Optional[Callable[..., bool]], optional): A function that determines whether to cache or not. Defaults to None.
 
         Yields:
             None
