@@ -1,11 +1,9 @@
-# Refactored code snippet addressing the feedback
-
-# Moved the definitions of SerializedLMPBase, InvocationBase, and SerializedLStrBase to a separate module
-# ell/models.py
-from datetime import datetime
-from typing import List, Optional, Dict, Any
-from sqlmodel import SQLModel, Field, Column, JSON
+from datetime import datetime, timezone
+from typing import Any, List, Optional
+from sqlmodel import Field, SQLModel, Relationship, JSON, Column
+from sqlalchemy import func
 import sqlalchemy.types as types
+from ell.models import SerializedLMPBase, InvocationBase, SerializedLStrBase
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
@@ -16,20 +14,6 @@ class UTCTimestamp(types.TypeDecorator[datetime]):
 def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(
         sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
-
-class SerializedLMPBase(SQLModel):
-    lmp_id: Optional[str] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    source: str
-    dependencies: str
-    created_at: datetime = UTCTimestampField(index=True, nullable=False)
-    is_lm: bool
-    lm_kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_free_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
-    initial_global_vars: Optional[Dict[str, Any]] = Field(default_factory=dict, sa_column=Column(JSON))
-    num_invocations: Optional[int] = Field(default=0)
-    commit_message: Optional[str] = Field(default=None)
-    version_number: Optional[int] = Field(default=None)
 
 class InvocationBase(SQLModel):
     id: Optional[str] = Field(default=None, primary_key=True)
@@ -46,13 +30,7 @@ class InvocationBase(SQLModel):
     invocation_kwargs: Dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     used_by_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
 
-class SerializedLStrBase(SQLModel):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    content: str
-    logits: List[float] = Field(default_factory=list, sa_column=Column(JSON))
-    producer_invocation_id: Optional[str] = Field(default=None, foreign_key="invocation.id", index=True)
-
-# ell/studio/datamodels.py
-from ell.models import SerializedLMPBase, InvocationBase, SerializedLStrBase
+# Added import for func from sqlalchemy
+from sqlalchemy import func
 
 # Rest of the code...
