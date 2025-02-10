@@ -14,7 +14,6 @@ author = 'William Guss'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
-templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
@@ -25,7 +24,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://example.com/ai-jobs-board"  # Updated URL for AI Jobs Board
+        "AI Jobs Board": "https://example.com/ai-jobs-board"
     },
     "extra_header_link_icons": {
         "Discord": {
