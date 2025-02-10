@@ -21,7 +21,7 @@ def process_messages_for_client(messages: list[Message], client: openai.Client) 
     if isinstance(client, openai.Client):
         return [message.to_openai_message() for message in messages]
 
-def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], tools: Optional[list[LMP]] = None, client: Optional[openai.Client] = None, _invocation_origin: str, _exempt_from_tracking: bool, _logging_color=None, _name: str = None) -> Tuple[Union[Message, Iterable[Message]], Dict[str, Any], Dict[str, Any]]:
+def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], tools: Optional[list[LMP]] = None, client: Optional[openai.Client] = None, _invocation_origin: str, _exempt_from_tracking: bool, _logging_color=None, _name: str = None) -> Tuple[Union[_lstr, Iterable[_lstr]], Optional[Dict[str, Any]]]:
     client = get_client(client, model)
     metadata = {}
 
@@ -46,8 +46,8 @@ def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], too
         api_params["stream"] = True
         api_params["stream_options"] = {"include_usage": True}
 
-    client_safe_messages = process_messages_for_client(messages, client)
-    model_result = model_call(model=model, messages=client_safe_messages, **api_params)
+    client_safe_messages_messages = process_messages_for_client(messages, client)
+    model_result = model_call(model=model, messages=client_safe_messages_messages, **api_params)
 
     choices_progress = defaultdict(list)
     n = api_params.get("n", 1)
@@ -93,5 +93,5 @@ def call(*, model: str, messages: list[Message], api_params: Dict[str, Any], too
 
         tracked_results.append(Message(role=choice.role if not api_params.get("stream", False) else choice_deltas[0].delta.role, content=content))
 
-    api_params = dict(model=model, messages=client_safe_messages, api_params=api_params)
+    api_params = dict(model=model, messages=client_safe_messages_messages, api_params=api_params)
     return tracked_results[0] if len(tracked_results) == 1 else tracked_results, api_params, metadata
