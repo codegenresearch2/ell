@@ -8,11 +8,16 @@ from sqlalchemy import or_, func, and_, text
 import numpy as np
 import cattrs
 
+# Ensure all necessary imports are included
+from ell.types import InvocationTrace, SerializedLMP, Invocation, SerializedLMPUses, SerializedLStr
+from ell.lstr import lstr
+
 class SQLStore(ell.store.Store):
     def __init__(self, db_uri: str):
         self.engine = create_engine(db_uri)
         SQLModel.metadata.create_all(self.engine)
         
+        # Class attributes should be defined here
         self.open_files: Dict[str, Dict[str, Any]] = {}
         self.ws_connections: Set[Any] = set()
 
