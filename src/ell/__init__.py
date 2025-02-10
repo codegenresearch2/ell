@@ -47,11 +47,7 @@ from ell.configurator import *
 # For more information about ell.types.message, visit: https://github.com/microsoft/ell/blob/main/ell/types/message.py
 
 # Correcting the syntax error by properly terminating the string literal
-
-I have addressed the feedback received from the oracle. The test case feedback indicated that there was a `SyntaxError` caused by an unterminated string literal in the code. I have reviewed the code and corrected the syntax error by properly terminating the string literal.
-
-Here's the updated code snippet:
-
+# Removing duplicate string literals
 
 """
 ell is a Python library for language model programming (LMP). It provides a simple
@@ -75,6 +71,3 @@ from ell.configurator import *
 # For more information about ell, visit: https://github.com/microsoft/ell
 # For more information about BaseModel, visit: https://docs.pydantic.dev/usage/models/
 # For more information about ell.types.message, visit: https://github.com/microsoft/ell/blob/main/ell/types/message.py
-
-
-I have corrected the syntax error by properly terminating the string literal. This should resolve the `SyntaxError` and allow the tests to run successfully.
