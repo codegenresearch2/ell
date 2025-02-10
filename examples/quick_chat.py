@@ -18,14 +18,13 @@ names_list = [
 
 @ell.lm(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format the backstory to include the name in a creative way.
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list.
 
     Returns:
-        str: A string formatted as 'Name: <name>\nBackstory: <3 sentence backstory>'
+        str: A prompt for generating a backstory.
     """
     name = random.choice(names_list)
-    backstory = f"Once upon a time, {name} was an adventurer who embarked on a journey to find their destiny. Their story is one of courage and discovery."
-    return f"Name: {name}\nBackstory: {backstory}"
+    return f"Generate a backstory for {name}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -43,15 +42,13 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store(SQLiteStore('sqlite_example'), autocommit=True)
         
+    personalities = [create_personality(), create_personality()]
     messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(2)]
 
     names = []
-    backstories = []    
     for personality in personalities:
-        parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
+        parts = personality.split(": ")
+        names.append(parts[1])
     
     print("Names:", names)  # Print the names for verification
     
