@@ -6,7 +6,7 @@ import sqlalchemy.types as types
 from ell.lstr import lstr
 from dataclasses import dataclass
 from ell.util.dict_sync_meta import DictSyncMeta
-from typing import TypeVar
+from typing import TypeVar, Dict
 
 # Define the InvocableLM type
 InvocableLM = Callable[..., Union[lstr, str]]
@@ -26,7 +26,41 @@ class UTCTimestamp(types.TypeDecorator[datetime]):
 def UTCTimestampField(index:bool=False, **kwargs:Any):
     return Field(sa_column=Column(UTCTimestamp(timezone=True), index=index, **kwargs))
 
-# Define the SerializedLMPUses, SerializedLMP, InvocationTrace, Invocation, and SerializedLStr classes
+# Define the Invocation class
+class Invocation(SQLModel, table=True):
+    """
+    Represents an invocation of an LMP.
+    """
+    id: Optional[str] = Field(default=None, primary_key=True)
+    lmp_id: str = Field(foreign_key="serializedlmp.lmp_id", index=True)
+    args: List[Any] = Field(default_factory=list, sa_column=Column(JSON))
+    kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    global_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    free_vars: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    latency_ms: float
+    prompt_tokens: Optional[int] = Field(default=None)
+    completion_tokens: Optional[int] = Field(default=None)
+    state_cache_key: Optional[str] = Field(default=None)
+    created_at: datetime = UTCTimestampField(default=func.now(), nullable=False)
+    invocation_kwargs: dict = Field(default_factory=dict, sa_column=Column(JSON))
+    lmp: SerializedLMP = Relationship(back_populates="invocations")
+    results: List["SerializedLStr"] = Relationship(back_populates="producer_invocation")
+    consumed_by: List["Invocation"] = Relationship(
+        back_populates="consumes", link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
+        ),
+    )
+    consumes: List["Invocation"] = Relationship(
+        back_populates="consumed_by", link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id==InvocationTrace.invocation_consuming_id",
+            secondaryjoin="Invocation.id==InvocationTrace.invocation_consumer_id",
+        ),
+    )
+
+# Define the SerializedLMPUses, SerializedLMP, InvocationTrace, and SerializedLStr classes
 # ... (The rest of the code remains the same)
 
 # Define the utility function to return the current UTC timestamp
