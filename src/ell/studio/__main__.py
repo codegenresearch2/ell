@@ -1,9 +1,11 @@
 import os
 import uvicorn
+import asyncio
 from argparse import ArgumentParser
 from ell.studio.data_server import create_app
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from watchfiles import run_process
 
 def main():
     parser = ArgumentParser(description="ELL Studio Data Server")
@@ -17,7 +19,6 @@ def main():
     app = create_app(args.storage_dir)
 
     if not args.dev:
-        # In production mode, serve the built React app
         static_dir = os.path.join(os.path.dirname(__file__), "static")
         app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
@@ -25,19 +26,32 @@ def main():
         async def serve_react_app(full_path: str):
             return FileResponse(os.path.join(static_dir, "index.html"))
 
-    # Debug print statements
-    print(f"Running server on {args.host}:{args.port}")
-    print(f"Storage directory set to {args.storage_dir}")
+    # Define a database path
+    db_path = os.path.join(args.storage_dir, "database.db")
 
-    # Add client notification capabilities for updates
+    # Database watcher function
+    async def db_watcher():
+        await asyncio.sleep(1)  # Initial delay
+        while True:
+            await asyncio.sleep(5)  # Check every 5 seconds
+            # Add logic to monitor database changes
+            print("Database updated, notifying clients...")
+            notify_client("Database updated")
+
+    # Client notification mechanism
     def notify_client(message):
         print(f"Client notified: {message}")
 
-    # Example of adding debug print statements and client notification capabilities
-    notify_client("Server started")
+    # Configure and run the server
+    config = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
+    server = uvicorn.Server(config)
 
-    # In production mode, run without auto-reloading
-    uvicorn.run(app, host=args.host, port=args.port)
+    # Start the event loop
+    async def start_server():
+        await server.serve()
+        await db_watcher()
+
+    asyncio.run(start_server())
 
 if __name__ == "__main__":
     main()
