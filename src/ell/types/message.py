@@ -7,7 +7,7 @@ from io import BytesIO
 from ell.util.serialization import serialize_image
 
 # Define type aliases
-_lstr_generic = Union[str, '_lstr']
+_lstr_generic = Union[_lstr, str]
 InvocableTool = Callable[..., Union['ToolResult', _lstr_generic, List['ContentBlock']]]
 
 class ToolResult(BaseModel):
