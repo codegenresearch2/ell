@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlmodel import Session
 from ell.stores.sql import PostgresStore, SQLiteStore
 from ell import __version__
@@ -52,7 +52,7 @@ def create_app(config: Config):
         except WebSocketDisconnect:
             manager.disconnect(websocket)
 
-    @app.get("/api/latest/lmps", response_model=list[SerializedLMPWithUses])
+    @app.get("/api/latest/lmps", response_model=List[SerializedLMPWithUses])
     def get_latest_lmps(
         skip: int = Query(0, ge=0),
         limit: int = Query(100, ge=1, le=100),
@@ -66,7 +66,7 @@ def create_app(config: Config):
         lmp = serializer.get_lmps(session, lmp_id=lmp_id)[0]
         return lmp
 
-    @app.get("/api/lmps", response_model=list[SerializedLMPWithUses])
+    @app.get("/api/lmps", response_model=List[SerializedLMPWithUses])
     def get_lmp(
         lmp_id: Optional[str] = Query(None),
         name: Optional[str] = Query(None),
@@ -90,7 +90,7 @@ def create_app(config: Config):
         invocation = serializer.get_invocations(session, lmp_filters={}, filters={"id": invocation_id})[0]
         return invocation
 
-    @app.get("/api/invocations", response_model=list[InvocationPublicWithConsumes])
+    @app.get("/api/invocations", response_model=List[InvocationPublicWithConsumes])
     def get_invocations(
         id: Optional[str] = Query(None),
         hierarchical: Optional[bool] = Query(False),
