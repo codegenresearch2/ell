@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Dict, Any, Optional, Union, Tuple
+from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 import openai
 import logging
@@ -21,7 +21,7 @@ class _Config:
     # XXX: This might lead to incorrect serialization of globals/
     default_lm_params: Dict[str, Any] = field(default_factory=dict)
     default_system_prompt: str = "You are a helpful AI assistant."
-    _default_openai_client: Optional[openai.Client] = None
+    default_client: Optional[openai.Client] = None
 
     def __post_init__(self):
         self._lock = threading.Lock()
@@ -51,21 +51,19 @@ class _Config:
         finally:
             self._local.stack.pop()
 
-    def get_client_for(self, model_name: str) -> Tuple[Optional[openai.Client], bool]:
+    def get_client_for(self, model_name: str) -> Optional[openai.Client]:
         current_registry = self._local.stack[-1] if hasattr(self._local, 'stack') and self._local.stack else self.model_registry
         client = current_registry.get(model_name)
-        fallback = False  # Added to indicate fallback logic
         if client is None:
-            fallback = True
             warning_message = f"Warning: A default provider for model '{model_name}' could not be found. Falling back to default OpenAI client from environment variables."
             if self.verbose:
                 from colorama import Fore, Style
                 _config_logger.warning(f"{Fore.LIGHTYELLOW_EX}{warning_message}{Style.RESET_ALL}")
             else:
                 _config_logger.debug(warning_message)
-            client = self._default_openai_client
+            client = self.default_client
 
-        return client, fallback
+        return client
 
     def reset(self) -> None:
         with self._lock:
@@ -91,7 +89,7 @@ class _Config:
         self.default_system_prompt = prompt
 
     def set_default_client(self, client: openai.Client) -> None:
-        self._default_openai_client = client
+        self.default_client = client
 
 # Singleton instance
 config = _Config()
