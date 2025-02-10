@@ -24,6 +24,7 @@ class ConnectionManager:
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
+            print(f'Sending message to connection {connection}: {message}')
             await connection.send_text(message)
 
 def create_app(storage_dir: Optional[str] = None):
@@ -43,17 +44,6 @@ def create_app(storage_dir: Optional[str] = None):
         allow_headers=['*'],
     )
 
-    @app.websocket('/ws')
-    async def websocket_endpoint(websocket: WebSocket):
-        await manager.connect(websocket)
-        try:
-            while True:
-                data = await websocket.receive_text()
-                # TODO: Implement logic to handle incoming WebSocket messages
-                await manager.broadcast(f'Message received: {data}')
-        except WebSocketDisconnect:
-            manager.disconnect(websocket)
-
     async def notify_clients(entity: str, id: Optional[str] = None):
         message = f'New {entity} created'
         if id:
@@ -62,6 +52,17 @@ def create_app(storage_dir: Optional[str] = None):
         await manager.broadcast(json_message)
 
     app.notify_clients = notify_clients
+
+    @app.websocket('/ws')
+    async def websocket_endpoint(websocket: WebSocket):
+        await manager.connect(websocket)
+        try:
+            while True:
+                data = await websocket.receive_text()
+                # Implement logic to handle incoming WebSocket messages
+                await manager.broadcast(f'Message received: {data}')
+        except WebSocketDisconnect:
+            manager.disconnect(websocket)
 
     @app.get('/api/lmps')
     def get_lmps(skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=100)):
