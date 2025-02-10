@@ -26,11 +26,12 @@ class Store(ABC):
         pass
 
     @abstractmethod
-    def write_invocation(self, invocation: Invocation, consumes: Set[str]) -> Optional[Any]:
+    def write_invocation(self, invocation: Invocation, results: List[_lstr], consumes: Set[str]) -> Optional[Any]:
         """
         Write an invocation of an LMP to the storage.
 
         :param invocation: Invocation object containing all invocation details.
+        :param results: List of SerializedLStr objects representing the results.
         :param consumes: Set of invocation IDs consumed by this invocation.
         :return: Optional return value.
         """
