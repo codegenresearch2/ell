@@ -22,6 +22,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
 html_theme = "sphinxawesome_theme"
+
+# Theme options are theme-specific and customize the look and feel.
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
