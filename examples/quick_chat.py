@@ -43,11 +43,9 @@ if __name__ == "__main__":
     personalities = [create_personality() for _ in range(2)]
 
     names = []
-    backstories = []    
     for personality in personalities:
         parts = personality.split("\n")
         names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
     
     print("Names:", names)  # Print the names for verification
     
