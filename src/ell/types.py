@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
-from typing import Any, List, Optional, Dict
-from sqlmodel import Field, SQLModel, Relationship, JSON, Column, Index
+from typing import Any, List, Optional, Dict, Union
+from sqlmodel import Field, SQLModel, Relationship, JSON, Column
 from sqlalchemy import func
 import sqlalchemy.types as types
 
-# Import Index from sqlalchemy
-from sqlalchemy import Index
+# Import Union from typing
+from typing import Union
 
 # Define type aliases
 _lstr_generic = Union[lstr, str]
