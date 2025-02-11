@@ -22,11 +22,10 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    You are backstoryGPT. Choose a completely random name from the provided list and generate a backstory.
+    Choose a completely random name from the provided list.
     Format the output as follows:
 
     Name: <name>
-    Backstory: <3 sentence backstory>
     """
     # Validate that names_list is not empty
     if not names_list:
@@ -35,11 +34,8 @@ def create_personality() -> str:
     # Choose a random name from the list
     name = random.choice(names_list)
 
-    # Generate a backstory for the character
-    backstory = f"{name} is a character with a unique background. They have a passion for adventure and a love for the outdoors. They are known for their quick wit and their ability to solve problems."
-
-    # Return the formatted name and backstory
-    return f"Name: {name}\nBackstory: {backstory}"
+    # Return the formatted name
+    return f"Name: {name}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -54,7 +50,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     """
     Generate a chat response based on the message history and personality.
 
@@ -63,18 +59,21 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
     personality (str): The personality of the character.
 
     Returns:
-    List[str]: A list containing the system and user prompts.
+    str: A chat response.
     """
     # Format the system prompt
-    system_prompt = f"""
-    You are {personality}. Your goal is to come up with a response to a chat. Only respond in one sentence, in an informal manner, similar to a text message. Never use Emojis.
-    """
+    system_prompt = f"You are {personality}. Your goal is to come up with a response to a chat. Only respond in one sentence, in an informal manner, similar to a text message. Never use Emojis."
 
     # Format the user prompt
     user_prompt = format_message_history(message_history)
 
-    # Return the chat response
-    return [ell.system(system_prompt), ell.user(user_prompt)]
+    # Generate a chat response
+    response = ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)(
+        ell.system(system_prompt),
+        ell.user(user_prompt)
+    )
+
+    return response
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -83,23 +82,18 @@ if __name__ == "__main__":
     # Initialize personalities
     personalities = [create_personality(), create_personality()]
 
-    # Extract names and backstories from personalities
-    names = []
-    backstories = []
-    for personality in personalities:
-        parts = list(filter(None, personality.split("\n")))
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
-    print(names)
+    # Extract names from personalities
+    names = [personality.split(": ")[1] for personality in personalities]
 
     # Simulate a chat between the characters for 100 turns
+    messages = []
     for _ in range(100):
-        # Initialize messages for each turn
-        messages = []
         for i in range(len(personalities)):
             personality_talking = personalities[i]
             name_talking = names[i]
             response = chat(messages, personality=personality_talking)
             messages.append((name_talking, response))
 
-    print(messages)
+    # Print the chat messages
+    for name, message in messages:
+        print(f"{name}: {message}")
