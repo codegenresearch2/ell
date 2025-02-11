@@ -9,7 +9,6 @@ from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from typing import Optional, Dict, List, Union, Any
 
 # Import the Message type from the appropriate module
-# For example:
 from ell.types.message import Message
 
 def utc_now() -> datetime:
