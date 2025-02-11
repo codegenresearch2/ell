@@ -13,7 +13,7 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params) -> Callable[..., Callable[..., Union[List[Message], Message]]]:
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
@@ -21,7 +21,21 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     multi-turn conversations, tool usage, and various output formats. It's designed for advanced
     use cases where full control over the LLM's capabilities is needed.
 
-    ... (rest of the docstring)
+    :param model: The name or identifier of the language model to use.
+    :type model: str
+    :param client: An optional OpenAI client instance. If not provided, a default client will be used.
+    :type client: Optional[openai.Client]
+    :param tools: A list of tool functions that can be used by the LLM. Only available for certain models.
+    :type tools: Optional[List[Callable]]
+    :param post_callback: An optional function to process the LLM's output before returning.
+    :type post_callback: Optional[Callable]
+    :param exempt_from_tracking: If True, the LMP usage won't be tracked. Default is False.
+    :type exempt_from_tracking: bool
+    :param api_params: Additional keyword arguments to pass to the underlying API call.
+    :type api_params: Any
+
+    :return: A decorator that can be applied to a function, transforming it into a complex LMP.
+    :rtype: Callable
     """
     default_client_from_decorator = client
 
@@ -56,6 +70,17 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     return parameterized_lm_decorator
 
 def _get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
+    """
+    Helper function to convert the output of an LMP into a list of Messages.
+
+    :param prompt_ret: The output of the LMP.
+    :type prompt_ret: Union[str, list[MessageOrDict]]
+    :param prompt: The LMP function.
+    :type prompt: LMP
+
+    :return: A list of Messages.
+    :rtype: list[Message]
+    """
     if isinstance(prompt_ret, str):
         return [
             Message(role="system", content=[ContentBlock(text=_lstr(prompt.__doc__) or config.default_system_prompt)]),
