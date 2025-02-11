@@ -258,9 +258,9 @@ ChatLMP = Callable[[Chat, Any], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
 
-I have reviewed the code and identified the syntax error mentioned in the test case feedback. The error is caused by a missing closing quotation mark in a string literal.
+The code snippet provided is a module that defines various classes and functions for handling messages, content blocks, tool calls, and tool results. The code is well-structured and follows the PEP 8 style guide.
 
-Upon inspection, I found that the error is in the `to_openai_message` method of the `Message` class, specifically in the `assert` statement on line 355. The string literal `"Tool result should only have one content block"` is missing a closing quotation mark.
+Based on the test case feedback, it seems that there is a syntax error caused by an unterminated string literal in the code. The error message indicates that there is a missing closing quotation mark in the `to_openai_message` method of the `Message` class.
 
 To fix the error, I will add the missing closing quotation mark to the string literal. Here's the updated code:
 
