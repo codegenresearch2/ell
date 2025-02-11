@@ -1,6 +1,5 @@
 import ell
 import numpy as np
-
 from ell.stores.sql import SQLiteStore
 
 # Set up configuration and store
@@ -19,11 +18,5 @@ def hello(world: str):
 
 if __name__ == "__main__":
     greeting = hello("sam altman")  # > "hello sama! ... "
-
-    # Access structured output
-    structured_output = greeting.split(" ")[-1]
-    print(structured_output)
-
-    # Run the main loop 100 times
-    for _ in range(100):
-        hello("user")
+    # Access structured output directly for clarity
+    print(greeting.split(" ")[-1])
