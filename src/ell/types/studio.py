@@ -23,8 +23,8 @@ class SerializedLMPUses(SQLModel, table=True):
 
     This class is used to track which LMPs use or are used by other LMPs.
     """
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is being used
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)  # ID of the LMP that is using the other LMP
 
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
