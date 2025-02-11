@@ -1,27 +1,23 @@
-# Corrected Imports
+# Corrected Imports and Field Definitions
 import json
 import base64
 from io import BytesIO
 from PIL import Image as PILImage
 import numpy as np
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, root_validator, validator, model_validator, field_validator, field_serializer
+from typing import Optional, List, Union, Callable
 
 # Corrected Class Structure and Field Validators
 class ContentBlock(BaseModel):
-    text: str = None
-    image: PILImage.Image = None
-    tool_call: 'ToolCall' = None
-    parsed: BaseModel = None
-    tool_result: 'ToolResult' = None
+    text: Optional[str] = None
+    image: Optional[PILImage.Image] = None
+    audio: Optional[np.ndarray] = None
+    tool_call: Optional['ToolCall'] = None
+    parsed: Optional[BaseModel] = None
+    tool_result: Optional['ToolResult'] = None
 
-    @validator('image')
+    @field_validator('image')
     def validate_image(cls, v):
-        """
-        Validate the image field.
-        
-        This method ensures that the image is in a valid format.
-        It raises a ValueError if the image is not valid.
-        """
         if v is None:
             return v
         if not isinstance(v, PILImage.Image):
@@ -43,11 +39,6 @@ class ContentBlock(BaseModel):
         raise ValueError("ContentBlock is empty or improperly configured")
 
     def serialize_image(self, image: PILImage.Image):
-        """
-        Serialize the image to a base64 encoded string.
-        
-        This method converts the image to a base64 encoded string for easy transmission.
-        """
         output = BytesIO()
         image.save(output, format="JPEG")
         return base64.b64encode(output.getvalue()).decode('utf-8')
@@ -67,7 +58,7 @@ class ContentBlock(BaseModel):
 # Method Naming and Structure
 class ToolCall(BaseModel):
     tool: Callable
-    tool_call_id: str = None
+    tool_call_id: Optional[str] = None
     params: BaseModel
 
     def __call__(self, **kwargs):
