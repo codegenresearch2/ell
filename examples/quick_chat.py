@@ -22,7 +22,7 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    Choose a completely random name from the provided list and generate a backstory.
+    Choose a random name from the provided list and generate a backstory.
     Format the output as follows:
 
     Name: <name>
@@ -37,7 +37,7 @@ def create_personality() -> str:
 
     # Generate a backstory for the character using the model
     backstory = ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)(
-        ell.system(f"You are backstoryGPT. Generate a 3-sentence backstory for a character named {name}.")
+        ell.system(f"Generate a 3-sentence backstory for a character named {name}.")
     )
 
     # Return the formatted name and backstory
@@ -56,7 +56,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[ell.Prompt]:
     """
     Generate a chat response based on the message history and personality.
 
@@ -65,7 +65,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     personality (str): The personality of the character.
 
     Returns:
-    str: A chat response.
+    List[ell.Prompt]: A list of prompts for the chat.
     """
     # Format the system prompt
     system_prompt = f"You are {personality}. Your goal is to come up with a response to a chat. Only respond in one sentence, in an informal manner, similar to a text message. Never use Emojis."
@@ -74,11 +74,10 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     user_prompt = format_message_history(message_history)
 
     # Generate a chat response
-    response = ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)(
-        [ell.system(system_prompt), ell.user(user_prompt)]
-    )
-
-    return response
+    return [
+        ell.system(system_prompt),
+        ell.user(user_prompt),
+    ]
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
