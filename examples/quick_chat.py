@@ -54,6 +54,7 @@ if __name__ == "__main__":
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
+        # Extract names and backstories from personalities
         names = []
         backstories = []
         for personality in personalities:
@@ -62,8 +63,8 @@ if __name__ == "__main__":
             backstories.append(parts[1].split(": ")[1])
 
         # Print statements for debugging and visibility
-        print("Names:", names)
-        print("Backstories:", backstories)
+        print(f"Names: {names}")
+        print(f"Backstories: {backstories}")
 
         whos_turn = 0
         for _ in range(10):
@@ -71,4 +72,4 @@ if __name__ == "__main__":
             messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
             whos_turn = (whos_turn + 1) % len(personalities)
 
-    print("Final messages:", messages)
+    print(f"Final messages: {messages}")
