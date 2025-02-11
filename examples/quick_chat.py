@@ -55,21 +55,21 @@ if __name__ == "__main__":
         personalities = [create_personality(), create_personality()]
 
         # Extract names and backstories from personalities
-        names = []
-        backstories = []
+        extracted_names = []
+        extracted_backstories = []
         for personality in personalities:
             parts = list(filter(None, personality.split("\n")))
-            names.append(parts[0].split(": ")[1])
-            backstories.append(parts[1].split(": ")[1])
+            extracted_names.append(parts[0].split(": ")[1])
+            extracted_backstories.append(parts[1].split(": ")[1])
 
         # Print statements for debugging and visibility
-        print(f"Names: {names}")
-        print(f"Backstories: {backstories}")
+        print(f"Extracted Names: {extracted_names}")
+        print(f"Extracted Backstories: {extracted_backstories}")
 
         whos_turn = 0
         for _ in range(10):
             personality_talking = personalities[whos_turn]
-            messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
+            messages.append((extracted_names[whos_turn], chat(messages, personality=personality_talking)))
             whos_turn = (whos_turn + 1) % len(personalities)
 
     print(f"Final messages: {messages}")
