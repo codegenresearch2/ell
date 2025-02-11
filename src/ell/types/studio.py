@@ -57,8 +57,25 @@ class SerializedLMPBase(SQLModel):
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
-    used_by: Optional[List["SerializedLMP"]] = Relationship(back_populates="uses", link_model=SerializedLMPUses)
-    uses: List["SerializedLMP"] = Relationship(back_populates="used_by", link_model=SerializedLMPUses)
+    used_by: Optional[List["SerializedLMP"]] = Relationship(
+        back_populates="uses",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id == SerializedLMPUses.lmp_user_id",
+            secondaryjoin="SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id",
+            foreign_keys=[SerializedLMPUses.lmp_user_id, SerializedLMPUses.lmp_using_id]
+        )
+    )
+    uses: List["SerializedLMP"] = Relationship(
+        back_populates="used_by",
+        link_model=SerializedLMPUses,
+        sa_relationship_kwargs=dict(
+            primaryjoin="SerializedLMP.lmp_id == SerializedLMPUses.lmp_using_id",
+            secondaryjoin="SerializedLMP.lmp_id == SerializedLMPUses.lmp_user_id",
+            foreign_keys=[SerializedLMPUses.lmp_using_id, SerializedLMPUses.lmp_user_id]
+        )
+    )
+
     class Config:
         table_name = "serializedlmp"
         unique_together = [("version_number", "name")]
