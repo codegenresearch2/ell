@@ -32,11 +32,8 @@ def create_personality() -> str:
     if not names_list:
         raise ValueError("Names list is empty")
 
-    # Choose a random name from the list
-    name = random.choice(names_list)
-
-    # Return the prompt for the AI model
-    return "Come up with a backstory about " + name
+    # Choose a random name from the list and return the prompt for the AI model
+    return f"Come up with a backstory about {random.choice(names_list)}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -72,7 +69,7 @@ if __name__ == "__main__":
     ell.set_store('./logdir', autocommit=True)
 
     # Simulate multiple conversations
-    for _ in range(100):
+    for __ in range(100):
         # Initialize the message history and personalities
         messages = []
         personalities = [create_personality(), create_personality()]
