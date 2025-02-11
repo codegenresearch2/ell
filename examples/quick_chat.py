@@ -23,7 +23,7 @@ names_list = [
 def create_personality() -> str:
     """
     You are backstoryGPT. You come up with a backstory for a character including name.
-    Choose a completely random name from the provided list. Format as follows:
+    Choose a completely random name from the provided list. Format the output as follows:
 
     Name: <name>
     Backstory: <3 sentence backstory>
@@ -33,7 +33,7 @@ def create_personality() -> str:
         raise ValueError("Names list is empty")
 
     # Choose a random name from the list and return the prompt for the AI model
-    return f"Come up with a backstory about {random.choice(names_list)}"
+    return f"Create a backstory for a character named {random.choice(names_list)}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -54,7 +54,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
         raise ValueError("Personality is empty")
 
     # Generate the chat response
-    system_prompt = f"""Here is your description.
+    system_prompt = f"""You are a character with the following personality:
 {personality}.
 
 Your goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."""
@@ -69,9 +69,9 @@ if __name__ == "__main__":
     ell.set_store('./logdir', autocommit=True)
 
     # Simulate multiple conversations
-    for __ in range(100):
+    for _ in range(100):
         # Initialize the message history and personalities
-        messages = []
+        messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
         # Extract the names and backstories from the personalities
