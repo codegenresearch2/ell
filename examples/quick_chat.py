@@ -19,8 +19,8 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    Generates a backstory for a character including name.
-    The function chooses a random name from the list and formats it as follows:
+    Generates a backstory for a character, including a randomly chosen name from the list.
+    The function returns a string formatted as follows:
     Name: <name>
     Backstory: <3 sentence backstory>
     """
@@ -28,10 +28,16 @@ def create_personality() -> str:
     return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
+    """
+    Formats a list of message tuples into a single string with each message separated by a newline.
+    """
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
 def chat(message_history: List[Tuple[str, str]], *, personality: str):
+    """
+    Generates a response based on the provided message history and personality description.
+    """
     return [
         ell.system(f"""Here is your description.
 {personality}. 
