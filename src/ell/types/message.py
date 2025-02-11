@@ -9,15 +9,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import cached_property
 
 # Define type alias
-_lstr_generic = Union[str, None]
+_lstr = Union[str, None]
 
 class ToolResult(BaseModel):
-    tool_call_id: _lstr_generic
+    tool_call_id: _lstr
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
     tool: Callable[..., Union[ToolResult, str, List["ContentBlock"]]]
-    tool_call_id: Optional[_lstr_generic] = None
+    tool_call_id: Optional[_lstr] = None
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
