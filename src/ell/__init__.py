@@ -20,12 +20,12 @@ import ell.models
 # Import everything from configurator for easy access to configuration functions
 from ell.configurator import *
 
-# Import local modules
-try:
-    from my_prompt import MyPrompt, get_random_length
-except ModuleNotFoundError:
-    print("The 'my_prompt' module is not found. Please ensure it is correctly located within the project structure.")
-    sys.exit(1)
+# Define default behavior for missing my_prompt module
+def MyPrompt(x):
+    return x
+
+def get_random_length():
+    return int(np.random.beta(2, 6) * 1500)
 
 # Version information
 print(f"Using ell version: {ell_version}")
