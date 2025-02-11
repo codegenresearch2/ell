@@ -17,28 +17,20 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
-    This decorator transforms a function into a Language Model Program (LMP) capable of handling
-    multi-turn conversations, tool usage, and various output formats. It's designed for advanced
-    use cases where full control over the LLM's capabilities is needed.
-
-    Parameters:
-    - model (str): The name or identifier of the language model to use.
-    - client (Optional[openai.Client]): An optional OpenAI client instance. If not provided, a default client will be used.
-    - tools (Optional[List[Callable]]): A list of tool functions that can be used by the LLM. Only available for certain models.
-    - response_format (Optional[Dict[str, Any]]): The response format for the LLM. Only available for certain models.
-    - n (Optional[int]): The number of responses to generate for the LLM. Only available for certain models.
-    - temperature (Optional[float]): The temperature parameter for controlling the randomness of the LLM.
-    - max_tokens (Optional[int]): The maximum number of tokens to generate for the LLM.
-    - top_p (Optional[float]): The top-p sampling parameter for controlling the diversity of the LLM.
-    - frequency_penalty (Optional[float]): The frequency penalty parameter for controlling the LLM's repetition.
-    - presence_penalty (Optional[float]): The presence penalty parameter for controlling the LLM's relevance.
-    - stop (Optional[List[str]]): The stop sequence for the LLM.
-    - exempt_from_tracking (bool): If True, the LMP usage won't be tracked. Default is False.
-    - post_callback (Optional[Callable]): An optional function to process the LLM's output before returning.
-    - api_params (Any): Additional keyword arguments to pass to the underlying API call.
-
-    Returns:
-    - A decorator that can be applied to a function, transforming it into a complex LMP.
+    :param model: The name or identifier of the language model to use.
+    :type model: str
+    :param client: An optional OpenAI client instance. If not provided, a default client will be used.
+    :type client: Optional[openai.Client]
+    :param tools: A list of tool functions that can be used by the LLM. Only available for certain models.
+    :type tools: Optional[List[Callable]]
+    :param post_callback: An optional function to process the LLM's output before returning.
+    :type post_callback: Optional[Callable]
+    :param exempt_from_tracking: If True, the LMP usage won't be tracked. Default is False.
+    :type exempt_from_tracking: bool
+    :param api_params: Additional keyword arguments to pass to the underlying API call.
+    :type api_params: Any
+    :return: A decorator that can be applied to a function, transforming it into a complex LMP.
+    :rtype: Callable
 
     Functionality:
     - Supports multi-turn conversations and stateful interactions.
@@ -48,26 +40,21 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 
     Usage Modes and Examples:
     - Basic Prompt:
-      
       @ell.complex(model="gpt-4")
       def generate_story(prompt: str) -> List[Message]:
           '''You are a creative story writer'''
           return [
               ell.user(f"Write a short story based on this prompt: {prompt}")
           ]
-      
 
     - Multi-turn Conversation:
-      
       @ell.complex(model="gpt-4")
       def chat_bot(message_history: List[Message]) -> List[Message]:
           return [
               ell.system("You are a helpful assistant."),
           ] + message_history
-      
 
     - Tool Usage:
-      
       @ell.tool()
       def get_weather(location: str) -> str:
           # Implementation to fetch weather
@@ -78,7 +65,6 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
           return [
               ell.system("You are a weather assistant. Use the get_weather tool when needed."),
           ] + message_history
-      
 
     Notes:
     - The decorated function should return a list of Message objects.
