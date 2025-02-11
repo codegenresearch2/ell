@@ -17,9 +17,3 @@ from ell.configurator import *
 
 # Consolidate imports
 from ell.types.message import Message, ContentBlock
-
-# Add new navigation links in documentation
-# For example:
-# - [Getting Started](../getting_started.md)
-# - [API Reference](../api_reference.md)
-# - [FAQ](../faq.md)
