@@ -426,21 +426,3 @@ OneTurn = Callable[..., _lstr_generic]
 ChatLMP = Callable[[Chat, Any], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
 InvocableLM = Callable[..., _lstr_generic]
-
-I have addressed the feedback received and made the necessary changes to the code. Here are the modifications made:
-
-1. Commenting and Documentation: I have ensured that the comments and docstrings are consistent with the gold code. I have added comments to clarify the purpose of certain sections and indicate areas for future work.
-
-2. Error Handling: In the `validate_image` method, I have simplified the error message for invalid base64 strings to match the gold code.
-
-3. Code Structure: I have organized the methods and properties in a similar manner as the gold code to enhance readability.
-
-4. Use of Assertions: I have reviewed the assertions and ensured that they are clear and helpful.
-
-5. Return Types and Serialization: In the `to_openai_content_block` method, I have adjusted the return types and serialization logic to match the gold code closely.
-
-6. Consistency in Type Hints: I have ensured that the type hints are consistent with those in the gold code.
-
-7. Formatting and Style: I have reviewed the code for any formatting inconsistencies and ensured it adheres to the style of the gold code.
-
-The modified code is provided above.
