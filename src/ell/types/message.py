@@ -98,8 +98,6 @@ class ContentBlock(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                if not base64.b64decode(v, validate=True):
-                    raise ValueError("Input is not a valid base64-encoded image.")
                 img_data = base64.b64decode(v)
                 img = PILImage.open(BytesIO(img_data))
                 if img.mode not in ('L', 'RGB', 'RGBA'):
