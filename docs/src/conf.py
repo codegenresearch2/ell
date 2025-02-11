@@ -20,6 +20,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
+# Ensure the order matches the gold code
 html_theme = "sphinxawesome_theme"
 html_theme_options = {
     "show_prev_next": True,
@@ -40,6 +41,3 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
-
-# Path setup
-templates_path = ['_templates']  # Removed redundancy as per feedback
