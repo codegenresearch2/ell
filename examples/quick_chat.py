@@ -24,7 +24,7 @@ def create_personality() -> str:
     Backstory: <3 sentence backstory>"""
 
     chosen_name = random.choice(names_list)
-    return f"Name: {chosen_name}\nBackstory: This is a backstory for {chosen_name}."
+    return f"Name: {chosen_name}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -44,18 +44,15 @@ if __name__ == "__main__":
     ell.set_store('./logdir', autocommit=True)
     
     messages: List[Tuple[str, str]] = []
-    personalities = [create_personality(), create_personality()]
+    personalities = [create_personality() for _ in range(2)]
 
     names = []
-    backstories = []
     for personality in personalities:
-        parts = list(filter(None, personality.split("\n")))
-        names.append(parts[0].split(": ")[1])
-        backstories.append(parts[1].split(": ")[1])
-    print(names)
+        parts = personality.split(": ")
+        names.append(parts[1])
 
     whos_turn = 0
-    for _ in range(10):
+    for _ in range(100):
         personality_talking = personalities[whos_turn]
         messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
         whos_turn = (whos_turn + 1) % len(personalities)
