@@ -40,7 +40,7 @@ def create_personality() -> str:
     name = random.choice(names_list)
 
     # Return the prompt for the AI model
-    return "Come up with a backstory about " + name
+    return f"Come up with a backstory about {name}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
