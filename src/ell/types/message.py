@@ -104,8 +104,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except:
-                raise ValueError("Invalid base64 string for image")
+            except Exception as e:
+                raise ValueError(f"Invalid base64 string for image: {e}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -122,18 +122,20 @@ class ContentBlock(BaseModel):
     
 
     def to_openai_content_block(self):
-        if self.image:
+        if self.parsed:
+            return self.parsed.model_dump()
+        elif self.text:
+            return {
+                "type": "text",
+                "text": self.text
+            }
+        elif self.image:
             base64_image = self.serialize_image(self.image, None)
             return {
                 "type": "image_url",
                 "image_url": {
                     "url": base64_image
                 }
-            }
-        elif self.text:
-            return {
-                "type": "text",
-                "text": self.text
             }
         else:
             return None 
@@ -258,12 +260,12 @@ def assistant(content: Union[str, List[ContentBlock]]) -> Message:
     return Message(role="assistant", content=content)
 
 
-# want to enable a use case where the user can actually return a standrd oai chat format
-# This is a placehodler will likely come back later for this
+# want to enable a use case where the user can actually return a standard oai chat format
+# This is a placeholder will likely come back later for this
 LMPParams = Dict[str, Any]
-# Well this is disappointing, I wanted to effectively type hint by doeng that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta. TypedDict is the ticket ell oh ell.
+# Well this is disappointing, I wanted to effectively type hint by doing that data sync meta, but eh, at least we can still reference role or content this way. Probably will can the dict sync meta. TypedDict is the ticket ell oh ell.
 MessageOrDict = Union[Message, Dict[str, str]]
-# Can support iamge prompts later.
+# Can support image prompts later.
 Chat = List[
     Message
 ]  # [{"role": "system", "content": "prompt"}, {"role": "user", "content": "message"}]
