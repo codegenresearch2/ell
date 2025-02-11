@@ -59,7 +59,7 @@ class ToolCall(BaseModel):
         assert not kwargs, "Unexpected arguments provided. Calling a tool uses the params provided in the ToolCall."
         return self.tool(**self.params.model_dump())
 
-    def call_and_collect_as_message_block(self):
+    def call_and_collect_as_message_block(self) -> "ContentBlock":
         """
         Call the tool and collect the result as a message block.
 
@@ -69,7 +69,7 @@ class ToolCall(BaseModel):
         res = self.tool(**self.params.model_dump(), _tool_call_id=self.tool_call_id)
         return ContentBlock(tool_result=res)
 
-    def call_and_collect_as_message(self):
+    def call_and_collect_as_message(self) -> "Message":
         """
         Call the tool and collect the result as a message.
 
@@ -100,7 +100,7 @@ class ContentBlock(BaseModel):
     tool_result: Optional[ToolResult] = Field(default=None)
 
     @model_validator(mode='after')
-    def check_single_non_null(self):
+    def check_single_non_null(self) -> "ContentBlock":
         """
         Validate that only one field is non-null.
 
@@ -113,7 +113,7 @@ class ContentBlock(BaseModel):
         return self
 
     @property
-    def type(self):
+    def type(self) -> str:
         """
         Get the type of the content block.
 
@@ -161,7 +161,7 @@ class ContentBlock(BaseModel):
 
     @field_validator('image')
     @classmethod
-    def validate_image(cls, v):
+    def validate_image(cls, v: Union[PILImage.Image, str, np.ndarray]) -> Union[PILImage.Image, str, np.ndarray]:
         """
         Validate the image content.
 
@@ -182,8 +182,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except Exception as e:
-                raise ValueError("Invalid base64 string for image") from e
+            except Exception:
+                raise ValueError("Invalid base64 string for image")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -193,7 +193,7 @@ class ContentBlock(BaseModel):
         raise ValueError(f"Invalid image type: {type(v)}")
 
     @field_serializer('image')
-    def serialize_image(self, image: Optional[PILImage.Image], _info):
+    def serialize_image(self, image: Optional[PILImage.Image], _info: Any) -> Optional[str]:
         """
         Serialize the image content.
 
@@ -208,7 +208,7 @@ class ContentBlock(BaseModel):
             return None
         return serialize_image(image)
 
-    def to_openai_content_block(self):
+    def to_openai_content_block(self) -> Dict[str, Any]:
         """
         Convert the content block to an OpenAI content block.
 
@@ -266,7 +266,7 @@ class Message(BaseModel):
     role: str
     content: List[ContentBlock]
 
-    def __init__(self, role, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
+    def __init__(self, role: str, content: Union[str, List[ContentBlock], List[Union[str, ContentBlock, ToolCall, ToolResult, BaseModel]]] = None, **content_block_kwargs):
         """
         Initialize a message.
 
@@ -328,7 +328,7 @@ class Message(BaseModel):
         """
         return [c.parsed for c in self.content if c.parsed is not None]
 
-    def call_tools_and_collect_as_message(self, parallel=False, max_workers=None):
+    def call_tools_and_collect_as_message(self, parallel: bool = False, max_workers: Optional[int] = None) -> "Message":
         """
         Call the tools in the message and collect the results as a message.
 
