@@ -66,7 +66,17 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 
     Notes:
 
-    ...
+    - The decorated function should return a list of Message objects.
+    - For tool usage, ensure that tools are properly decorated with @ell.tool().
+    - When using structured outputs, specify the response_format in the decorator.
+    - The complex decorator supports all features of simpler decorators like @ell.simple.
+    - Use helper functions and properties to easily access and process different types of outputs.
+
+    See Also:
+
+    - ell.simple: For simpler text-only LMP interactions.
+    - ell.tool: For defining tools that can be used within complex LMPs.
+    - ell.studio: For visualizing and analyzing LMP executions.
     """
     default_client_from_decorator = client
 
