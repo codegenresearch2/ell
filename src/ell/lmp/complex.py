@@ -13,7 +13,7 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params) -> Callable[..., Union[List[Message], Message]]:
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, response_format: Optional[Dict[str, Any]] = None, n: Optional[int] = None, temperature: Optional[float] = None, max_tokens: Optional[int] = None, top_p: Optional[float] = None, frequency_penalty: Optional[float] = None, presence_penalty: Optional[float] = None, stop: Optional[List[str]] = None, **api_params) -> Callable[..., Union[List[Message], Message]]:
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
@@ -52,6 +52,32 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 
     :return: A decorator that can be applied to a function, transforming it into a complex LMP.
     :rtype: Callable
+
+    Functionality:
+
+    This decorator allows for the creation of advanced Language Model Programs (LMPs) that can handle
+    multi-turn conversations, tool usage, and various output formats. It provides full control over
+    the language model's capabilities and supports various use cases.
+
+    Usage Modes and Examples:
+
+    The decorator can be used in various modes and scenarios, such as basic prompts, multi-turn conversations,
+    tool usage, structured outputs, multimodal inputs, and parallel tool execution. Examples of how to use the
+    decorator in these modes are provided in the docstring.
+
+    Notes:
+
+    - The decorated function should return a list of Message objects.
+    - For tool usage, ensure that tools are properly decorated with @ell.tool().
+    - When using structured outputs, specify the response_format in the decorator.
+    - The complex decorator supports all features of simpler decorators like @ell.simple.
+    - Use helper functions and properties to easily access and process different types of outputs.
+
+    See Also:
+
+    - ell.simple: For simpler text-only LMP interactions.
+    - ell.tool: For defining tools that can be used within complex LMPs.
+    - ell.studio: For visualizing and analyzing LMP executions.
     """
     default_client_from_decorator = client
 
