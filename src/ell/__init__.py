@@ -9,11 +9,11 @@ from ell.lmp.complex import complex
 from ell.types.message import system, user, assistant
 from ell.__version__ import __version__
 
-# Import all models
-import ell.models
-
 # Consolidate imports
 from ell.types.message import Message, ContentBlock
+
+# Import all models
+import ell.models
 
 # Import everything from configurator
 from ell.configurator import *
