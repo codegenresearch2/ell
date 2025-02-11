@@ -8,16 +8,16 @@ from typing import Optional, Union, List, Type, Callable, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import cached_property
 
-# Define _lstr as a type alias
-_lstr = Union[str, None]
+# Define type alias
+_lstr_generic = Union[str, None]
 
 class ToolResult(BaseModel):
-    tool_call_id: _lstr
+    tool_call_id: _lstr_generic
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
     tool: Callable[..., Union[ToolResult, str, List["ContentBlock"]]]
-    tool_call_id: Optional[_lstr] = None
+    tool_call_id: Optional[_lstr_generic] = None
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
@@ -104,12 +104,17 @@ class ContentBlock(BaseModel):
                 raise ValueError(f"Invalid numpy array shape for image: {v.shape}. Expected 3D array with 3 or 4 channels.")
         raise ValueError(f"Invalid image type: {type(v)}")
 
+    def serialize_image(self, image: Optional[Image.Image], _info):
+        if image is None:
+            return None
+        output = BytesIO()
+        image.save(output, format="PNG")
+        return base64.b64encode(output.getvalue()).decode("utf-8")
+
     @cached_property
     def to_openai_content_block(self):
         if self.image:
-            output = BytesIO()
-            self.image.save(output, format="PNG")
-            base64_image = base64.b64encode(output.getvalue()).decode("utf-8")
+            base64_image = self.serialize_image(self.image, None)
             return {
                 "type": "image_url",
                 "image_url": {
