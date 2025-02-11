@@ -70,7 +70,7 @@ if __name__ == "__main__":
     ell.set_store('./logdir', autocommit=True)
 
     # Simulate multiple conversations
-    for __ in range(100):
+    for _ in range(100):
         # Initialize the message history and personalities
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
