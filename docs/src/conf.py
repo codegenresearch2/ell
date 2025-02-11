@@ -42,3 +42,7 @@ html_theme_options = {
 
 # Path setup
 templates_path = ['_templates']  # Removed redundant definition
+
+# Pygments style configuration
+pygments_style = "default"
+pygments_style_dark = "dracula"
