@@ -3,7 +3,7 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, response_format: Optional[Dict[str, Any]] = None, n: Optional[int] = None, temperature: Optional[float] = None, max_tokens: Optional[int] = None, top_p: Optional[float] = None, frequency_penalty: Optional[float] = None, presence_penalty: Optional[float] = None, stop: Optional[List[str]] = None, post_callback: Optional[Callable] = None, **api_params):
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
@@ -43,6 +43,7 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     default_client_from_decorator = client
 
     def parameterized_lm_decorator(prompt: Callable) -> Callable:
+        @wraps(prompt)
         def model_call(*fn_args, **fn_kwargs):
             res = prompt(*fn_args, **fn_kwargs)
 
