@@ -18,10 +18,14 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format the output as follows:
+
+    Name: <name>
+    Backstory: <3 sentence backstory>
+    """
     chosen_name = random.choice(names_list)
-    backstory = "This is a backstory for " + chosen_name + "."
-    return "Name: " + chosen_name + "\nBackstory: " + backstory
+    backstory = f"This is a backstory for {chosen_name}."
+    return f"Name: {chosen_name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
