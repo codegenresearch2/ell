@@ -16,7 +16,6 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
-templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = "sphinxawesome_theme"
@@ -25,14 +24,22 @@ html_theme = "sphinxawesome_theme"
 pygments_style = "default"
 pygments_style_dark = "dracula"
 
-# Additional theme configuration
+# -- Message handling, image validation, and content coercion improvements -------------------
+
+# Import message handling utilities
+from ell.lmp.message_utils import validate_message, serialize_message, coerce_content
+
+# Import image validation utility
+from ell.utils.image_validation import validate_image
+
+# -- Theme configuration ---------------------------------------------------
+
 html_theme_options = {
     "show_prev_next": True,
     "show_scrolltop": True,
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://jobs.ell.so",
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -45,10 +52,8 @@ html_theme_options = {
 
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
-    
 }
 
-
-
+# -- Paths ------------------------------------------------------------------
 
 templates_path = ['_templates']
