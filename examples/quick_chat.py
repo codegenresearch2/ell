@@ -35,8 +35,10 @@ def create_personality() -> str:
     # Choose a random name from the list
     name = random.choice(names_list)
 
-    # Generate a backstory for the character
-    backstory = f"{name} is a curious and adventurous individual. They have a passion for exploring new places and meeting new people. They are known for their quick wit and their ability to solve puzzles."
+    # Generate a backstory for the character using the model
+    backstory = ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)(
+        ell.system(f"You are backstoryGPT. Generate a 3-sentence backstory for a character named {name}.")
+    )
 
     # Return the formatted name and backstory
     return f"Name: {name}\nBackstory: {backstory}"
@@ -94,8 +96,8 @@ if __name__ == "__main__":
         backstories.append(parts[1].split(": ")[1])
 
     # Simulate a chat between the characters for 100 turns
+    messages = []
     for _ in range(100):
-        messages = []
         for i in range(len(personalities)):
             personality_talking = personalities[i]
             name_talking = names[i]
