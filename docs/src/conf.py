@@ -16,7 +16,7 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
-# Include templates path
+# Declare templates path once
 templates_path = ['_templates']
 
 # Exclude patterns
