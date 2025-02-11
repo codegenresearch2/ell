@@ -47,64 +47,6 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     :type api_params: Any
     :return: A decorator that can be applied to a function, transforming it into a complex LMP.
     :rtype: Callable
-
-    Functionality:
-    - Supports multi-turn conversations and stateful interactions.
-    - Enables tool usage within the LLM context.
-    - Allows for various output formats, including structured data and function calls.
-    - Integrates with ell's tracking system for monitoring LMP versions, usage, and performance.
-    - Supports additional parameters for controlling the behavior of the language model.
-
-    Usage Modes and Examples:
-    - Basic Prompt:
-      @ell.complex(model="gpt-4")
-      def generate_story(prompt: str) -> List[Message]:
-          '''You are a creative story writer'''
-          return [
-              ell.user(f"Write a short story based on this prompt: {prompt}")
-          ]
-
-    - Multi-turn Conversation:
-      @ell.complex(model="gpt-4")
-      def chat_bot(message_history: List[Message]) -> List[Message]:
-          return [
-              ell.system("You are a helpful assistant."),
-          ] + message_history
-
-    - Tool Usage:
-      @ell.tool()
-      def get_weather(location: str) -> str:
-          # Implementation to fetch weather
-          return f"The weather in {location} is sunny."
-
-      @ell.complex(model="gpt-4", tools=[get_weather])
-      def weather_assistant(message_history: List[Message]) -> List[Message]:
-          return [
-              ell.system("You are a weather assistant. Use the get_weather tool when needed."),
-          ] + message_history
-
-    - Structured Output:
-      from pydantic import BaseModel
-
-      class PersonInfo(BaseModel):
-          name: str
-          age: int
-
-      @ell.complex(model="gpt-4", response_format=PersonInfo)
-      def extract_person_info(text: str) -> List[Message]:
-          return [
-              ell.system("Extract person information from the given text."),
-              ell.user(text)
-          ]
-
-    Notes:
-    - The decorated function should return a list of Message objects.
-    - For tool usage, ensure that tools are properly decorated with @ell.tool().
-    - When using structured outputs, specify the response_format in the decorator.
-    - The complex decorator supports all features of simpler decorators like @ell.simple.
-
-    Future Considerations:
-    - Consider adding type safety checks in the future to ensure robustness.
     """
     default_client_from_decorator = client
 
@@ -134,7 +76,7 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
         
             result = post_callback(result) if post_callback else result
             
-            return result, api_params, metadata
+            return result
 
         model_call.__ell_api_params__ = api_params
         model_call.__ell_func__ = prompt
@@ -150,6 +92,13 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 def _get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
     """
     Helper function to convert the output of an LMP into a list of Messages.
+
+    :param prompt_ret: The output of the decorated function, which can be a string or a list of Messages.
+    :type prompt_ret: Union[str, list[MessageOrDict]]
+    :param prompt: The decorated function itself.
+    :type prompt: LMP
+    :return: A list of Message objects.
+    :rtype: List[Message]
     """
     if isinstance(prompt_ret, str):
         return [
