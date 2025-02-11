@@ -48,8 +48,12 @@ if __name__ == "__main__":
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality() for _ in range(2)]
 
-        names = [personality.split(": ")[1].strip() for personality in personalities if ":" in personality]
-        backstories = [personality.split(": ")[2].strip() for personality in personalities if ":" in personality]
+        names = []
+        backstories = []
+        for personality in personalities:
+            parts = personality.split("\n")
+            names.append(parts[0].split(": ")[1])
+            backstories.append(parts[1].split(": ")[1])
 
         whos_turn = 0
         for __ in range(10):  # Adjusted loop count to match the gold code
