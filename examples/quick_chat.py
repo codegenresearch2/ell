@@ -42,20 +42,22 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
         
-    messages: List[Tuple[str, str]] = []
-    personalities = [create_personality() for _ in range(2)]  # Generate 2 personalities
+    for __ in range(100):  # Outer loop runs 100 times
+        messages: List[Tuple[str, str]] = []  # Initialize messages list at the beginning of the loop
+        personalities = [create_personality() for _ in range(2)]  # Generate 2 personalities
 
-    names = []
-    for personality in personalities:
-        parts = list(filter(None, personality.split("\n")))
-        names.append(parts[0].split(": ")[1])
+        names = []
+        backstories = []
+        for personality in personalities:
+            parts = list(filter(None, personality.split("\n")))
+            names.append(parts[0].split(": ")[1])
+            backstories.append(parts[1].split(": ")[1])
 
-    print("Extracted Names:", names)  # Print extracted names for verification
+        print("Extracted Names:", names)  # Print extracted names for verification
+        print("Extracted Backstories:", backstories)  # Print extracted backstories for verification
 
-    whos_turn = 0 
-    for _ in range(10):  # Loop runs 10 times to create multiple sets of messages
-        messages = []  # Initialize messages list inside the loop
-        for _ in range(10):  # Inner loop runs 10 times
+        whos_turn = 0 
+        for __ in range(10):  # Inner loop runs 10 times
             personality_talking = personalities[whos_turn]
             messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
             whos_turn = (whos_turn + 1) % len(personalities)
