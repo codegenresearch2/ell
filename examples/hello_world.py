@@ -1,6 +1,5 @@
 import ell
 import numpy as np
-
 from ell.stores.sql import SQLiteStore
 
 # Initialize ell configuration
