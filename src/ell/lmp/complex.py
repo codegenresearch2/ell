@@ -13,7 +13,12 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
+    """
+    A sophisticated language model programming decorator for complex LLM interactions.
+
+    ... (rest of the docstring)
+    """
     default_client_from_decorator = client
 
     def parameterized_lm_decorator(prompt: LMP) -> Callable[..., Union[List[Message], Message]]:
@@ -24,7 +29,7 @@ def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_
         def model_call(*fn_args, _invocation_origin: str = None, client: Optional[openai.Client] = None, lm_params: Optional[LMPParams] = {}, invocation_api_params=False, **fn_kwargs) -> _lstr_generic:
             res = prompt(*fn_args, **fn_kwargs)
             assert exempt_from_tracking or _invocation_origin is not None, "Invocation origin is required when using a tracked LMP"
-            messages = get_messages(res, prompt)
+            messages = _get_messages(res, prompt)
 
             if config.verbose and not exempt_from_tracking:
                 model_usage_logger_pre(prompt, fn_args, fn_kwargs, "notimplemented", messages, color)
@@ -32,7 +37,7 @@ def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_
             result, _api_params, metadata = call(model=model, messages=messages, api_params={**config.default_lm_params, **api_params, **lm_params}, client=client or default_client_from_decorator, _invocation_origin=_invocation_origin, _exempt_from_tracking=exempt_from_tracking, _logging_color=color, _name=prompt.__name__, tools=tools)
 
             result = post_callback(result) if post_callback else result
-            return result, api_params, metadata
+            return result, _api_params, metadata
 
         model_call.__ell_api_params__ = api_params
         model_call.__ell_func__ = prompt
@@ -46,7 +51,7 @@ def complex_lmp(model: str, client: Optional[openai.Client] = None, exempt_from_
 
     return parameterized_lm_decorator
 
-def get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
+def _get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
     if isinstance(prompt_ret, str):
         return [
             Message(role="system", content=[ContentBlock(text=_lstr(prompt.__doc__) or config.default_system_prompt)]),
