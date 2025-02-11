@@ -86,13 +86,13 @@ if __name__ == "__main__":
         print(names)
 
         # Initialize the turn counter
-        whos_turn = 0
+        turn_counter = 0
 
         # Simulate the chat
-        for __ in range(10):
-            personality_talking = personalities[whos_turn]
+        for _ in range(10):
+            personality_talking = personalities[turn_counter]
             messages.append(
-                (names[whos_turn], chat(messages, personality=personality_talking)))
-            whos_turn = (whos_turn + 1) % len(personalities)
+                (names[turn_counter], chat(messages, personality=personality_talking)))
+            turn_counter = (turn_counter + 1) % len(personalities)
 
         print(messages)
