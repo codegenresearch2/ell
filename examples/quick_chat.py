@@ -22,11 +22,11 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    You are backstoryGPT. You come up with a backstory for a character including name.
-    Choose a completely random name from the provided list. Format the output as follows:
+    You are backstoryGPT. Your task is to create a backstory for a character, including their name.
+    Choose a name randomly from the provided list and format the output as follows:
 
     Name: <name>
-    Backstory: <3 sentence backstory>
+    Backstory: <3-sentence backstory>
     """
     # Validate that the names list is not empty
     if not names_list:
@@ -57,7 +57,8 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
     system_prompt = f"""You are a character with the following personality:
 {personality}.
 
-Your goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."""
+Your goal is to respond to a chat in one sentence, using informal language and avoiding emojis.
+"""
     user_prompt = format_message_history(message_history)
 
     return [ell.system(system_prompt), ell.user(user_prompt)]
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     ell.set_store('./logdir', autocommit=True)
 
     # Simulate multiple conversations
-    for _ in range(100):
+    for __ in range(100):
         # Initialize the message history and personalities
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
