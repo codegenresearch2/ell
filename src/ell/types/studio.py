@@ -10,7 +10,7 @@ from typing import Optional, Dict, List, Union, Any
 
 # Import the Message type from the appropriate module
 # For example:
-# from ell.types.message import Message
+from ell.types.message import Message
 
 def utc_now() -> datetime:
     """
@@ -48,7 +48,7 @@ class SerializedLMPBase(SQLModel):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
-class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
+class SerializedLMPUses(SQLModel, table=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
     """
