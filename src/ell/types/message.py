@@ -3,21 +3,21 @@ from PIL import Image
 from io import BytesIO
 import base64
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Union, List, Type, Callable, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import cached_property
 
-# Define _lstr_generic as a type alias
-_lstr_generic = Union[str, None]
+# Define _lstr as a type alias
+_lstr = Union[str, None]
 
 class ToolResult(BaseModel):
-    tool_call_id: _lstr_generic
+    tool_call_id: _lstr
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
     tool: Callable[..., Union[ToolResult, str, List["ContentBlock"]]]
-    tool_call_id: Optional[_lstr_generic] = None
+    tool_call_id: Optional[_lstr] = None
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
@@ -80,7 +80,7 @@ class ContentBlock(BaseModel):
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
-    @field_validator('image')
+    @model_validator(mode='before')
     @classmethod
     def validate_image(cls, v):
         if v is None:
@@ -104,17 +104,12 @@ class ContentBlock(BaseModel):
                 raise ValueError(f"Invalid numpy array shape for image: {v.shape}. Expected 3D array with 3 or 4 channels.")
         raise ValueError(f"Invalid image type: {type(v)}")
 
-    @field_serializer('image')
-    def serialize_image(self, image: Optional[Image.Image], _info):
-        if image is None:
-            return None
-        output = BytesIO()
-        image.save(output, format="PNG")
-        return base64.b64encode(output.getvalue()).decode("utf-8")
-
+    @cached_property
     def to_openai_content_block(self):
         if self.image:
-            base64_image = self.serialize_image(self.image, None)
+            output = BytesIO()
+            self.image.save(output, format="PNG")
+            base64_image = base64.b64encode(output.getvalue()).decode("utf-8")
             return {
                 "type": "image_url",
                 "image_url": {
@@ -248,7 +243,7 @@ LMPParams = Dict[str, Any]
 MessageOrDict = Union[Message, Dict[str, str]]
 Chat = List[Message]
 MultiTurnLMP = Callable[..., Chat]
-OneTurn = Callable[..., _lstr_generic]
+OneTurn = Callable[..., _lstr]
 ChatLMP = Callable[[Chat, Any], Chat]
 LMP = Union[OneTurn, MultiTurnLMP, ChatLMP]
-InvocableLM = Callable[..., _lstr_generic]
+InvocableLM = Callable[..., _lstr]
