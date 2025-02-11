@@ -11,11 +11,11 @@ def get_random_length():
 
 @ell.simple(model="gpt-4o-mini")
 def hello(world: str):
-    """Your goal is to be really meant to the other guy while saying hello"""
+    """Your goal is to be really kind to the other guy while saying hello"""
     name = world.capitalize()
     number_of_chars_in_name = get_random_length()
 
-    return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
+    return f"Hello {name}, hope you're having a great day! This message is at least {number_of_chars_in_name} characters long."
 
 if __name__ == "__main__":
     # Generate a greeting
@@ -25,4 +25,4 @@ if __name__ == "__main__":
     last_word = greeting.split()[-1]
 
     # Print the last word of the greeting
-    print(f"Last word of the greeting: {last_word}")
+    print(f"The last word of the greeting is: {last_word}")
