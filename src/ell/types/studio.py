@@ -5,6 +5,7 @@ import sqlalchemy.types as types
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from typing import Optional, Dict, List, Any, Union
 from sqlalchemy import Index, func
+from pydantic import BaseModel
 
 def utc_now() -> datetime:
     """
