@@ -3,6 +3,10 @@ import numpy as np
 
 from ell.stores.sql import SQLiteStore
 
+# Configuration settings for ell
+ell.config.verbose = True
+ell.set_store('./logdir', autocommit=True)
+
 def get_random_length():
     return int(np.random.beta(2, 6) * 3000)
 
@@ -15,11 +19,8 @@ def hello(world: str):
     return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
 
 if __name__ == "__main__":
-    ell.config.verbose = True
-    ell.set_store('./logdir', autocommit=True)
-
     greeting = hello("sam altman")
 
-    # List of strings
+    # Extract the last word from the greeting and print it
     last_word = greeting.split(" ")[-1]
-    print([last_word])
+    print(last_word)
