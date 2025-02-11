@@ -3,6 +3,7 @@ import numpy as np
 from ell.stores.sql import SQLiteStore
 
 # Initialize ell configuration
+# Equivalent to: ell.init(store='./logdir', autocommit=True, verbose=True)
 ell.config.verbose = True
 ell.set_store(SQLiteStore('./logdir'), autocommit=True)
 
