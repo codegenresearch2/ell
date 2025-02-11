@@ -36,7 +36,7 @@ def create_personality() -> str:
     name = random.choice(names_list)
 
     # Generate a backstory for the character
-    backstory = f"{name} is a character with a unique background. They have a passion for adventure and a love for the outdoors. They are known for their quick wit and their ability to solve problems."
+    backstory = f"{name} is a curious and adventurous individual. They have a passion for exploring new places and meeting new people. They are known for their quick wit and their ability to solve puzzles."
 
     # Return the formatted name and backstory
     return f"Name: {name}\nBackstory: {backstory}"
@@ -73,8 +73,7 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
 
     # Generate a chat response
     response = ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)(
-        ell.system(system_prompt),
-        ell.user(user_prompt)
+        [ell.system(system_prompt), ell.user(user_prompt)]
     )
 
     return response
@@ -95,14 +94,11 @@ if __name__ == "__main__":
         backstories.append(parts[1].split(": ")[1])
 
     # Simulate a chat between the characters for 100 turns
-    messages = []
     for _ in range(100):
+        messages = []
         for i in range(len(personalities)):
             personality_talking = personalities[i]
             name_talking = names[i]
             response = chat(messages, personality=personality_talking)
             messages.append((name_talking, response))
-
-    # Print the chat messages
-    for name, message in messages:
-        print(f"{name}: {message}")
+            print(f"{name_talking}: {response}")
