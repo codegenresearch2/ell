@@ -16,9 +16,6 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
-# Specify the templates path
-templates_path = ['_templates']
-
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = "sphinxawesome_theme"
@@ -48,3 +45,6 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
+
+# Specify the templates path
+templates_path = ['_templates']
