@@ -3,21 +3,21 @@ from PIL import Image
 from io import BytesIO
 import base64
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
+from pydantic import BaseModel, Field
 from typing import Optional, Union, List, Type, Callable, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import cached_property
 
-# Import necessary types
-from typing import Callable
+# Define _lstr_generic as a type alias
+_lstr_generic = Union[str, None]
 
 class ToolResult(BaseModel):
-    tool_call_id: str
+    tool_call_id: _lstr_generic
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
     tool: Callable[..., Union[ToolResult, str, List["ContentBlock"]]]
-    tool_call_id: Optional[str] = None
+    tool_call_id: Optional[_lstr_generic] = None
     params: Union[Type[BaseModel], BaseModel]
 
     def __call__(self, **kwargs):
@@ -32,7 +32,7 @@ class ToolCall(BaseModel):
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
 class ContentBlock(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = {'arbitrary_types_allowed': True}
     
     text: Optional[str] = None
     image: Optional[Image.Image] = None
