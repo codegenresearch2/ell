@@ -2,6 +2,7 @@ import ell
 import numpy as np
 from ell.stores.sql import SQLiteStore
 
+# Set verbose mode and initialize the store
 ell.config.verbose = True
 ell.set_store(SQLiteStore('./logdir'), autocommit=True)
 
@@ -17,6 +18,11 @@ def hello(world: str):
     return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
 
 if __name__ == "__main__":
+    # Generate a greeting
     greeting = hello("sam altman")
+
+    # Extract the last word of the greeting
     last_word = greeting.split()[-1]
+
+    # Print the last word of the greeting
     print(f"Last word of the greeting: {last_word}")
