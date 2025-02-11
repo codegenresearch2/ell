@@ -2,6 +2,14 @@ from ell.util.verbosity import compute_color, model_usage_logger_pre
 import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
+from ell.configurator import config
+from ell.lmp._track import _track
+from ell.types._lstr import _lstr
+from ell.types import Message, ContentBlock
+from ell.types.message import LMP, InvocableLM, LMPParams, MessageOrDict, _lstr_generic
+from ell.types.studio import LMPType
+from ell.util._warnings import _warnings
+from ell.util.api import call
 
 def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, response_format: Optional[Dict[str, Any]] = None, n: Optional[int] = None, temperature: Optional[float] = None, max_tokens: Optional[int] = None, top_p: Optional[float] = None, frequency_penalty: Optional[float] = None, presence_penalty: Optional[float] = None, stop: Optional[List[str]] = None, post_callback: Optional[Callable] = None, **api_params):
     """
