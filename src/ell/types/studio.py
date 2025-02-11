@@ -104,7 +104,7 @@ class InvocationContentsBase(SQLModel):
     def should_externalize(self) -> bool:
         import json
         json_fields = [self.params, self.results, self.invocation_api_params, self.global_vars, self.free_vars]
-        total_size = sum(len(json.dumps(field).encode('utf-8')) for field in json_fields if field is not None)
+        total_size = sum(len(json.dumps(field, default=str).encode('utf-8')) for field in json_fields if field is not None)
         return total_size > 102400
 
 class InvocationContents(InvocationContentsBase, table=True):
