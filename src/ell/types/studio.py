@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from typing import Optional, Dict, List, Union, Any
 
-# Define the Message type here or import it from the appropriate module
+# Import the Message type from the appropriate module
 # For example:
 # from ell.types.message import Message
 
@@ -48,7 +48,10 @@ class SerializedLMPBase(SQLModel):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
-class SerializedLMPUses(SQLModel, table=True):
+class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
+    """
+    Represents the many-to-many relationship between SerializedLMPs.
+    """
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
