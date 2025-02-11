@@ -22,7 +22,8 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    You are backstoryGPT. Choose a completely random name from the provided list and format as follows:
+    You are backstoryGPT. Choose a completely random name from the provided list and generate a backstory.
+    Format the output as follows:
 
     Name: <name>
     Backstory: <3 sentence backstory>
@@ -34,8 +35,11 @@ def create_personality() -> str:
     # Choose a random name from the list
     name = random.choice(names_list)
 
-    # Return the formatted name
-    return f"Name: {name}\nBackstory: {name} is a character with a unique background."
+    # Generate a backstory for the character
+    backstory = f"{name} is a character with a unique background. They have a passion for adventure and a love for the outdoors. They are known for their quick wit and their ability to solve problems."
+
+    # Return the formatted name and backstory
+    return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -50,7 +54,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], personality: str) -> List[str]:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
     """
     Generate a chat response based on the message history and personality.
 
@@ -62,7 +66,9 @@ def chat(message_history: List[Tuple[str, str]], personality: str) -> List[str]:
     List[str]: A list containing the system and user prompts.
     """
     # Format the system prompt
-    system_prompt = f"You are {personality}. Your goal is to come up with a response to a chat. Only respond in one sentence, in an informal manner, similar to a text message. Never use Emojis."
+    system_prompt = f"""
+    You are {personality}. Your goal is to come up with a response to a chat. Only respond in one sentence, in an informal manner, similar to a text message. Never use Emojis.
+    """
 
     # Format the user prompt
     user_prompt = format_message_history(message_history)
@@ -87,11 +93,13 @@ if __name__ == "__main__":
     print(names)
 
     # Simulate a chat between the characters for 100 turns
-    whos_turn = 0
     for _ in range(100):
         # Initialize messages for each turn
         messages = []
-        personality_talking = personalities[whos_turn]
-        messages.append((names[whos_turn], chat(messages, personality_talking)))
-        whos_turn = (whos_turn + 1) % len(personalities)
+        for i in range(len(personalities)):
+            personality_talking = personalities[i]
+            name_talking = names[i]
+            response = chat(messages, personality=personality_talking)
+            messages.append((name_talking, response))
+
     print(messages)
