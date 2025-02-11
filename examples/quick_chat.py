@@ -23,7 +23,7 @@ names_list = [
 def create_personality() -> str:
     """
     Create a backstory for a character with a name chosen randomly from the provided list.
-    Format the output as follows:
+    The output should be formatted as follows:
 
     Name: <name>
     Backstory: <3-sentence backstory>
@@ -32,8 +32,9 @@ def create_personality() -> str:
     if not names_list:
         raise ValueError("Names list is empty")
 
-    # Choose a random name from the list and return the prompt for the AI model
-    return f"Create a backstory for a character named {random.choice(names_list)}."
+    # Choose a random name from the list and construct the user prompt
+    name = random.choice(names_list)
+    return f"Create a backstory for a character named {name}."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -88,7 +89,7 @@ if __name__ == "__main__":
         whos_turn = 0
 
         # Simulate the chat
-        for _ in range(10):
+        for __ in range(10):
             personality_talking = personalities[whos_turn]
             messages.append(
                 (names[whos_turn], chat(messages, personality=personality_talking)))
