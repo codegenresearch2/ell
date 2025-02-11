@@ -21,18 +21,14 @@ import ell.models
 from ell.configurator import *
 
 # Import local modules
-from my_prompt import MyPrompt, get_random_length
+try:
+    from my_prompt import MyPrompt, get_random_length
+except ModuleNotFoundError:
+    print("The 'my_prompt' module is not found. Please ensure it is correctly located within the project structure.")
+    sys.exit(1)
 
 # Version information
 print(f"Using ell version: {ell_version}")
-
-# Additional imports for serialization handling for images
-import pickle
-import base64
-
-# Additional imports for documentation navigation links
-from docutils.core import publish_parts
-from docutils.parsers.rst import directives
 
 # Define the hello function
 @simple(model="gpt-4o-mini")
