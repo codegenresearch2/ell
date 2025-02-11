@@ -15,26 +15,12 @@ import ell.models
 # Import everything from configurator
 from ell.configurator import *
 
+# Import additional necessary imports from ell.types.message
+from ell.types.message import Message, ContentBlock
+
 # Add a new navigation link
 NAVIGATION_LINKS = [
     {"name": "Home", "url": "/"},
     {"name": "About", "url": "/about"},
     {"name": "Contact", "url": "/contact"}
 ]
-
-# Enhance image serialization functionality and handle parsed content
-def serialize_image(image):
-    # Implement image serialization logic here
-    pass
-
-# Handle JSON serialization with model_dump_json while ensuring accurate size calculation for complex objects
-from pydantic import BaseModel
-
-class MyModel(BaseModel):
-    field1: str
-    field2: int
-
-def serialize_model(model_instance: BaseModel):
-    serialized_data = model_instance.model_dump_json()
-    # Ensure accurate size calculation for complex objects
-    return serialized_data
