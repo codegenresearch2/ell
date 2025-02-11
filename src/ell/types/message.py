@@ -104,7 +104,7 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except Exception as e:
+            except base64.binascii.Error as e:
                 raise ValueError(f"Invalid base64 string for image: {e}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
@@ -124,11 +124,6 @@ class ContentBlock(BaseModel):
     def to_openai_content_block(self):
         if self.parsed:
             return self.parsed.model_dump()
-        elif self.text:
-            return {
-                "type": "text",
-                "text": self.text
-            }
         elif self.image:
             base64_image = self.serialize_image(self.image, None)
             return {
@@ -136,6 +131,11 @@ class ContentBlock(BaseModel):
                 "image_url": {
                     "url": base64_image
                 }
+            }
+        elif self.text:
+            return {
+                "type": "text",
+                "text": self.text
             }
         else:
             return None 
