@@ -86,7 +86,6 @@ class ContentBlock(BaseModel):
         if isinstance(content, BaseModel):
             return cls(parsed=content)
         if isinstance(content, (PILImage.Image, np.ndarray)):
-
             return cls(image=content)
         raise ValueError(f"Invalid content type: {type(content)}")
 
@@ -104,8 +103,8 @@ class ContentBlock(BaseModel):
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except base64.binascii.Error as e:
-                raise ValueError(f"Invalid base64 string for image: {e}")
+            except base64.binascii.Error:
+                raise ValueError("Invalid base64 string for image.")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -120,7 +119,6 @@ class ContentBlock(BaseModel):
             return None
         return serialize_image(image)
     
-
     def to_openai_content_block(self):
         if self.parsed:
             return self.parsed.model_dump()
@@ -190,7 +188,6 @@ class Message(BaseModel):
         return Message(role="user", content=content)
 
     def to_openai_message(self) -> Dict[str, Any]:
-
         message = {
             "role": "tool" if self.tool_results else self.role,
             "content": list(filter(None, [
@@ -213,9 +210,7 @@ class Message(BaseModel):
 
         if self.tool_results:
             message["tool_call_id"] = self.tool_results[0].tool_call_id
-            # message["name"] = self.tool_results[0].tool_call_id.split('-')[0]  # Assuming the tool name is the first part of the tool_call_id
             message["content"] = self.tool_results[0].result[0].text
-            # Let';s assert no other type of content block in the tool result
             assert len(self.tool_results[0].result) == 1, "Tool result should only have one content block"
             assert self.tool_results[0].result[0].type == "text", "Tool result should only have one text content block"
         return message
