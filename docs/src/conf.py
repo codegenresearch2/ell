@@ -13,9 +13,7 @@ author = 'William Guss'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
-
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
@@ -26,7 +24,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://example.com/ai-jobs-board"  # Updated link to match gold code
+        "AI Jobs Board": "https://example.com/ai-jobs-board"
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -39,10 +37,3 @@ html_theme_options = {
     "logo_light": "_static/ell-wide-light.png",
     "logo_dark": "_static/ell-wide-dark.png",
 }
-
-# Path setup
-templates_path = ['_templates']  # Removed redundant definition
-
-# Pygments style configuration
-pygments_style = "default"
-pygments_style_dark = "dracula"
