@@ -20,17 +20,15 @@ from ell.configurator import *
 # but they are mentioned in the oracle feedback for alignment with the gold code.
 
 # Import Structure:
-# The gold code imports specific classes from their respective modules in a more structured manner.
-# Ensure that you import simple, tool, and complex directly from their respective modules rather than importing them all at once from ell.lmp.
+# The gold code imports specific classes directly from their respective modules.
+# This enhances clarity and maintainability.
 
 # Version Import:
-# The gold code imports __version__ directly from ell.__version__.
-# Make sure your import statement matches this structure for consistency and clarity.
+# The gold code imports the version using a specific structure for consistency.
 
 # Order of Imports:
-# Pay attention to the order of your imports. The gold code organizes imports in a specific sequence that enhances readability.
-# Try to follow that order in your code.
+# The gold code follows a specific sequence for imports that enhances readability.
 
 # Comment Clarity:
-# While your comments are informative, consider refining them to be more specific to the task at hand.
-# Remove any comments that are not directly relevant to the current implementation to keep the code clean and focused.
+# Comments should be specific to the task at hand and relevant to the current implementation.
+# Irrelevant comments should be removed to keep the code clean and focused.
