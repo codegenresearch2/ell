@@ -49,7 +49,7 @@ def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=0.3, max_tokens=20)
-def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[str]:
+def chat(message_history: List[Tuple[str, str]], *, personality: str) -> str:
     """
     Generate a chat response based on the message history and personality.
     """
@@ -60,13 +60,16 @@ def chat(message_history: List[Tuple[str, str]], *, personality: str) -> List[st
         raise ValueError("Personality is empty")
 
     # Generate the chat response
-    return [
-        ell.system(f"""Here is your description.
+    return ell.prompt(
+        f"""Here is your description.
 {personality}.
 
-Your goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis."""),
-        ell.user(format_message_history(message_history)),
-    ]
+Your goal is to come up with a response to a chat. Only respond in one sentence (should be like a text message in informality.) Never use Emojis.
+
+Chat history:
+{format_message_history(message_history)}
+
+Your response:""")
 
 if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
@@ -93,8 +96,8 @@ if __name__ == "__main__":
     # Simulate the chat for 10 turns
     for _ in range(10):
         personality_talking = personalities[whos_turn]
-        messages.append(
-            (names[whos_turn], chat(messages, personality=personality_talking)))
+        response = chat(messages, personality=personality_talking)
+        messages.append((names[whos_turn], response))
         whos_turn = (whos_turn + 1) % len(personalities)
 
     print(messages)
