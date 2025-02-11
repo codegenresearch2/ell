@@ -3,7 +3,7 @@ import enum
 from functools import cached_property
 
 import sqlalchemy.types as types
-from sqlalchemy import func
+from sqlalchemy import func, Index
 
 from sqlmodel import Column, Field, SQLModel, Relationship, JSON
 from typing import Optional, Dict, List, Union, Any
@@ -48,7 +48,7 @@ class SerializedLMPBase(SQLModel):
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
 
-class SerializedLMPUses(SQLModel, table=True):
+class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
     """
