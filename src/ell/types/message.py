@@ -98,13 +98,15 @@ class ContentBlock(BaseModel):
             return v
         if isinstance(v, str):
             try:
+                if not base64.b64decode(v, validate=True):
+                    raise ValueError("Input is not a valid base64-encoded image.")
                 img_data = base64.b64decode(v)
                 img = PILImage.open(BytesIO(img_data))
                 if img.mode not in ('L', 'RGB', 'RGBA'):
                     img = img.convert('RGB')
                 return img
-            except base64.binascii.Error:
-                raise ValueError("Invalid base64 string for image.")
+            except (ValueError, base64.binascii.Error) as e:
+                raise ValueError(f"Invalid image input: {e}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
                 mode = 'RGB' if v.shape[2] == 3 else 'RGBA'
@@ -121,7 +123,7 @@ class ContentBlock(BaseModel):
     
     def to_openai_content_block(self):
         if self.parsed:
-            return self.parsed.model_dump()
+            return self.parsed.model_dump_json()
         elif self.image:
             base64_image = self.serialize_image(self.image, None)
             return {
