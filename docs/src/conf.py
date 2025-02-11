@@ -13,17 +13,11 @@ author = 'William Guss'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# Add templates_path
-templates_path = ['_templates']
-
-# Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
-
-# Additional configurations
+templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Theme configuration -----------------------------------------------------
-# Ensure the order matches the gold code
 html_theme = "sphinxawesome_theme"
 html_theme_options = {
     "show_prev_next": True,
@@ -31,7 +25,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
-        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Updated URL as per feedback
+        "AI Jobs Board": "https://example.com/ai-jobs-board",
     },
     "extra_header_link_icons": {
         "Discord": {
