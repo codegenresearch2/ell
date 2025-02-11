@@ -11,7 +11,7 @@ from ell.types.message import system, user, assistant, Message, ContentBlock
 from ell.__version__ import __version__  # Import version from ell.__version__ to match the gold code
 
 # Import all models for easy access and usage
-import ell.models
+import ell.models  # Import all models for easy access and usage
 
 # Import everything from configurator for easy access to configuration functions
-from ell.configurator import *
+from ell.configurator import *  # Import everything from configurator for easy access to configuration functions
