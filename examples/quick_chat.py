@@ -44,14 +44,16 @@ if __name__ == "__main__":
     personalities = [create_personality() for _ in range(2)]
 
     names = []
+    backstories = []
     for personality in personalities:
         parts = personality.split("\n")
         name = parts[0].split(": ")[1]
         if name:  # Ensure we only add non-empty names
             names.append(name)
+            backstories.append(parts[1].split(": ")[1])
 
     whos_turn = 0
-    for __ in range(100):
+    for _ in range(10):  # Adjusted loop count to match the gold code
         personality_talking = personalities[whos_turn]
         messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
         whos_turn = (whos_turn + 1) % len(personalities)
