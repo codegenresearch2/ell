@@ -4,8 +4,9 @@ from io import BytesIO
 import base64
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
-from typing import Optional, Union, List, Type, Callable
+from typing import Optional, Union, List, Type, Callable, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import cached_property
 
 # Import necessary types
 from typing import Callable
@@ -179,6 +180,7 @@ class Message(BaseModel):
             content = [c.tool_call.call_and_collect_as_message_block() for c in self.content if c.tool_call]
         return Message(role="user", content=content)
 
+    @cached_property
     def to_openai_message(self) -> Dict[str, Any]:
         message = {
             "role": "tool" if self.tool_results else self.role,
