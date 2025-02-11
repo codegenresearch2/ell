@@ -12,7 +12,7 @@ import numpy as np
 # Import ell modules
 from ell.lmp import simple, tool, complex
 from ell.types.message import Message, ContentBlock, system, user, assistant
-from ell import __version__ as ell_version
+from ell.__version__ import __version__ as ell_version
 
 # Import all models for easy access
 import ell.models
