@@ -10,7 +10,7 @@ from ell.lmp.complex import complex
 from ell.types.message import system, user, assistant, Message, ContentBlock
 from ell.__version__ import __version__  # Import version from ell.__version__ to match the gold code
 
-# Import all models for easy access
+# Import all models for easy access and usage
 import ell.models
 
 # Import everything from configurator for easy access to configuration functions
