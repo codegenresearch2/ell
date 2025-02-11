@@ -13,7 +13,7 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, **api_params):
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
@@ -23,6 +23,10 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     :type client: Optional[openai.Client]
     :param exempt_from_tracking: If True, the LMP usage won't be tracked. Default is False.
     :type exempt_from_tracking: bool
+    :param tools: A list of tool functions that can be used by the LLM. Only available for certain models.
+    :type tools: Optional[List[Callable]]
+    :param post_callback: An optional function to process the LLM's output before returning.
+    :type post_callback: Optional[Callable]
     :param api_params: Additional keyword arguments to pass to the underlying API call.
     :type api_params: Any
     :return: A decorator that can be applied to a function, transforming it into a complex LMP.
@@ -52,19 +56,23 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
 
             if config.verbose and not exempt_from_tracking: model_usage_logger_pre(prompt, fn_args, fn_kwargs, "notimplemented", messages, color)
 
-            (result, _api_params, metadata) = call(model=model, messages=messages, api_params={**config.default_lm_params, **api_params, **lm_params}, client=client or default_client_from_decorator, _invocation_origin=_invocation_origin, _exempt_from_tracking=exempt_from_tracking, _logging_color=color, _name=prompt.__name__)
+            (result, _api_params, metadata) = call(model=model, messages=messages, api_params={**config.default_lm_params, **api_params, **lm_params}, client=client or default_client_from_decorator, _invocation_origin=_invocation_origin, _exempt_from_tracking=exempt_from_tracking, _logging_color=color, _name=prompt.__name__, tools=tools)
         
+            result = post_callback(result) if post_callback else result
+            
             return result
 
         model_call.__ell_api_params__ = api_params
         model_call.__ell_func__ = prompt
         model_call.__ell_type__ = LMPType.LM
         model_call.__ell_exempt_from_tracking = exempt_from_tracking
+        model_call.__ell_tools__ = tools
+        model_call.__ell_post_callback__ = post_callback
 
         if exempt_from_tracking:
             return model_call
         else:
-            return _track(model_call)
+            return _track(model_call, forced_dependencies=dict(tools=tools))
     return parameterized_lm_decorator
 
 def _get_messages(prompt_ret: Union[str, list[MessageOrDict]], prompt: LMP) -> list[Message]:
