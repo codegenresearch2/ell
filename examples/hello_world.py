@@ -9,25 +9,16 @@ ell.config.verbose = True
 # Equivalent to: ell.init(store='./logdir', autocommit=True, verbose=True)
 ell.set_store('./logdir', autocommit=True)
 
-def get_random_length() -> int:
+def get_random_length():
     """
     Generate a random length between 0 and 3000.
-
-    Returns:
-        int: A random length.
     """
     return int(np.random.beta(2, 6) * 3000)
 
 @ell.simple(model="gpt-4o-mini")
-def hello(world: str) -> str:
+def hello(world):
     """
-    Generate a friendly greeting to the given name with a random length.
-
-    Args:
-        world (str): The name to greet.
-
-    Returns:
-        str: A friendly greeting.
+    Your goal is to be really friendly while saying hello.
     """
     name = world.capitalize()
     number_of_chars_in_name = get_random_length()
