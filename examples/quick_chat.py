@@ -22,10 +22,11 @@ names_list = [
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
     """
-    Choose a completely random name from the provided list.
+    Choose a completely random name from the provided list and generate a backstory.
     Format the output as follows:
 
     Name: <name>
+    Backstory: <3 sentence backstory>
     """
     # Validate that names_list is not empty
     if not names_list:
@@ -34,8 +35,11 @@ def create_personality() -> str:
     # Choose a random name from the list
     name = random.choice(names_list)
 
-    # Return the formatted name
-    return f"Name: {name}"
+    # Generate a backstory for the character
+    backstory = f"{name} is a character with a unique background. They have a passion for adventure and a love for the outdoors. They are known for their quick wit and their ability to solve problems."
+
+    # Return the formatted name and backstory
+    return f"Name: {name}\nBackstory: {backstory}"
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     """
@@ -82,8 +86,13 @@ if __name__ == "__main__":
     # Initialize personalities
     personalities = [create_personality(), create_personality()]
 
-    # Extract names from personalities
-    names = [personality.split(": ")[1] for personality in personalities]
+    # Extract names and backstories from personalities
+    names = []
+    backstories = []
+    for personality in personalities:
+        parts = list(filter(None, personality.split("\n")))
+        names.append(parts[0].split(": ")[1])
+        backstories.append(parts[1].split(": ")[1])
 
     # Simulate a chat between the characters for 100 turns
     messages = []
