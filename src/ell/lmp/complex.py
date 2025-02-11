@@ -13,7 +13,7 @@ import openai
 from functools import wraps
 from typing import Any, Dict, Optional, List, Callable, Union
 
-def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, post_callback: Optional[Callable] = None, **api_params):
+def complex(model: str, client: Optional[openai.Client] = None, exempt_from_tracking=False, tools: Optional[List[Callable]] = None, response_format: Optional[Dict[str, Any]] = None, n: Optional[int] = None, temperature: Optional[float] = None, max_tokens: Optional[int] = None, top_p: Optional[float] = None, frequency_penalty: Optional[float] = None, presence_penalty: Optional[float] = None, stop: Optional[List[str]] = None, post_callback: Optional[Callable] = None, **api_params):
     """
     A sophisticated language model programming decorator for complex LLM interactions.
 
@@ -23,6 +23,22 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     :type client: Optional[openai.Client]
     :param tools: A list of tool functions that can be used by the LLM. Only available for certain models.
     :type tools: Optional[List[Callable]]
+    :param response_format: The response format for the LLM. Only available for certain models.
+    :type response_format: Optional[Dict[str, Any]]
+    :param n: The number of responses to generate for the LLM. Only available for certain models.
+    :type n: Optional[int]
+    :param temperature: The temperature parameter for controlling the randomness of the LLM.
+    :type temperature: Optional[float]
+    :param max_tokens: The maximum number of tokens to generate for the LLM.
+    :type max_tokens: Optional[int]
+    :param top_p: The top-p sampling parameter for controlling the diversity of the LLM.
+    :type top_p: Optional[float]
+    :param frequency_penalty: The frequency penalty parameter for controlling the LLM's repetition.
+    :type frequency_penalty: Optional[float]
+    :param presence_penalty: The presence penalty parameter for controlling the LLM's relevance.
+    :type presence_penalty: Optional[float]
+    :param stop: The stop sequence for the LLM.
+    :type stop: Optional[List[str]]
     :param post_callback: An optional function to process the LLM's output before returning.
     :type post_callback: Optional[Callable]
     :param exempt_from_tracking: If True, the LMP usage won't be tracked. Default is False.
@@ -37,6 +53,7 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
     - Enables tool usage within the LLM context.
     - Allows for various output formats, including structured data and function calls.
     - Integrates with ell's tracking system for monitoring LMP versions, usage, and performance.
+    - Supports additional parameters for controlling the behavior of the language model.
 
     Usage Modes and Examples:
     - Basic Prompt:
@@ -65,6 +82,20 @@ def complex(model: str, client: Optional[openai.Client] = None, exempt_from_trac
           return [
               ell.system("You are a weather assistant. Use the get_weather tool when needed."),
           ] + message_history
+
+    - Structured Output:
+      from pydantic import BaseModel
+
+      class PersonInfo(BaseModel):
+          name: str
+          age: int
+
+      @ell.complex(model="gpt-4", response_format=PersonInfo)
+      def extract_person_info(text: str) -> List[Message]:
+          return [
+              ell.system("Extract person information from the given text."),
+              ell.user(text)
+          ]
 
     Notes:
     - The decorated function should return a list of Message objects.
