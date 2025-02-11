@@ -11,7 +11,6 @@ from typing import Optional, List, Union, Callable
 class ContentBlock(BaseModel):
     text: Optional[str] = None
     image: Optional[PILImage.Image] = None
-    audio: Optional[np.ndarray] = None
     tool_call: Optional['ToolCall'] = None
     parsed: Optional[BaseModel] = None
     tool_result: Optional['ToolResult'] = None
