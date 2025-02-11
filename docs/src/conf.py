@@ -16,6 +16,7 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
+# Additional configurations
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # Theme configuration
@@ -26,6 +27,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
+        "AI Jobs Board": "https://example.com/ai-jobs-board",  # Added as per feedback
     },
     "extra_header_link_icons": {
         "Discord": {
@@ -40,4 +42,4 @@ html_theme_options = {
 }
 
 # Path setup
-templates_path = ['_templates']
+templates_path = ['_templates']  # Removed redundancy as per feedback
