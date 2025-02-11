@@ -14,8 +14,3 @@ import ell.models
 
 # Import everything from configurator
 from ell.configurator import *
-
-# Add new navigation link function (placeholder for now)
-def add_nav_link(url, label):
-    # Code to add navigation link goes here
-    pass
