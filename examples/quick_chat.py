@@ -23,7 +23,7 @@ def create_personality() -> str:
     Name: <name>
     Backstory: <3 sentence backstory>'"""
     chosen_name = random.choice(names_list)
-    return f"{chosen_name}"
+    return f"Name: {chosen_name}\nBackstory: {chosen_name} has a fascinating past."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -47,11 +47,16 @@ if __name__ == "__main__":
 
     names = []
     for personality in personalities:
-        names.append(personality)
+        parts = list(filter(None, personality.split("\n")))
+        names.append(parts[0].split(": ")[1])
+
+    print("Extracted Names:", names)  # Print extracted names for verification
 
     whos_turn = 0 
-    for _ in range(100):  # Loop runs 100 times to create multiple sets of messages
-        personality_talking = personalities[whos_turn]
-        messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
-        whos_turn = (whos_turn + 1) % len(personalities)
+    for _ in range(10):  # Loop runs 10 times to create multiple sets of messages
+        messages = []  # Initialize messages list inside the loop
+        for _ in range(10):  # Inner loop runs 10 times
+            personality_talking = personalities[whos_turn]
+            messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
+            whos_turn = (whos_turn + 1) % len(personalities)
     print(messages)
