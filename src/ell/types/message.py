@@ -6,15 +6,12 @@ import numpy as np
 import base64
 from io import BytesIO
 from PIL import Image as PILImage
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
 from sqlmodel import Field
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
-
 from ell.util.serialization import serialize_image
+
 _lstr_generic = Union[_lstr, str]
 InvocableTool = Callable[..., Union["ToolResult", _lstr_generic, List["ContentBlock"], ]]
 
@@ -23,13 +20,12 @@ class ToolResult(BaseModel):
     result: List["ContentBlock"]
 
 class ToolCall(BaseModel):
-    tool : InvocableTool
-    tool_call_id : Optional[_lstr_generic] = Field(default=None)
-    params : Union[Type[BaseModel], BaseModel]
+    tool: InvocableTool
+    tool_call_id: Optional[_lstr_generic] = Field(default=None)
+    params: Union[Type[BaseModel], BaseModel]
+
     def __call__(self, **kwargs):
         assert not kwargs, "Unexpected arguments provided. Calling a tool uses the params provided in the ToolCall."
-
-        # XXX: TODO: MOVE TRACKING CODE TO _TRACK AND OUT OF HERE AND API.
         return self.tool(**self.params.model_dump())
 
     def call_and_collect_as_message_block(self):
@@ -39,10 +35,8 @@ class ToolCall(BaseModel):
     def call_and_collect_as_message(self):
         return Message(role="user", content=[self.call_and_collect_as_message_block()])
 
-
-class ContentBlock(BaseModel):    
+class ContentBlock(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
     text: Optional[_lstr_generic] = Field(default=None)
     image: Optional[Union[PILImage.Image, str, np.ndarray]] = Field(default=None)
     audio: Optional[Union[np.ndarray, List[float]]] = Field(default=None)
@@ -98,12 +92,18 @@ class ContentBlock(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                img_data = base64.b64decode(v)
-                img = PILImage.open(BytesIO(img_data))
-                if img.mode not in ('L', 'RGB', 'RGBA'):
-                    img = img.convert('RGB')
-                return img
-            except (ValueError, base64.binascii.Error) as e:
+                if v.startswith('data:image'):
+                    img_data = base64.b64decode(v.split(',')[1])
+                    img = PILImage.open(BytesIO(img_data))
+                    if img.mode not in ('L', 'RGB', 'RGBA'):
+                        img = img.convert('RGB')
+                    return img
+                else:
+                    img = PILImage.open(v)
+                    if img.mode not in ('L', 'RGB', 'RGBA'):
+                        img = img.convert('RGB')
+                    return img
+            except (ValueError, base64.binascii.Error, PILImage.UnidentifiedImageError) as e:
                 raise ValueError(f"Invalid image input: {e}")
         if isinstance(v, np.ndarray):
             if v.ndim == 3 and v.shape[2] in (3, 4):
