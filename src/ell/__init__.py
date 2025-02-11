@@ -16,7 +16,7 @@ import ell.models
 from ell.configurator import *
 
 # Consolidate imports from ell.types.message
-from ell.types.message import Message, ContentBlock
+from ell.types.message import system, user, assistant, Message, ContentBlock
 
 # Add a new navigation link
 NAVIGATION_LINKS = [
