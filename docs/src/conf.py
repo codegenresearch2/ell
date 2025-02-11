@@ -16,6 +16,10 @@ author = 'William Guss'
 # Correct the extension name
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinxawesome_theme']
 
+# Include templates path
+templates_path = ['_templates']
+
+# Exclude patterns
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Options for HTML output -------------------------------------------------
@@ -34,6 +38,7 @@ html_theme_options = {
     "main_nav_links": {
         "Docs": "index",
         "API Reference": "reference/index",
+        "AI Jobs Board": "https://example.com/ai-jobs-board"  # Added entry for AI Jobs Board
     },
     "extra_header_link_icons": {
         "Discord": {
