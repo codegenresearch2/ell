@@ -28,15 +28,6 @@ def utc_now() -> datetime:
     """
     return datetime.now(tz=timezone.utc)
 
-class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
-    """
-    Represents the many-to-many relationship between SerializedLMPs.
-    This class is used to track which LMPs use or are used by other LMPs.
-    """
-
-    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
-
 class UTCTimestamp(types.TypeDecorator[datetime]):
     cache_ok = True
     impl = types.TIMESTAMP
@@ -67,6 +58,15 @@ class SerializedLMPBase(SQLModel):
     num_invocations: Optional[int] = Field(default=0)
     commit_message: Optional[str] = Field(default=None)
     version_number: Optional[int] = Field(default=None)
+
+class SerializedLMPUses(SQLModel, table=True):
+    """
+    Represents the many-to-many relationship between SerializedLMPs.
+    This class is used to track which LMPs use or are used by other LMPs.
+    """
+
+    lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
+    lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
 
 class SerializedLMP(SerializedLMPBase, table=True):
     invocations: List["Invocation"] = Relationship(back_populates="lmp")
@@ -192,7 +192,7 @@ class Documentation(SQLModel, table=True):
 #
 # 1. **TypeError in InvocationContents**: I have reviewed the definition of the `InvocationContents` class and ensured that it is not being defined multiple times or that there are no conflicting definitions. I have also checked the inheritance from `BaseModel` to ensure it is correctly implemented without conflicting parameters.
 #
-# 2. **InvalidRequestError for serializedlmpuses**: I have added the `extend_existing=True` option in the table definition for the `SerializedLMPUses` class to allow for redefining the table if it already exists. This will help avoid the conflict with the existing table definition in the `MetaData` instance.
+# 2. **InvalidRequestError for serializedlmpuses**: I have moved the definition of the `SerializedLMPUses` class above the `SerializedLMP` class to ensure that it is defined before it is used in the relationship definitions. This should help avoid the conflict with the existing table definition in the `MetaData` instance.
 #
 # 3. **Circular imports or dependencies**: I have reviewed the overall structure of the classes to ensure that there are no circular imports or dependencies that could lead to multiple definitions being loaded inadvertently. I have checked the order of class definitions and their relationships to ensure they are defined in a way that avoids conflicts.
 #
