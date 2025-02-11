@@ -15,7 +15,7 @@ import ell.models
 # Import everything from configurator
 from ell.configurator import *
 
-# Import necessary classes from ell.types.message
+# Consolidate imports
 from ell.types.message import Message, ContentBlock
 
 # Add new navigation links in documentation
