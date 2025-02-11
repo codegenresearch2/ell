@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 from functools import cached_property
 import sqlalchemy.types as types
-from ell.types.message import Any, Any, Field, Message, Optional
+from ell.types.message import Any, Field, Message, Optional
 from sqlmodel import Column, Field, SQLModel, Relationship
 from typing import Optional, Dict, List, Union, Any
 from pydantic import field_validator
@@ -121,8 +121,24 @@ class InvocationContents(InvocationContentsBase, table=True):
 
 class Invocation(InvocationBase, table=True):
     lmp: SerializedLMP = Relationship(back_populates="invocations")
-    consumed_by: List["Invocation"] = Relationship(back_populates="consumes", link_model=InvocationTrace)
-    consumes: List["Invocation"] = Relationship(back_populates="consumed_by", link_model=InvocationTrace)
+    consumed_by: List["Invocation"] = Relationship(
+        back_populates="consumes",
+        link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id == InvocationTrace.invocation_consumer_id",
+            secondaryjoin="Invocation.id == InvocationTrace.invocation_consuming_id",
+            foreign_keys=[InvocationTrace.invocation_consumer_id, InvocationTrace.invocation_consuming_id]
+        )
+    )
+    consumes: List["Invocation"] = Relationship(
+        back_populates="consumed_by",
+        link_model=InvocationTrace,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Invocation.id == InvocationTrace.invocation_consuming_id",
+            secondaryjoin="Invocation.id == InvocationTrace.invocation_consumer_id",
+            foreign_keys=[InvocationTrace.invocation_consuming_id, InvocationTrace.invocation_consumer_id]
+        )
+    )
     used_by: Optional["Invocation"] = Relationship(back_populates="uses", sa_relationship_kwargs={"remote_side": "Invocation.id"})
     uses: List["Invocation"] = Relationship(back_populates="used_by")
     contents: InvocationContents = Relationship(back_populates="invocation")
