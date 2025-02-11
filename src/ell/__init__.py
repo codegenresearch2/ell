@@ -3,10 +3,14 @@ ell is a Python library for language model programming (LMP). It provides a simp
 and intuitive interface for working with large language models.
 """
 
-# Import necessary modules and classes for better code readability and maintainability
-from ell.lmp.simple import simple
-from ell.lmp.tool import tool
-from ell.lmp.complex import complex
+# Import standard library modules
+import sys
+
+# Import third-party modules
+import numpy as np
+
+# Import ell modules
+from ell.lmp import simple, tool, complex
 from ell.types.message import Message, ContentBlock, system, user, assistant
 from ell import __version__ as ell_version
 
@@ -16,19 +20,35 @@ import ell.models
 # Import everything from configurator for easy access to configuration functions
 from ell.configurator import *
 
-# Note: The following sections are not included in the provided code snippet,
-# but they are mentioned in the oracle feedback for alignment with the gold code.
+# Import local modules
+from my_prompt import MyPrompt, get_random_length
 
-# Import Structure:
-# The gold code imports specific classes directly from their respective modules.
-# This enhances clarity and maintainability.
+# Version information
+print(f"Using ell version: {ell_version}")
 
-# Version Import:
-# The gold code imports the version using a specific structure for consistency.
+# Additional imports for serialization handling for images
+import pickle
+import base64
 
-# Order of Imports:
-# The gold code follows a specific sequence for imports that enhances readability.
+# Additional imports for documentation navigation links
+from docutils.core import publish_parts
+from docutils.parsers.rst import directives
 
-# Comment Clarity:
-# Comments should be specific to the task at hand and relevant to the current implementation.
-# Irrelevant comments should be removed to keep the code clean and focused.
+# Define the hello function
+@simple(model="gpt-4o-mini")
+def hello(world: str):
+    """Your goal is to be really meant to the other guy while saying hello"""
+    name = world.capitalize()
+    number_of_chars_in_name = get_random_length()
+
+    return f"Say hello to {name} in {number_of_chars_in_name} characters or more!"
+
+# Main execution
+if __name__ == "__main__":
+    # Set verbose mode and store
+    config.verbose = True
+    set_store(PostgresStore('postgresql://postgres:postgres@localhost:5432/ell'), autocommit=True)
+
+    # Generate a greeting
+    greeting = hello("sam altman")
+    print(greeting)
