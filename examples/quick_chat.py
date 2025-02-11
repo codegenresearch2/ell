@@ -18,9 +18,14 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """Generate a backstory for a character."""
+    """
+    Generates a structured backstory for a character, including the character's name.
+    
+    Returns:
+        str: A string formatted as "Name: <name>\nBackstory: <backstory>".
+    """
     chosen_name = random.choice(names_list)
-    return f"Generate a backstory for {chosen_name}."
+    return f"Name: {chosen_name}\nBackstory: {chosen_name} has a fascinating past."
 
 def format_message_history(message_history: List[Tuple[str, str]]) -> str:
     return "\n".join([f"{name}: {message}" for name, message in message_history])
@@ -47,6 +52,7 @@ if __name__ == "__main__":
     for personality in personalities:
         parts = personality.split(": ")
         names.append(parts[1])
+        backstories.append(parts[2])  # Assuming the backstory starts from the third part
 
     whos_turn = 0
     for _ in range(100):
