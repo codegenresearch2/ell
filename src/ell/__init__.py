@@ -1,5 +1,6 @@
-from ell.configurator import *
-from ell.models import *
+from ell.__version__ import __version__
+from ell.configurator import Configurator
+from ell.models import ModelA, ModelB
 
 # Ensure the imports are from the correct modules and in the correct order
 
@@ -9,10 +10,10 @@ from ell.models import *
 
 # Ensure the structure and grouping of imports match the gold code
 
-# Import everything from configurator
-
-# Import all models
+# Import specific components or classes as needed
 
 # Ensure there are no unnecessary comments
 
 # Ensure the code formatting is consistent with the gold code
+
+# Include the version import if necessary
