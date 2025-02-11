@@ -18,10 +18,7 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
-
-Name: <name>
-Backstory: <3 sentence backstory>'"""
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     chosen_name = random.choice(names_list)
     return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
@@ -42,7 +39,7 @@ if __name__ == "__main__":
     from ell.stores.sql import SQLiteStore
     ell.set_store('./logdir', autocommit=True)
     
-    for _ in range(100):
+    for __ in range(100):  # Using __ to indicate the variable is intentionally unused
         messages: List[Tuple[str, str]] = []
         personalities = [create_personality(), create_personality()]
 
@@ -53,10 +50,14 @@ if __name__ == "__main__":
             names.append(parts[0].split(": ")[1])
             backstories.append(parts[1].split(": ")[1])
 
+        # Print statements for debugging and visibility
+        print("Names:", names)
+        print("Backstories:", backstories)
+
         whos_turn = 0
         for _ in range(10):
             personality_talking = personalities[whos_turn]
             messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
             whos_turn = (whos_turn + 1) % len(personalities)
 
-    print(messages)
+    print("Final messages:", messages)
