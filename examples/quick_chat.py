@@ -18,7 +18,12 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
+    """
+    Generates a backstory for a character including name.
+    The function chooses a random name from the list and formats it as follows:
+    Name: <name>
+    Backstory: <3 sentence backstory>
+    """
     chosen_name = random.choice(names_list)
     return f"Name: {chosen_name}\nBackstory: A brief backstory about {chosen_name}."
 
