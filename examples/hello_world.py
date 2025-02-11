@@ -4,6 +4,7 @@ import numpy as np
 from ell.stores.sql import SQLiteStore
 
 # Configuration settings for ell
+# These settings enable verbose mode and set the store to a SQLite database located at './logdir'
 ell.config.verbose = True
 ell.set_store('./logdir', autocommit=True)
 
