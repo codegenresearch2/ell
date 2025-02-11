@@ -1,31 +1,14 @@
-# 1. Consistency in Comments
-# Ensure that comments are concise and directly related to the code they describe.
-
-# 2. Error Handling
-# Be more specific in exception handling to catch specific issues.
-
-# 3. Return Types
-# Explicitly state return types where applicable to enhance readability and understanding.
-
-# 4. Field Serialization
-# Ensure all possible content types are handled consistently, including self.parsed.
-
-# 5. Code Formatting
-# Maintain a consistent style for better readability.
-
-# 6. Type Hinting
-# Use specific types to enhance clarity and precision.
-
-# 7. Functionality Completeness
-# Ensure all methods and functionalities present in the gold code are included.
-
 import json
 from PIL import Image
 from io import BytesIO
 import base64
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
-from typing import Optional, Union, List, Type
+from typing import Optional, Union, List, Type, Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Import necessary types
+from typing import Callable
 
 class ToolResult(BaseModel):
     tool_call_id: str
@@ -224,12 +207,39 @@ class Message(BaseModel):
 
 # Helper Functions
 def system(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a system message with the given content.
+
+    Args:
+    content (str): The content of the system message.
+
+    Returns:
+    Message: A Message object with role set to 'system' and the provided content.
+    """
     return Message(role="system", content=content)
 
 def user(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create a user message with the given content.
+
+    Args:
+    content (str): The content of the user message.
+
+    Returns:
+    Message: A Message object with role set to 'user' and the provided content.
+    """
     return Message(role="user", content=content)
 
 def assistant(content: Union[str, List[ContentBlock]]) -> Message:
+    """
+    Create an assistant message with the given content.
+
+    Args:
+    content (str): The content of the assistant message.
+
+    Returns:
+    Message: A Message object with role set to 'assistant' and the provided content.
+    """
     return Message(role="assistant", content=content)
 
 LMPParams = Dict[str, Any]
