@@ -50,6 +50,7 @@ class SerializedLMPBase(SQLModel):
 class SerializedLMPUses(SQLModel, table=True, extend_existing=True):
     """
     Represents the many-to-many relationship between SerializedLMPs.
+    This class is used to track which LMPs use or are used by other LMPs.
     """
     lmp_user_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
     lmp_using_id: Optional[str] = Field(default=None, foreign_key="serializedlmp.lmp_id", primary_key=True, index=True)
