@@ -19,4 +19,4 @@ def hello(world: str):
 
 if __name__ == "__main__":
     greeting = hello("sam altman")  # > "hello sama! ... "
-    print(greeting.split(" ")[-1])
+    print(greeting.split(" ")[-1])  # Outputs the last word of the greeting
