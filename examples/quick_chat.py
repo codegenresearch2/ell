@@ -18,11 +18,7 @@ names_list = [
 
 @ell.simple(model="gpt-4o-2024-08-06", temperature=1.0)
 def create_personality() -> str:
-    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list. Format as follows.
-
-    Name: <name>
-    Backstory: <3 sentence backstory>"""
-
+    """You are backstoryGPT. You come up with a backstory for a character including name. Choose a completely random name from the list."""
     chosen_name = random.choice(names_list)
     backstory = f"This is a backstory for {chosen_name}."
     return f"Name: {chosen_name}\nBackstory: {backstory}"
@@ -50,11 +46,16 @@ if __name__ == "__main__":
     names = []
     for personality in personalities:
         parts = personality.split("\n")
-        names.append(parts[0].split(": ")[1])
+        name = parts[0].split(": ")[1]
+        if name:  # Ensure we only add non-empty names
+            names.append(name)
 
     whos_turn = 0
-    for _ in range(100):
+    for __ in range(100):
         personality_talking = personalities[whos_turn]
         messages.append((names[whos_turn], chat(messages, personality=personality_talking)))
         whos_turn = (whos_turn + 1) % len(personalities)
+
+    # Print the names after they have been populated
+    print(names)
     print(messages)
